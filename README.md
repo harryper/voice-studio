@@ -16,6 +16,8 @@ theme → gpt-5.5 script (fallback: MiniMax-M2.7) → MiniMax TTS → mix with B
 
 Duration policy: default target is ~15 minutes, but **12-25 minutes is acceptable**. Do not recalibrate/rewrite solely for duration if output falls in that range.
 
+Writing policy: script must create listener immersion and surface the theme within the first 60-90 seconds. Use second-person sensory scenes and low cognitive load; avoid sounding like a knowledge article.
+
 ## Scripts
 
 | Script | Purpose |

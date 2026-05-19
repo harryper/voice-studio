@@ -54,18 +54,24 @@ This skill no longer defaults to parsing other videos. That workflow was token-h
 
 Write directly in a sleep/narration cadence. Do not create a long outline first unless the user asks.
 
+The script must first work as **immersive sleep audio**, not as a compressed knowledge article. The listener should feel personally placed inside the scene, become calmer within the first minute, and clearly understand the theme early.
+
 Structure:
 
-1. Quiet hook: 20-40 seconds, one unsettling or expansive question.
-2. Slow descent: explain the idea simply, with concrete images.
-3. Cosmic scale expansion: move from human scale to Earth, stars, galaxies, time, or deep space.
-4. Gentle mystery: keep wonder, avoid hard-selling or sensational shouting.
-5. Soft landing: end calmly, with a Jesse sign-off only if natural.
+1. Quiet hook: 20-40 seconds, one unsettling or expansive question that names or strongly reveals the theme immediately.
+2. Immersive descent: place the listener in a concrete, low-stimulation scene — lying in bed, looking at the ceiling, hearing night sounds, watching darkness, breathing slower.
+3. Theme anchoring: within the first 60-90 seconds, clearly return to the exact theme/question. Do not delay the topic for several minutes.
+4. Gentle scale expansion: move from the listener's body and room → city/night sky → Earth → solar system → stars → galaxies → deep time/space.
+5. Soft repetition: repeat the core theme in different, quiet forms throughout the script so the listener never loses the subject.
+6. Soft landing: end calmly, with a Jesse sign-off only if natural.
 
 Rules:
 
 - Before drafting, estimate required script length from target duration: `target_minutes × calibrated_chars_per_minute`. Use the latest measured speed from prior productions when available. If no calibration exists, start with ~230 Chinese chars/min for `Chinese (Mandarin)_Gentle_Youth` speed `0.85`.
 - After TTS generation, check actual audio duration. The default acceptable range is **12-25 minutes**; if the generated audio falls within this range, do **not** recalibrate or rewrite just for duration. Only if it is shorter than 12 minutes or longer than 25 minutes, adjust future script length using the observed ratio: `new_chars = current_chars × target_seconds / actual_seconds`.
+- The listener must have **代入感**: use second-person perspective (`你`) often, concrete sensations, slow breathing cues, darkness, distance, silence, temperature, and bodily relaxation.
+- The opening must quickly answer: “我现在在听什么主题？” If the listener cannot identify the theme within the first minute, rewrite the opening.
+- Keep cognitive load low. Do not stack too many facts, numbers, or definitions. Use facts as quiet stepping stones, not lecture notes.
 - Use short paragraphs and natural pauses.
 - Prefer calm certainty over clickbait.
 - Avoid dense citation-style exposition.
