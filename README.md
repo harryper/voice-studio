@@ -14,6 +14,8 @@ theme → gpt-5.5 script (fallback: MiniMax-M2.7) → MiniMax TTS → mix with B
 4. Mix with default looped BGM (3% low-volume bed)
 5. Publish as MP3 and return direct download link
 
+Duration policy: default target is ~15 minutes, but **12-25 minutes is acceptable**. Do not recalibrate/rewrite solely for duration if output falls in that range.
+
 ## Scripts
 
 | Script | Purpose |

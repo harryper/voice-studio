@@ -65,7 +65,7 @@ Structure:
 Rules:
 
 - Before drafting, estimate required script length from target duration: `target_minutes × calibrated_chars_per_minute`. Use the latest measured speed from prior productions when available. If no calibration exists, start with ~230 Chinese chars/min for `Chinese (Mandarin)_Gentle_Youth` speed `0.85`.
-- After TTS generation, check actual audio duration. If it is outside the acceptable range (default target 15 minutes; acceptable roughly 14-16 minutes unless user says otherwise), adjust future script length using the observed ratio: `new_chars = current_chars × target_seconds / actual_seconds`.
+- After TTS generation, check actual audio duration. The default acceptable range is **12-25 minutes**; if the generated audio falls within this range, do **not** recalibrate or rewrite just for duration. Only if it is shorter than 12 minutes or longer than 25 minutes, adjust future script length using the observed ratio: `new_chars = current_chars × target_seconds / actual_seconds`.
 - Use short paragraphs and natural pauses.
 - Prefer calm certainty over clickbait.
 - Avoid dense citation-style exposition.
