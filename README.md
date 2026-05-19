@@ -38,7 +38,7 @@ chmod 600 scripts/minimax_api_key.txt
 python3 scripts/minimax_tts.py --text script.md --out voice.mp3
 
 # Mix with BGM
-python3 scripts/mix_with_bgm.py --voice voice.mp3 --out final.mp3
+python3 scripts/mix_with_bgm.py --voice voice.mp3 --out final.mp3 --bgm-volume 0.03
 
 # Publish
 python3 scripts/publish_download.py --file final.mp3 --folder voice-studio --name my-audio.mp3
@@ -46,7 +46,7 @@ python3 scripts/publish_download.py --file final.mp3 --folder voice-studio --nam
 
 ## Assets
 
-- `assets/bgm_default.mp3` — default ambient BGM (low volume, felt more than heard)
+- `assets/bgm_default.mp3` — default ambient BGM (3% volume by default, felt more than heard)
 
 ## TTS Config (defaults)
 

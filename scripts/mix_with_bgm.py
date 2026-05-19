@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Mix narration with a looping/cropped BGM bed."""
-import argparse, subprocess, sys
+"""Mix narration with a low-volume BGM bed. Simple mixing, no normalization."""
+import argparse, os, re, subprocess, sys
 from pathlib import Path
 
 try:
@@ -17,37 +17,62 @@ def ffmpeg_exe():
     return "ffmpeg"
 
 
+def detect_duration(ff, path):
+    r = subprocess.run([ff, "-i", path, "-f", "null", "-"],
+        capture_output=True, text=True)
+    for line in r.stderr.split("\n"):
+        m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", line)
+        if m:
+            h, mi, sec = float(m.group(1)), float(m.group(2)), float(m.group(3))
+            return h * 3600 + mi * 60 + sec
+    return None
+
+
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--voice", required=True, help="Narration audio")
-    ap.add_argument("--bgm", default=DEFAULT_BGM, help="BGM audio")
-    ap.add_argument("--out", required=True, help="Output mp3")
-    ap.add_argument("--voice-volume", type=float, default=0.90)
-    ap.add_argument("--bgm-volume", type=float, default=0.05)
-    ap.add_argument("--bitrate", default="192k")
+    ap = argparse.ArgumentParser(description="Mix narration with ambient BGM")
+    ap.add_argument("--voice", required=True)
+    ap.add_argument("--bgm", default=DEFAULT_BGM)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--bgm-volume", type=float, default=0.03,
+                    help="BGM volume as linear multiplier (default 0.03, i.e. 3%%)")
     args = ap.parse_args()
 
+    ff = ffmpeg_exe()
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
+
+    dur = detect_duration(ff, args.voice)
+    if dur is None:
+        print("ERROR: could not detect voice duration", file=sys.stderr)
+        sys.exit(1)
+
+    bgm_vol = args.bgm_volume
+    dur_sec = dur
+
+    # Simple approach:
+    # 1. BGM: trim to voice duration, set volume, pad if needed
+    # 2. Mix with amix (duration=first keeps voice length)
+    # amix sums levels then divides by 2 — we compensate by doubling the voice
+    voice_gain = 2.0  # counter the /2 from amix
     filt = (
-        f"[0:a]volume={args.voice_volume}[voice];"
-        f"[1:a]volume={args.bgm_volume}[bgm];"
-        "[voice][bgm]amix=inputs=2:duration=first:dropout_transition=0,"
-        "alimiter=limit=0.95[a]"
+        f"[0:a]volume={voice_gain}[v];"
+        f"[1:a]volume={bgm_vol},atrim=0:{dur_sec},asetpts=PTS-STARTPTS,apad=whole_dur={dur_sec}[a_bgm];"
+        f"[v][a_bgm]amix=inputs=2:duration=first:dropout_transition=0[a]"
     )
+
     cmd = [
-        ffmpeg_exe(), "-y",
+        ff, "-y",
         "-i", args.voice,
-        "-stream_loop", "-1", "-i", args.bgm,
+        "-i", args.bgm,
         "-filter_complex", filt,
         "-map", "[a]",
         "-ar", "44100", "-ac", "2",
-        "-c:a", "libmp3lame", "-b:a", args.bitrate,
-        "-id3v2_version", "3", "-write_xing", "0",
+        "-c:a", "libmp3lame", "-b:a", "192k",
+        "-id3v2_version", "3",
         str(out),
     ]
     subprocess.run(cmd, check=True)
-    print(out)
+    print(f"OK: {out} ({out.stat().st_size / 1024 / 1024:.1f} MB, {dur_sec:.0f}s), BGM vol={bgm_vol}")
 
 
 if __name__ == "__main__":
