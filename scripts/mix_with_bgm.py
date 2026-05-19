@@ -50,20 +50,21 @@ def main():
     dur_sec = dur
 
     # Simple approach:
-    # 1. BGM: trim to voice duration, set volume, pad if needed
-    # 2. Mix with amix (duration=first keeps voice length)
+    # 1. Loop BGM at input level with -stream_loop -1
+    # 2. Trim looped BGM to exactly the voice duration
+    # 3. Mix with amix (duration=first keeps voice length)
     # amix sums levels then divides by 2 — we compensate by doubling the voice
     voice_gain = 2.0  # counter the /2 from amix
     filt = (
         f"[0:a]volume={voice_gain}[v];"
-        f"[1:a]volume={bgm_vol},atrim=0:{dur_sec},asetpts=PTS-STARTPTS,apad=whole_dur={dur_sec}[a_bgm];"
+        f"[1:a]volume={bgm_vol},atrim=0:{dur_sec},asetpts=PTS-STARTPTS[a_bgm];"
         f"[v][a_bgm]amix=inputs=2:duration=first:dropout_transition=0[a]"
     )
 
     cmd = [
         ff, "-y",
         "-i", args.voice,
-        "-i", args.bgm,
+        "-stream_loop", "-1", "-i", args.bgm,
         "-filter_complex", filt,
         "-map", "[a]",
         "-ar", "44100", "-ac", "2",

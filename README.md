@@ -11,7 +11,7 @@ theme → gpt-5.5 script (fallback: MiniMax-M2.7) → MiniMax TTS → mix with B
 1. Receive a topic from the user
 2. Spawn a subagent to write an original Chinese narration script (~3800-4500 chars)
 3. Generate narration audio in a single MiniMax HTTP call
-4. Mix with default BGM (low volume bed)
+4. Mix with default looped BGM (3% low-volume bed)
 5. Publish as MP3 and return direct download link
 
 ## Scripts
@@ -46,7 +46,7 @@ python3 scripts/publish_download.py --file final.mp3 --folder voice-studio --nam
 
 ## Assets
 
-- `assets/bgm_default.mp3` — default ambient BGM (3% volume by default, felt more than heard)
+- `assets/bgm_default.mp3` — default ambient BGM (looped for full narration, 3% volume by default, felt more than heard)
 
 ## TTS Config (defaults)
 

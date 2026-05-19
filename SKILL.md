@@ -94,7 +94,7 @@ The script sends the full narration in one HTTP request and saves the response h
 
 ## BGM mixing: default final step
 
-After voice generation, mix with **default BGM** by default. Keep the MiniMax voice track natural and intact; only lower the BGM and layer it underneath.
+After voice generation, mix with **default BGM** by default. Keep the MiniMax voice track natural and intact; loop the BGM for the full voice duration, lower it to 3%, and layer it underneath.
 
 ```bash
 python3 skills/voice-studio/scripts/mix_with_bgm.py \
@@ -107,6 +107,7 @@ python3 skills/voice-studio/scripts/mix_with_bgm.py \
 Rules:
 - Main deliverable is the **mixed** MP3 unless the user explicitly asks for voice-only.
 - Default BGM volume is **3%** (`0.03`). Keep it as a subtle atmosphere bed, not audible background music.
+- BGM must loop for the full narration duration; do not pad the tail with silence.
 - Do **not** use loudnorm/overall normalization by default; preserve the raw MiniMax voice sound and compensate only for `amix` level behavior in the script.
 - If BGM asset is missing or mixing fails, publish voice-only and note it clearly.
 
