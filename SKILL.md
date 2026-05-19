@@ -7,7 +7,7 @@ description: "voice-studio skill: create original ~15-minute audio narrations (s
 
 Technical skill id: `voice-studio`. User-facing name: **voice-studio skill**.
 
-Default task: the user gives **one topic/theme**, and you create an original narration audio around **20 minutes** long.
+Default task: the user gives **one topic/theme**, and you create an original narration audio around **15 minutes** long.
 
 ## Script writing
 
@@ -30,7 +30,7 @@ This skill no longer defaults to parsing other videos. That workflow was token-h
 
 **Why single-call:**
 - MiniMax HTTP TTS supports up to **10,000 characters** per call
-- ~5000-6000 char scripts are well within this limit
+- ~3800-4500 char scripts are well within this limit
 - No segmentation, no chunk stitching, no tempo drift
 
 ## Canonical assets
@@ -44,7 +44,7 @@ This skill no longer defaults to parsing other videos. That workflow was token-h
 
 1. Receive a topic/theme from the user.
 2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
-3. Target length: **~5000-6000 Chinese characters**. Do not over-pack facts; keep it slow and breathable.
+3. Target length: **~3800-4500 Chinese characters**. Do not over-pack facts; keep it slow and breathable.
 4. Narrator identity: use **Jesse** if self-reference is needed.
 5. Generate narration with MiniMax HTTP TTS in a **single call**.
 6. Mix the narration with **default BGM** by default.
