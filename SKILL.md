@@ -40,7 +40,7 @@ This skill no longer defaults to parsing other videos. That workflow was token-h
 - **Public downloads root:** `/root/.openclaw/workspace/public-downloads/`
 - **Public URL prefix:** `http://43.173.67.197:18082/` when static server is running
 
-## Default workflow: theme → original ~20-minute audio
+## Default workflow: theme → original ~15-minute audio
 
 1. Receive a topic/theme from the user.
 2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
