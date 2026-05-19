@@ -9,7 +9,7 @@ theme → gpt-5.5 script (fallback: MiniMax-M2.7) → MiniMax TTS → mix with B
 ```
 
 1. Receive a topic from the user
-2. Spawn a subagent to write an original Chinese narration script (~3800-4500 chars)
+2. Spawn a subagent to write an original Chinese narration script sized from target duration and calibrated reading speed (default ~3300-3600 Chinese chars for ~15 min)
 3. Generate narration audio in a single MiniMax HTTP call
 4. Mix with default looped BGM (3% low-volume bed)
 5. Publish as MP3 and return direct download link

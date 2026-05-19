@@ -30,7 +30,7 @@ This skill no longer defaults to parsing other videos. That workflow was token-h
 
 **Why single-call:**
 - MiniMax HTTP TTS supports up to **10,000 characters** per call
-- ~3800-4500 char scripts are well within this limit
+- Default ~15-minute scripts are well within this limit
 - No segmentation, no chunk stitching, no tempo drift
 
 ## Canonical assets
@@ -44,7 +44,7 @@ This skill no longer defaults to parsing other videos. That workflow was token-h
 
 1. Receive a topic/theme from the user.
 2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
-3. Target length: **~3800-4500 Chinese characters**. Do not over-pack facts; keep it slow and breathable.
+3. Determine script length from the target audio duration and the current voice reading speed. Do **not** use a fixed length blindly. For the default MiniMax `Chinese (Mandarin)_Gentle_Youth` at speed `0.85`, recent calibration is about **230 Chinese characters/minute** (3809 Chinese chars → 16m31s). For a ~15-minute target, draft about **3300-3600 Chinese characters** first, then keep it slow and breathable. Avoid scripts that are obviously too short or too long.
 4. Narrator identity: use **Jesse** if self-reference is needed.
 5. Generate narration with MiniMax HTTP TTS in a **single call**.
 6. Mix the narration with **default BGM** by default.
@@ -64,6 +64,8 @@ Structure:
 
 Rules:
 
+- Before drafting, estimate required script length from target duration: `target_minutes × calibrated_chars_per_minute`. Use the latest measured speed from prior productions when available. If no calibration exists, start with ~230 Chinese chars/min for `Chinese (Mandarin)_Gentle_Youth` speed `0.85`.
+- After TTS generation, check actual audio duration. If it is outside the acceptable range (default target 15 minutes; acceptable roughly 14-16 minutes unless user says otherwise), adjust future script length using the observed ratio: `new_chars = current_chars × target_seconds / actual_seconds`.
 - Use short paragraphs and natural pauses.
 - Prefer calm certainty over clickbait.
 - Avoid dense citation-style exposition.
