@@ -1,6 +1,6 @@
 # voice-studio
 
-Generate original ~20-minute audio narrations (sleep / narration / ambient) from a user-provided theme, using MiniMax `speech-2.8-hd` HTTP TTS.
+Generate original ~15-minute audio narrations (sleep / narration / ambient) from a user-provided theme, using MiniMax `speech-2.8-hd` HTTP TTS.
 
 ## Workflow
 
@@ -9,7 +9,7 @@ theme → gpt-5.5 script (fallback: MiniMax-M2.7) → MiniMax TTS → mix with B
 ```
 
 1. Receive a topic from the user
-2. Spawn a subagent to write an original Chinese narration script (~5000-6000 chars)
+2. Spawn a subagent to write an original Chinese narration script (~3800-4500 chars)
 3. Generate narration audio in a single MiniMax HTTP call
 4. Mix with default BGM (low volume bed)
 5. Publish as MP3 and return direct download link
