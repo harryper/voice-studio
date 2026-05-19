@@ -1,0 +1,137 @@
+---
+name: voice-studio
+description: "voice-studio skill: create original ~15-minute audio narrations (sleep/narration/ambient) from a user-provided theme, using MiniMax speech-2.8-hd HTTP TTS. Use when the user gives a topic/theme and asks to generate voice audio, 音频, TTS, 旁白, 科普助眠, or says voice-studio. Single-call MiniMax TTS handles up to 10000 chars — enough for full narration. Only process video links if the user explicitly asks to parse/extract a video."
+---
+
+# voice-studio skill
+
+Technical skill id: `voice-studio`. User-facing name: **voice-studio skill**.
+
+Default task: the user gives **one topic/theme**, and you create an original narration audio around **20 minutes** long.
+
+## Script writing
+
+Use **gpt-5.5** (custom-fm-5-5) for script drafting. If gpt-5.5 is unavailable, fall back to **MiniMax-M2.7** for writing. Spawn a child subagent with `sessions_spawn(runtime="subagent", mode="run", cleanup="delete", model="gpt-5.5")` (or `model="MiniMax-M2.7"` for fallback). The main session should only orchestrate the workflow: save the script, run TTS scripts, mix BGM, publish files, and report links. Do not draft the long narration directly in the main session.
+
+**Important constraint for content style:** The script is for a **narration/voice blog**, not a document or article with formal section headers. Do not prefix paragraphs with titles or labels (e.g. "一、", "1.", "【】", or bolded headings). Write in continuous, breathable prose with natural paragraph breaks — the kind that sounds like someone talking softly, not reading a report. Keep the tone intimate, unhurried, and suited for listening rather than scanning.
+
+This skill no longer defaults to parsing other videos. That workflow was token-heavy. Only download/transcribe video links if the user explicitly asks: `解析这个视频` / `提取视频文案` / `按这个视频改`.
+
+## TTS Provider: MiniMax HTTP TTS (as of 2026-05-19)
+
+**API Key:** stored in `scripts/minimax_api_key.txt` (permission 600)
+
+**Endpoint:** `https://api.minimaxi.com/v1/t2a_v2` (HTTP, not WebSocket)
+
+**Model:** `speech-2.8-hd`
+
+**Voice:** `Chinese (Mandarin)_Gentle_Youth` (default; 温和青年，柔和亲切，适合助眠旁白)
+- Speed: `0.85` (默认，慢速；适合助眠节奏)
+
+**Why single-call:**
+- MiniMax HTTP TTS supports up to **10,000 characters** per call
+- ~5000-6000 char scripts are well within this limit
+- No segmentation, no chunk stitching, no tempo drift
+
+## Canonical assets
+
+- **TTS:** MiniMax HTTP `speech-2.8-hd` via `scripts/minimax_tts.py`
+- **BGM:** `skills/voice-studio/assets/bgm_default.mp3` (默认混入成品；除非用户明确要 voice-only)
+- **Public downloads root:** `/root/.openclaw/workspace/public-downloads/`
+- **Public URL prefix:** `http://43.173.67.197:18082/` when static server is running
+
+## Default workflow: theme → original ~20-minute audio
+
+1. Receive a topic/theme from the user.
+2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
+3. Target length: **~5000-6000 Chinese characters**. Do not over-pack facts; keep it slow and breathable.
+4. Narrator identity: use **Jesse** if self-reference is needed.
+5. Generate narration with MiniMax HTTP TTS in a **single call**.
+6. Mix the narration with **default BGM** by default.
+7. Publish the mixed final MP3 as the main direct download link.
+
+## Script style
+
+Write directly in a sleep/narration cadence. Do not create a long outline first unless the user asks.
+
+Structure:
+
+1. Quiet hook: 20-40 seconds, one unsettling or expansive question.
+2. Slow descent: explain the idea simply, with concrete images.
+3. Cosmic scale expansion: move from human scale to Earth, stars, galaxies, time, or deep space.
+4. Gentle mystery: keep wonder, avoid hard-selling or sensational shouting.
+5. Soft landing: end calmly, with a Jesse sign-off only if natural.
+
+Rules:
+
+- Use short paragraphs and natural pauses.
+- Prefer calm certainty over clickbait.
+- Avoid dense citation-style exposition.
+- Do not fabricate specific named studies, dates, or numbers unless verified or broadly established.
+- For speculative ideas, say `也许`, `可能`, `有一种想法认为`.
+- Keep it original; do not imitate or preserve another creator's signature phrases.
+
+## Token-saving rules
+
+- Do not transcribe videos unless explicitly requested.
+- Do not write multiple drafts by default.
+- Do not ask a model to rewrite the entire script after drafting; draft once in final spoken form.
+- If the script is too long, trim locally rather than asking for another full rewrite.
+- Before full TTS, optionally make a 60-90 second sample only when the user asks for a 试听.
+
+## Generate narration: MiniMax HTTP single call
+
+```bash
+python3 skills/voice-studio/scripts/minimax_tts.py \
+  --text <script.md> \
+  --out <voice.mp3> \
+  --voice "Chinese (Mandarin)_Gentle_Youth" \
+  --speed 0.85 \
+  --retries 1
+```
+
+The script sends the full narration in one HTTP request and saves the response hex audio directly to MP3. No chunking, no stitching needed.
+
+## BGM mixing: default final step
+
+After voice generation, mix with **default BGM** by default. Very low BGM bed: felt more than heard, never compete with voice.
+
+```bash
+python3 skills/voice-studio/scripts/mix_with_bgm.py \
+  --voice <voice.mp3> \
+  --bgm skills/voice-studio/assets/bgm_default.mp3 \
+  --out <final-mixed.mp3> \
+  --voice-volume 0.90 \
+  --bgm-volume 0.05
+```
+
+Rules:
+- Main deliverable is the **mixed** MP3 unless the user explicitly asks for voice-only.
+- Keep BGM volume conservative (`0.03-0.06` typical).
+- If BGM asset is missing or mixing fails, publish voice-only and note it clearly.
+
+## Publish download link
+
+```bash
+python3 skills/voice-studio/scripts/publish_download.py \
+  --file <final-mixed.mp3> \
+  --folder cosmic-sleep \
+  --name <safe-name>.mp3
+```
+
+Return the direct URL:
+```
+http://43.173.67.197:18082/<folder>/<file>.mp3
+```
+
+Do not use OpenClaw control port `18789`; it requires auth and returns `Unauthorized`.
+
+## Legacy video mode
+
+Only use this when explicitly requested. For Douyin links:
+
+```bash
+python3 skills/voice-studio/scripts/download_douyin_web.py "https://v.douyin.com/.../" --out-dir tmp/cosmic-sleep/<slug>
+```
+
+Then transcribe with `faster_whisper`, lightly clean, replace original narrator self-reference with **Jesse**, and proceed to MiniMax HTTP TTS. Skip BGM unless explicitly requested.

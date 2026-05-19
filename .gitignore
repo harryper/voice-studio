@@ -1,0 +1,11 @@
+minimax_api_key.txt
+*.log
+*.pyc
+__pycache__/
+*.mp3
+*.wav
+*.m4a
+*.ogg
+tmp/
+*.tmp
+.DS_Store
