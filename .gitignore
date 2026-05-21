@@ -1,4 +1,5 @@
 minimax_api_key.txt
+azure_speech_key.txt
 *.log
 *.pyc
 __pycache__/
