@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -227,8 +228,12 @@ def list_jobs():
     jobs = []
     for fname in os.listdir(JOBS_DIR):
         if fname.endswith('.json'):
-            with open(os.path.join(JOBS_DIR, fname), encoding='utf-8') as f:
-                jobs.append(json.load(f))
+            try:
+                with open(os.path.join(JOBS_DIR, fname), encoding='utf-8') as f:
+                    jobs.append(json.load(f))
+            except json.JSONDecodeError:
+                # A single corrupt job file should not take down the whole UI.
+                continue
     jobs.sort(key=lambda x: x['created_at'], reverse=True)
     return jsonify(jobs)
 
@@ -248,6 +253,63 @@ def run_cmd(cmd, cwd=None):
     if result.returncode != 0:
         raise RuntimeError((result.stderr or result.stdout or '命令执行失败').strip()[-1200:])
     return result.stdout.strip()
+
+def split_text_chunks(text, limit=900):
+    """Split long narration into Azure-safe paragraph groups."""
+    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    chunks = []
+    current = ''
+    for paragraph in paragraphs:
+        if current and len(current) + len(paragraph) + 2 > limit:
+            chunks.append(current)
+            current = paragraph
+        else:
+            current = paragraph if not current else current + '\n\n' + paragraph
+    if current:
+        chunks.append(current)
+    return chunks
+
+def synthesize_azure_chunked(script, run_dir, voice_path):
+    """Generate long Azure narration in chunks, then concatenate as one MP3."""
+    chunk_dir = run_dir / 'azure_chunks'
+    chunk_dir.mkdir(parents=True, exist_ok=True)
+    chunks = split_text_chunks(script)
+    chunk_paths = []
+
+    for index, chunk in enumerate(chunks, 1):
+        text_path = chunk_dir / f'chunk_{index:02d}.txt'
+        audio_path = chunk_dir / f'chunk_{index:02d}.mp3'
+        text_path.write_text(chunk, encoding='utf-8')
+
+        cmd = [
+            'python3', str(SKILL_DIR / 'scripts' / 'azure_tts.py'),
+            '--file', str(text_path),
+            '--style', 'calm',
+            '--rate=-10%',
+            '--pause-ms', '800',
+            '-o', str(audio_path),
+        ]
+        last_error = ''
+        for attempt in range(1, 4):
+            result = subprocess.run(cmd, text=True, capture_output=True, cwd=str(SKILL_DIR))
+            if result.returncode == 0 and audio_path.exists() and audio_path.stat().st_size > 10000:
+                chunk_paths.append(audio_path)
+                break
+            last_error = (result.stderr or result.stdout or 'Azure chunk failed').strip()[-800:]
+            time.sleep(2 * attempt)
+        else:
+            raise RuntimeError(f'Azure chunk {index}/{len(chunks)} failed: {last_error}')
+
+    concat_list = chunk_dir / 'concat.txt'
+    concat_list.write_text(''.join(f"file '{path}'\n" for path in chunk_paths), encoding='utf-8')
+    run_cmd([
+        'ffmpeg', '-y',
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', str(concat_list),
+        '-c', 'copy',
+        str(voice_path),
+    ])
 
 @app.route('/api/jobs/<job_id>/process-tts', methods=['POST'])
 def process_tts(job_id):
@@ -272,14 +334,7 @@ def process_tts(job_id):
         job['error'] = None
         save_job(job)
 
-        run_cmd([
-            'python3', str(SKILL_DIR / 'scripts' / 'azure_tts.py'),
-            '--file', str(script_path),
-            '--style', 'calm',
-            '--rate=-10%',
-            '--pause-ms', '800',
-            '-o', str(voice_path),
-        ])
+        synthesize_azure_chunked(script, run_dir, voice_path)
         job['audio_path'] = str(voice_path)
         save_job(job)
 
