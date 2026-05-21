@@ -1,0 +1,12 @@
+.git
+__pycache__
+scripts/__pycache__
+config.json
+jobs
+archive
+runs
+*.pyc
+*.log
+minimax_api_key.txt
+scripts/azure_speech_key.txt
+scripts/minimax_api_key.txt

@@ -1,0 +1,12 @@
+services:
+  voice-studio-web:
+    build: .
+    container_name: voice-studio-web
+    restart: unless-stopped
+    ports:
+      - "9999:9999"
+    volumes:
+      - .:/app
+      - /root/.openclaw/workspace/public-downloads:/root/.openclaw/workspace/public-downloads
+    environment:
+      - PYTHONUNBUFFERED=1

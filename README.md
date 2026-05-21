@@ -38,6 +38,10 @@ Writing policy: script must create listener immersion and surface the theme with
 ## Setup
 
 ```bash
+# Web UI config (not tracked by git)
+cp config.example.json config.json
+# then edit config.json and replace password / secret_key
+
 # Azure TTS key (not tracked by git)
 echo "your-azure-key" > scripts/azure_speech_key.txt
 chmod 600 scripts/azure_speech_key.txt
@@ -46,6 +50,22 @@ chmod 600 scripts/azure_speech_key.txt
 echo "your-minimax-key" > scripts/minimax_api_key.txt
 chmod 600 scripts/minimax_api_key.txt
 ```
+
+The Web UI can also be configured with environment variables:
+
+- `VOICE_STUDIO_PASSWORD`
+- `VOICE_STUDIO_SECRET_KEY`
+- `VOICE_STUDIO_PORT`
+- `VOICE_STUDIO_DOWNLOAD_ROOT`
+- `VOICE_STUDIO_COSMIC_FOLDER`
+
+## Web UI
+
+```bash
+docker compose up -d --build
+```
+
+Open `http://<host>:9999/`. The generated public MP3 links are published by `publish_download.py`, normally through the separate public-downloads HTTP service.
 
 ## Usage
 

@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jesse 宇宙助眠创作台</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1318;
+      --panel: #171d24;
+      --panel-2: #202833;
+      --text: #edf2f7;
+      --muted: #94a3b8;
+      --line: #2d3745;
+      --accent: #6ee7b7;
+      --accent-2: #38bdf8;
+      --danger: #fb7185;
+      --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, textarea { font: inherit; }
+    button {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+    button.primary { background: #0f766e; border-color: #14b8a6; }
+    button.blue { background: #075985; border-color: #0ea5e9; }
+    button.warn { background: #713f12; border-color: #f59e0b; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #0b0f14;
+      color: var(--text);
+      padding: 12px;
+      outline: none;
+    }
+    textarea {
+      min-height: 420px;
+      resize: vertical;
+      white-space: pre-wrap;
+    }
+    label { display: block; color: var(--muted); margin-bottom: 8px; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px; }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    h1 { font-size: 24px; margin: 0; letter-spacing: 0; }
+    .sub { color: var(--muted); margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .tab.active { border-color: var(--accent); color: var(--accent); }
+    .hidden { display: none !important; }
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      background: #0b0f14;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pill.ready { color: var(--accent); border-color: #059669; }
+    .pill.error { color: var(--danger); border-color: #be123c; }
+    .note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .error { color: var(--danger); white-space: pre-wrap; }
+    .login {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .login .panel { width: min(420px, 100%); }
+    .job-list { display: grid; gap: 8px; margin-top: 14px; }
+    .job {
+      text-align: left;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #0b0f14;
+      cursor: pointer;
+    }
+    .job.active { border-color: var(--accent-2); }
+    audio { width: 100%; margin-top: 12px; }
+    @media (max-width: 860px) {
+      .wrap { padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+      textarea { min-height: 340px; }
+    }
+  </style>
+</head>
+<body>
+  <main id="loginView" class="login">
+    <section class="panel">
+      <h1>Jesse 宇宙助眠创作台</h1>
+      <p class="sub">输入访问密码后进入。</p>
+      <label for="password">访问密码</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="Password">
+      <div class="row" style="margin-top: 12px;">
+        <button id="loginBtn" class="primary">进入</button>
+      </div>
+      <p id="loginError" class="error"></p>
+    </section>
+  </main>
+
+  <main id="appView" class="wrap hidden">
+    <div class="top">
+      <div>
+        <h1>Jesse 宇宙助眠创作台</h1>
+        <div class="sub">主题创作先预览，确认后再生成语音；也可以直接粘贴文稿生成。</div>
+      </div>
+      <button id="logoutBtn">退出</button>
+    </div>
+
+    <section class="grid">
+      <aside class="panel">
+        <div class="tabs">
+          <button id="tabTheme" class="tab active">主题创作</button>
+          <button id="tabScript" class="tab">直接文稿</button>
+        </div>
+
+        <div id="themeBox">
+          <label for="themeInput">主题</label>
+          <input id="themeInput" placeholder="例：宇宙的边界、黑洞、海底火山">
+          <label style="margin-top: 12px;"><input id="themeBgm" type="checkbox" checked style="width:auto;"> 混入默认 BGM</label>
+          <button id="createThemeBtn" class="primary" style="margin-top: 12px; width:100%;">创作文稿</button>
+          <p class="note">主题任务会进入待创作队列，由 OpenClaw 巡检生成文稿后回填到右侧。</p>
+        </div>
+
+        <div id="scriptBox" class="hidden">
+          <label for="directScript">直接输入文稿</label>
+          <textarea id="directScript" style="min-height: 220px;" placeholder="把完整文稿粘贴到这里"></textarea>
+          <label style="margin-top: 12px;"><input id="scriptBgm" type="checkbox" checked style="width:auto;"> 混入默认 BGM</label>
+          <button id="createScriptBtn" class="primary" style="margin-top: 12px; width:100%;">载入文稿</button>
+          <p class="note">载入后仍会进入右侧预览区，可以再改，确认后生成语音。</p>
+        </div>
+
+        <div class="status" style="margin-top: 16px;">
+          <span>当前任务</span>
+          <span id="jobStatus" class="pill">无</span>
+        </div>
+        <div id="jobList" class="job-list"></div>
+      </aside>
+
+      <section class="panel">
+        <div class="status">
+          <span id="jobTitle">还没有任务</span>
+          <span id="jobId" class="pill">-</span>
+        </div>
+        <label for="scriptEditor">文稿预览 / 编辑</label>
+        <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
+        <div class="row" style="margin-top: 12px;">
+          <button id="saveEditBtn">保存修改</button>
+          <button id="approveBtn" class="blue">通过，生成语音</button>
+          <button id="processBtn" class="primary">执行 TTS</button>
+          <button id="retryBtn" class="warn">重新创作</button>
+        </div>
+        <p id="errorBox" class="error"></p>
+        <div id="audioBox" class="hidden">
+          <audio id="audio" controls></audio>
+          <p><a id="downloadLink" href="#" target="_blank" rel="noreferrer">打开下载链接</a></p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let activeJobId = null;
+    let mode = 'theme';
+    let pollTimer = null;
+
+    async function api(url, options = {}) {
+      const res = await fetch(url, {
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || '请求失败');
+      return data;
+    }
+
+    function showApp(show) {
+      $('loginView').classList.toggle('hidden', show);
+      $('appView').classList.toggle('hidden', !show);
+    }
+
+    function setMode(next) {
+      mode = next;
+      $('tabTheme').classList.toggle('active', mode === 'theme');
+      $('tabScript').classList.toggle('active', mode === 'script');
+      $('themeBox').classList.toggle('hidden', mode !== 'theme');
+      $('scriptBox').classList.toggle('hidden', mode !== 'script');
+    }
+
+    function statusLabel(status) {
+      return {
+        pending: '待创作',
+        writing: '创作中',
+        ready: '待确认',
+        tts: '生成语音中',
+        mixing: '混音中',
+        done: '已完成',
+        error: '出错',
+      }[status] || status || '无';
+    }
+
+    function renderJob(job) {
+      activeJobId = job.id;
+      $('jobId').textContent = job.id;
+      $('jobTitle').textContent = job.theme || '直接输入文稿';
+      $('jobStatus').textContent = statusLabel(job.status);
+      $('jobStatus').className = 'pill ' + (job.status === 'error' ? 'error' : ['ready', 'done'].includes(job.status) ? 'ready' : '');
+      $('scriptEditor').value = job.edited_script || job.script || '';
+      $('errorBox').textContent = job.error || '';
+      $('retryBtn').disabled = job.mode !== 'theme';
+      $('processBtn').disabled = !['tts', 'ready'].includes(job.status);
+      $('approveBtn').disabled = !['ready'].includes(job.status);
+      $('audioBox').classList.toggle('hidden', !job.final_url);
+      if (job.final_url) {
+        $('audio').src = job.final_url;
+        $('downloadLink').href = job.final_url;
+        $('downloadLink').textContent = job.final_url;
+      }
+    }
+
+    async function refreshJobs() {
+      const jobs = await api('/api/jobs');
+      $('jobList').innerHTML = '';
+      jobs.forEach(job => {
+        const btn = document.createElement('button');
+        btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
+        btn.innerHTML = `<strong>${job.theme || '直接文稿'}</strong><br><span class="note">${job.id} · ${statusLabel(job.status)}</span>`;
+        btn.onclick = () => loadJob(job.id);
+        $('jobList').appendChild(btn);
+      });
+      if (!activeJobId && jobs[0]) renderJob(jobs[0]);
+    }
+
+    async function loadJob(jobId) {
+      const job = await api('/api/jobs/' + jobId);
+      renderJob(job);
+      refreshJobs().catch(() => {});
+    }
+
+    async function pollActive() {
+      if (activeJobId) await loadJob(activeJobId).catch(() => {});
+      await refreshJobs().catch(() => {});
+    }
+
+    $('loginBtn').onclick = async () => {
+      $('loginError').textContent = '';
+      try {
+        await api('/api/login', { method: 'POST', body: JSON.stringify({ password: $('password').value }) });
+        showApp(true);
+        await refreshJobs();
+      } catch (err) {
+        $('loginError').textContent = err.message;
+      }
+    };
+    $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn').click(); });
+    $('logoutBtn').onclick = async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); showApp(false); };
+    $('tabTheme').onclick = () => setMode('theme');
+    $('tabScript').onclick = () => setMode('script');
+
+    $('createThemeBtn').onclick = async () => {
+      const job = await api('/api/jobs', {
+        method: 'POST',
+        body: JSON.stringify({ mode: 'theme', theme: $('themeInput').value, bgm: $('themeBgm').checked })
+      });
+      renderJob(job.job);
+      refreshJobs();
+    };
+
+    $('createScriptBtn').onclick = async () => {
+      const job = await api('/api/jobs', {
+        method: 'POST',
+        body: JSON.stringify({ mode: 'script', script: $('directScript').value, bgm: $('scriptBgm').checked })
+      });
+      renderJob(job.job);
+      refreshJobs();
+    };
+
+    $('saveEditBtn').onclick = async () => {
+      if (!activeJobId) return;
+      const job = await api('/api/jobs/' + activeJobId, {
+        method: 'PATCH',
+        body: JSON.stringify({ edited_script: $('scriptEditor').value })
+      });
+      renderJob(job);
+    };
+
+    $('approveBtn').onclick = async () => {
+      if (!activeJobId) return;
+      await api('/api/jobs/' + activeJobId, {
+        method: 'PATCH',
+        body: JSON.stringify({ edited_script: $('scriptEditor').value })
+      });
+      const job = await api('/api/jobs/' + activeJobId + '/approve', { method: 'POST', body: '{}' });
+      renderJob(job);
+    };
+
+    $('processBtn').onclick = async () => {
+      if (!activeJobId) return;
+      $('processBtn').disabled = true;
+      try {
+        const job = await api('/api/jobs/' + activeJobId + '/process-tts', { method: 'POST', body: '{}' });
+        renderJob(job);
+      } catch (err) {
+        $('errorBox').textContent = err.message;
+      } finally {
+        $('processBtn').disabled = false;
+      }
+    };
+
+    $('retryBtn').onclick = async () => {
+      if (!activeJobId) return;
+      const job = await api('/api/jobs/' + activeJobId + '/retry', { method: 'POST', body: '{}' });
+      renderJob(job);
+    };
+
+    api('/api/check-auth').then(async r => {
+      showApp(r.authenticated);
+      if (r.authenticated) await refreshJobs();
+    }).catch(() => showApp(false));
+    pollTimer = setInterval(pollActive, 5000);
+  </script>
+</body>
+</html>
