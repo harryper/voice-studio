@@ -1,18 +1,20 @@
 # voice-studio
 
-Generate original ~15-minute audio narrations (sleep / narration / ambient) from a user-provided theme, using **Azure Speech REST TTS** (primary, 云泽 voice) with **MiniMax** as fallback.
+Web project for creating original ~15-minute audio narrations (sleep / narration / ambient), using **Azure Speech REST TTS** (primary, 云泽 voice) with **MiniMax** as fallback.
 
 ## Workflow
 
 ```
-theme → gpt-5.5 script → Azure TTS (fallback: MiniMax) → mix with BGM → publish
+theme → gpt-5.5 script → ready for review → explicit TTS action only
 ```
 
-1. Receive a topic from the user
-2. Spawn a subagent to write an original Chinese narration script sized from target duration and calibrated reading speed (default ~3300-3600 Chinese chars for ~15 min)
-3. Generate narration audio via Azure Speech TTS; fall back to MiniMax if Azure unavailable
-4. Mix with default looped BGM (3% low-volume bed)
-5. Publish as MP3 and return direct download link
+`voice-studio` no longer has a direct default chat workflow. All creation goes through the Web project and its job state files in `jobs/*.json`.
+
+1. Create a Web job from a theme or pasted script.
+2. For theme jobs, spawn a subagent to write an original Chinese narration script sized from target duration and calibrated reading speed (default ~3300-3600 Chinese chars for ~15 min).
+3. Update the job to `status="ready"` for review.
+4. Generate narration audio only from the Web UI TTS action or an explicit instruction tied to a specific Web job.
+5. The Web TTS action handles Azure fallback, optional BGM mixing, publishing, and the final public MP3 URL.
 
 Duration policy: default target is ~15 minutes, but **12-25 minutes is acceptable**. Do not recalibrate/rewrite solely for duration if output falls in that range.
 
@@ -67,7 +69,9 @@ docker compose up -d --build
 
 Open `http://<host>:9999/`. The generated public MP3 links are published by `publish_download.py`, normally through the separate public-downloads HTTP service.
 
-## Usage
+## Implementation Commands
+
+These commands are implementation details behind the Web TTS action. Do not use them as a separate default workflow.
 
 ```bash
 # TTS generation (primary: Azure)

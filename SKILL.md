@@ -1,17 +1,34 @@
 ---
 name: voice-studio
-description: "voice-studio skill: create original ~15-minute audio narrations (sleep/narration/ambient) from a user-provided theme, using Azure Speech REST TTS (primary, 云泽 voice) with MiniMax as fallback. Use when the user gives a topic/theme and asks to generate voice audio, 音频, TTS, 旁白, 科普助眠, or says voice-studio. Only process video links if the user explicitly asks to parse/extract a video."
+description: "voice-studio skill: manage the voice-studio Web project for original sleep/narration/ambient audio. All creation must go through the Web job workflow: create/inspect jobs, write scripts into ready state, and only run TTS from the Web UI action or an explicit user instruction tied to a Web job. Only process video links if the user explicitly asks to parse/extract a video."
 ---
 
 # voice-studio skill
 
 Technical skill id: `voice-studio`. User-facing name: **voice-studio skill**.
 
-Default task: the user gives **one topic/theme**, and you create an original narration audio around **15 minutes** long.
+The canonical product is the **voice-studio Web project**. Do not run the old direct/default "topic → script → TTS → mix → publish" flow from chat.
+
+## Canonical Web workflow
+
+All voice-studio work goes through `skills/voice-studio/app.py` and `skills/voice-studio/jobs/*.json`.
+
+For web `mode="theme"` jobs:
+- `pending` → write script → update job to `status="ready"`
+- stop there for user review
+- do **not** call TTS, mix BGM, publish audio, or message the user
+- only run TTS from the Web UI `/process-tts` action, or when the user explicitly says to generate audio for a specific Web job
+
+For web `mode="script"` jobs:
+- load the pasted script into `status="ready"`
+- let the user edit/review in the Web UI
+- only run TTS from the Web UI `/process-tts` action, or when explicitly instructed for that job
+
+Direct chat requests like "用 voice-studio 做一个主题" should create or guide the user to a Web job, not bypass the Web project.
 
 ## Script writing
 
-Use **gpt-5.5** (custom-fm-5-5) for script drafting. If gpt-5.5 is unavailable, fall back to **MiniMax-M2.7** for writing. Spawn a child subagent with `sessions_spawn(runtime="subagent", mode="run", cleanup="delete", model="gpt-5.5")` (or `model="MiniMax-M2.7"` for fallback). The main session should only orchestrate the workflow: save the script, run TTS scripts, mix BGM, publish files, and report links. Do not draft the long narration directly in the main session.
+The scheduled Web writer cron should use the system/default model; do not hard-code a model override there. It is already an isolated writing session, so it should draft directly and update the Web job itself; do **not** spawn a second child writer from that cron. The main chat session should only orchestrate the Web job workflow: save the script to the job, set `status="ready"`, and stop for review. Do not draft the long narration directly in the main chat session.
 
 **Important constraint for content style:** The script is for a **narration/voice blog**, not a document or article with formal section headers. Do not prefix paragraphs with titles or labels (e.g. "一、", "1.", "【】", or bolded headings). Write in continuous, breathable prose with natural paragraph breaks — the kind that sounds like someone talking softly, not reading a report. Keep the tone intimate, unhurried, and suited for listening rather than scanning.
 
@@ -62,15 +79,14 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 - **Public downloads root:** `/root/.openclaw/workspace/public-downloads/`
 - **Public URL prefix:** `http://43.173.67.197:18082/` when static server is running
 
-## Default workflow: theme → original ~15-minute audio
+## Web job script workflow
 
-1. Receive a topic/theme from the user.
+1. Receive or inspect a Web job topic/theme.
 2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
 3. Determine script length from the target audio duration and the current voice reading speed. Do **not** use a fixed length blindly. For Azure `zh-CN-YunzeNeural` with `--style calm --rate=-10%`, use the latest measured calibration when available. Until a full-length calibration is measured, start from about **220 Chinese characters/minute** as a conservative estimate. For a ~15-minute target, draft about **3300-3600 Chinese characters** first, then keep it slow and breathable. Avoid scripts that are obviously too short or too long.
 4. Narrator identity: use **Jesse** if self-reference is needed.
-5. Generate narration with Azure Speech TTS (`scripts/azure_tts.py`) using `--style calm --rate=-10%`. If Azure fails, fall back to MiniMax HTTP TTS in a **single call**.
-6. Mix the narration with **default BGM** by default.
-7. Publish the mixed final MP3 as the main direct download link.
+5. Write the script to `runs/<job_id>/script.txt` and update the job JSON with `status="ready"`, `script=<full script>`, `edited_script=null`, `error=null`, and `updated_at`.
+6. Stop. TTS/mixing/publishing are separate Web actions.
 
 ## Script style
 
@@ -90,7 +106,7 @@ Structure:
 Rules:
 
 - Before drafting, estimate required script length from target duration: `target_minutes × calibrated_chars_per_minute`. Use the latest measured speed from prior productions when available. If no full-length calibration exists, start with ~230 Chinese chars/min for `Chinese (Mandarin)_Gentleman` speed `0.85`.
-- After TTS generation, check actual audio duration. The default acceptable range is **12-25 minutes**; if the generated audio falls within this range, do **not** recalibrate or rewrite just for duration. Only if it is shorter than 12 minutes or longer than 25 minutes, adjust future script length using the observed ratio: `new_chars = current_chars × target_seconds / actual_seconds`.
+- After Web TTS generation, check actual audio duration. The default acceptable range is **12-25 minutes**; if the generated audio falls within this range, do **not** recalibrate or rewrite just for duration. Only if it is shorter than 12 minutes or longer than 25 minutes, adjust future script length using the observed ratio: `new_chars = current_chars × target_seconds / actual_seconds`.
 - The listener must have **代入感**: use second-person perspective (`你`) often, concrete sensations, slow breathing cues, darkness, distance, silence, temperature, and bodily relaxation.
 - The opening must quickly answer: "我现在在听什么主题？" If the listener cannot identify the theme within the first minute, rewrite the opening.
 - Keep cognitive load low. Do not stack too many facts, numbers, or definitions. Use facts as quiet stepping stones, not lecture notes.
@@ -107,9 +123,11 @@ Rules:
 - Do not write multiple drafts by default.
 - Do not ask a model to rewrite the entire script after drafting; draft once in final spoken form.
 - If the script is too long, trim locally rather than asking for another full rewrite.
-- Before full TTS, optionally make a 60-90 second sample only when the user asks for a 试听.
+- Before Web TTS, optionally make a 60-90 second sample only when the user asks for a 试听.
 
-## Generate narration: Azure TTS (primary)
+## Web TTS implementation: Azure TTS (primary)
+
+These commands are implementation details for the Web `/process-tts` action. Do not run them as a separate default flow.
 
 ```bash
 python3 skills/voice-studio/scripts/azure_tts.py \
@@ -131,9 +149,9 @@ python3 skills/voice-studio/scripts/minimax_tts.py \
   --retries 1
 ```
 
-## BGM mixing: default final step
+## Web BGM mixing implementation
 
-After voice generation, mix with **default BGM** by default. Keep the voice track natural and intact; loop the BGM for the full voice duration, lower it to 3%, and layer it underneath.
+After Web voice generation, the Web TTS action mixes with **default BGM** by default. Keep the voice track natural and intact; loop the BGM for the full voice duration, lower it to 3%, and layer it underneath.
 
 ```bash
 python3 skills/voice-studio/scripts/mix_with_bgm.py \
@@ -150,7 +168,7 @@ Rules:
 - Do **not** use loudnorm/overall normalization by default; preserve the raw voice sound and compensate only for `amix` level behavior in the script.
 - If BGM asset is missing or mixing fails, publish voice-only and note it clearly.
 
-## Publish download link
+## Web publish implementation
 
 ```bash
 python3 skills/voice-studio/scripts/publish_download.py \
@@ -174,4 +192,4 @@ Only use this when explicitly requested. For Douyin links:
 python3 skills/voice-studio/scripts/download_douyin_web.py "https://v.douyin.com/.../" --out-dir tmp/cosmic-sleep/<slug>
 ```
 
-Then transcribe with `faster_whisper`, lightly clean, replace original narrator self-reference with **Jesse**, and proceed to Azure TTS (or MiniMax fallback). Skip BGM unless explicitly requested.
+Then transcribe with `faster_whisper`, lightly clean, replace original narrator self-reference with **Jesse**, create/update a Web job for review, and stop at `status="ready"` unless the user explicitly triggers Web TTS.

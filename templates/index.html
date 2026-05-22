@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Jesse 宇宙助眠创作台</title>
+  <title>熊喵助眠创作台</title>
   <style>
     :root {
       color-scheme: dark;
@@ -38,6 +38,7 @@
     button.primary { background: #0f766e; border-color: #14b8a6; }
     button.blue { background: #075985; border-color: #0ea5e9; }
     button.warn { background: #713f12; border-color: #f59e0b; }
+    button.danger { background: #7f1d1d; border-color: #ef4444; }
     button:disabled { cursor: not-allowed; opacity: .55; }
     input, textarea {
       width: 100%;
@@ -91,6 +92,14 @@
     .pill.ready { color: var(--accent); border-color: #059669; }
     .pill.error { color: var(--danger); border-color: #be123c; }
     .note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .action-feedback {
+      min-height: 22px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .action-feedback.ok { color: var(--accent); }
+    .action-feedback.error { color: var(--danger); }
     .error { color: var(--danger); white-space: pre-wrap; }
     .login {
       min-height: 100vh;
@@ -120,7 +129,7 @@
 <body>
   <main id="loginView" class="login">
     <section class="panel">
-      <h1>Jesse 宇宙助眠创作台</h1>
+      <h1>熊喵助眠创作台</h1>
       <p class="sub">输入访问密码后进入。</p>
       <label for="password">访问密码</label>
       <input id="password" type="password" autocomplete="current-password" placeholder="Password">
@@ -134,7 +143,7 @@
   <main id="appView" class="wrap hidden">
     <div class="top">
       <div>
-        <h1>Jesse 宇宙助眠创作台</h1>
+        <h1>熊喵助眠创作台</h1>
         <div class="sub">主题创作先预览，确认后再生成语音；也可以直接粘贴文稿生成。</div>
       </div>
       <button id="logoutBtn">退出</button>
@@ -179,10 +188,21 @@
         <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
         <div class="row" style="margin-top: 12px;">
           <button id="saveEditBtn">保存修改</button>
-          <button id="approveBtn" class="blue">通过，生成语音</button>
           <button id="processBtn" class="primary">执行 TTS</button>
           <button id="retryBtn" class="warn">重新创作</button>
+          <button id="deleteBtn" class="danger">删除文稿</button>
+          <select id="voiceSelect" style="margin-left: 8px;">
+            <option value="zh-CN-YunzeNeural">云泽（默认）</option>
+            <option value="zh-CN-YunxiNeural">云希</option>
+            <option value="zh-CN-YunjianNeural">云健</option>
+            <option value="zh-CN-YunyangNeural">云扬</option>
+            <option value="zh-CN-YunfengNeural">云枫</option>
+            <option value="zh-CN-XiaoxiaoNeural">晓晓</option>
+            <option value="zh-CN-XiaoyiNeural">晓依</option>
+            <option value="zh-CN-XiaochenNeural">晓辰</option>
+          </select>
         </div>
+        <p id="actionFeedback" class="action-feedback"></p>
         <p id="errorBox" class="error"></p>
         <div id="audioBox" class="hidden">
           <audio id="audio" controls></audio>
@@ -197,6 +217,8 @@
     let activeJobId = null;
     let mode = 'theme';
     let pollTimer = null;
+    let editorDirty = false;
+    let editorJobId = null;
 
     async function api(url, options = {}) {
       const res = await fetch(url, {
@@ -234,20 +256,75 @@
       }[status] || status || '无';
     }
 
+    function currentJobScript(job) {
+      return job.edited_script || job.script || '';
+    }
+
+    function editorIsActive() {
+      return document.activeElement === $('scriptEditor');
+    }
+
+    function showActionFeedback(message, type = '') {
+      $('actionFeedback').textContent = message;
+      $('actionFeedback').className = 'action-feedback ' + type;
+    }
+
+    function clearActionFeedback() {
+      showActionFeedback('');
+    }
+
+    function syncScriptEditor(job) {
+      const serverScript = currentJobScript(job);
+      const jobChanged = editorJobId !== job.id;
+
+      if (jobChanged || (!editorDirty && !editorIsActive() && $('scriptEditor').value !== serverScript)) {
+        $('scriptEditor').value = serverScript;
+        editorDirty = false;
+      }
+
+      editorJobId = job.id;
+    }
+
+    function clearActiveJob(message = '', type = '') {
+      activeJobId = null;
+      editorJobId = null;
+      editorDirty = false;
+      $('jobId').textContent = '-';
+      $('jobTitle').textContent = '还没有任务';
+      $('jobStatus').textContent = '无';
+      $('jobStatus').className = 'pill';
+      $('scriptEditor').value = '';
+      $('errorBox').textContent = '';
+      $('audioBox').classList.add('hidden');
+      $('saveEditBtn').disabled = true;
+      $('processBtn').disabled = true;
+      $('retryBtn').disabled = true;
+      $('deleteBtn').disabled = true;
+      showActionFeedback(message, type);
+    }
+
     function renderJob(job) {
       activeJobId = job.id;
       $('jobId').textContent = job.id;
       $('jobTitle').textContent = job.theme || '直接输入文稿';
       $('jobStatus').textContent = statusLabel(job.status);
       $('jobStatus').className = 'pill ' + (job.status === 'error' ? 'error' : ['ready', 'done'].includes(job.status) ? 'ready' : '');
-      $('scriptEditor').value = job.edited_script || job.script || '';
+      syncScriptEditor(job);
       $('errorBox').textContent = job.error || '';
       $('retryBtn').disabled = job.mode !== 'theme';
-      $('processBtn').disabled = !['tts', 'ready'].includes(job.status);
-      $('approveBtn').disabled = !['ready'].includes(job.status);
-      $('audioBox').classList.toggle('hidden', !job.final_url);
-      if (job.final_url) {
-        $('audio').src = job.final_url;
+      $('deleteBtn').disabled = false;
+      $('processBtn').disabled = job.status !== 'ready';
+      $('voiceSelect').value = job.voice || 'zh-CN-YunzeNeural';
+      const hasAudio = job.final_url;
+      $('audioBox').classList.toggle('hidden', !hasAudio);
+      if (hasAudio) {
+        const audioEl = $('audio');
+        const isPlaying = !audioEl.paused;
+        const srcChanged = audioEl.src !== job.final_url;
+        // 正在播放时不重置 src，否则打断；切换到其他 job 时也保留播放状态
+        if (!isPlaying && srcChanged) {
+          audioEl.src = job.final_url;
+        }
         $('downloadLink').href = job.final_url;
         $('downloadLink').textContent = job.final_url;
       }
@@ -255,6 +332,8 @@
 
     async function refreshJobs() {
       const jobs = await api('/api/jobs');
+      const activeExists = jobs.some(job => job.id === activeJobId);
+      if (activeJobId && !activeExists && !editorDirty) activeJobId = null;
       $('jobList').innerHTML = '';
       jobs.forEach(job => {
         const btn = document.createElement('button');
@@ -264,6 +343,7 @@
         $('jobList').appendChild(btn);
       });
       if (!activeJobId && jobs[0]) renderJob(jobs[0]);
+      if (!activeJobId && !jobs[0]) clearActiveJob();
     }
 
     async function loadJob(jobId) {
@@ -273,7 +353,11 @@
     }
 
     async function pollActive() {
-      if (activeJobId) await loadJob(activeJobId).catch(() => {});
+      if (activeJobId && !editorDirty && !editorIsActive()) {
+        const savedVoice = $('voiceSelect').value;
+        await loadJob(activeJobId).catch(() => {});
+        $('voiceSelect').value = savedVoice;
+      }
       await refreshJobs().catch(() => {});
     }
 
@@ -291,6 +375,7 @@
     $('logoutBtn').onclick = async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); showApp(false); };
     $('tabTheme').onclick = () => setMode('theme');
     $('tabScript').onclick = () => setMode('script');
+    $('scriptEditor').addEventListener('input', () => { editorDirty = true; });
 
     $('createThemeBtn').onclick = async () => {
       const job = await api('/api/jobs', {
@@ -312,30 +397,47 @@
 
     $('saveEditBtn').onclick = async () => {
       if (!activeJobId) return;
-      const job = await api('/api/jobs/' + activeJobId, {
-        method: 'PATCH',
-        body: JSON.stringify({ edited_script: $('scriptEditor').value })
-      });
-      renderJob(job);
-    };
-
-    $('approveBtn').onclick = async () => {
-      if (!activeJobId) return;
-      await api('/api/jobs/' + activeJobId, {
-        method: 'PATCH',
-        body: JSON.stringify({ edited_script: $('scriptEditor').value })
-      });
-      const job = await api('/api/jobs/' + activeJobId + '/approve', { method: 'POST', body: '{}' });
-      renderJob(job);
+      const editedScript = $('scriptEditor').value;
+      const button = $('saveEditBtn');
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = '保存中...';
+      showActionFeedback('正在保存修改...');
+      $('errorBox').textContent = '';
+      try {
+        const job = await api('/api/jobs/' + activeJobId, {
+          method: 'PATCH',
+          body: JSON.stringify({ edited_script: editedScript, voice: $('voiceSelect').value })
+        });
+        editorDirty = false;
+        renderJob(job);
+        showActionFeedback('已保存修改', 'ok');
+      } catch (err) {
+        showActionFeedback('保存失败：' + err.message, 'error');
+        $('errorBox').textContent = err.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     };
 
     $('processBtn').onclick = async () => {
       if (!activeJobId) return;
       $('processBtn').disabled = true;
       try {
+        showActionFeedback('正在执行 TTS...');
+        // 先把当前音色和 BGM 状态同步到 job，再执行 TTS
+        const currentVoice = $('voiceSelect').value;
+        const currentBgm = (document.getElementById('themeBgm').checked) || (document.getElementById('scriptBgm').checked);
+        await api('/api/jobs/' + activeJobId, {
+          method: 'PATCH',
+          body: JSON.stringify({ voice: currentVoice, bgm: currentBgm })
+        });
         const job = await api('/api/jobs/' + activeJobId + '/process-tts', { method: 'POST', body: '{}' });
         renderJob(job);
+        showActionFeedback('TTS 已完成', 'ok');
       } catch (err) {
+        showActionFeedback('TTS 失败：' + err.message, 'error');
         $('errorBox').textContent = err.message;
       } finally {
         $('processBtn').disabled = false;
@@ -344,8 +446,48 @@
 
     $('retryBtn').onclick = async () => {
       if (!activeJobId) return;
-      const job = await api('/api/jobs/' + activeJobId + '/retry', { method: 'POST', body: '{}' });
-      renderJob(job);
+      const button = $('retryBtn');
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = '重置中...';
+      showActionFeedback('正在清理旧音频并重新排队...');
+      $('errorBox').textContent = '';
+      try {
+        const job = await api('/api/jobs/' + activeJobId + '/retry', { method: 'POST', body: '{}' });
+        editorDirty = false;
+        renderJob(job);
+        showActionFeedback('已重新排队创作，旧音频已清理。', 'ok');
+      } catch (err) {
+        showActionFeedback('重新创作失败：' + err.message, 'error');
+        $('errorBox').textContent = err.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    };
+
+    $('deleteBtn').onclick = async () => {
+      if (!activeJobId) return;
+      const title = $('jobTitle').textContent || activeJobId;
+      if (!confirm(`确定删除这个文稿任务吗？\n\n${title}\n${activeJobId}\n\n已生成的本地音频也会一起清理。`)) return;
+      const deleteJobId = activeJobId;
+      const button = $('deleteBtn');
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = '删除中...';
+      showActionFeedback('正在删除文稿并清理音频...');
+      $('errorBox').textContent = '';
+      try {
+        await api('/api/jobs/' + deleteJobId, { method: 'DELETE' });
+        clearActiveJob('已删除文稿任务', 'ok');
+        await refreshJobs();
+        showActionFeedback('已删除文稿任务', 'ok');
+      } catch (err) {
+        showActionFeedback('删除失败：' + err.message, 'error');
+        $('errorBox').textContent = err.message;
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     };
 
     api('/api/check-auth').then(async r => {

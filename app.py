@@ -2,11 +2,13 @@
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 import uuid
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse, unquote
 from flask import Flask, request, jsonify, render_template, send_from_directory, session
 
 # ── 配置加载 ──────────────────────────────────────────────
@@ -80,6 +82,58 @@ def archive_job(job):
         json.dump(job, f, ensure_ascii=False, indent=2)
     os.remove(job_path(job['id']))
 
+def is_relative_to(path, parent):
+    try:
+        Path(path).resolve().relative_to(Path(parent).resolve())
+        return True
+    except ValueError:
+        return False
+
+def safe_unlink(path, allowed_roots):
+    if not path:
+        return
+    target = Path(path)
+    if not target.exists() or not target.is_file():
+        return
+    if any(is_relative_to(target, root) for root in allowed_roots):
+        target.unlink()
+
+def public_path_from_url(url):
+    if not url:
+        return None
+    parsed = urlparse(url)
+    path = unquote(parsed.path or '')
+    prefix = f'/{COSMIC_FOLDER}/'
+    if not path.startswith(prefix):
+        return None
+    name = path[len(prefix):]
+    if not name or '/' in name:
+        return None
+    return Path(DOWNLOAD_ROOT) / COSMIC_FOLDER / name
+
+def cleanup_job_outputs(job):
+    """Remove stale generated files before retrying a job."""
+    allowed_roots = [RUNS_DIR, DOWNLOAD_ROOT]
+    for key in ('audio_path', 'final_path'):
+        safe_unlink(job.get(key), allowed_roots)
+    for key in ('audio_url', 'final_url'):
+        safe_unlink(public_path_from_url(job.get(key)), allowed_roots)
+
+    run_dir = RUNS_DIR / job['id']
+    if run_dir.exists() and run_dir.is_dir() and is_relative_to(run_dir, RUNS_DIR):
+        shutil.rmtree(run_dir)
+
+def delete_job(job):
+    """Delete a job from the active UI and clean generated local outputs."""
+    cleanup_job_outputs(job)
+    source = Path(job_path(job['id']))
+    if not source.exists():
+        return
+    deleted_dir = Path(ARCHIVE_DIR) / 'deleted'
+    deleted_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    shutil.move(str(source), str(deleted_dir / f'{stamp}-{job["id"]}.json'))
+
 # ── 认证 ──────────────────────────────────────────────────
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -127,6 +181,7 @@ def create_job():
             'status': 'pending',   # pending → writing → ready → tts → mixing → done
             'script': None,
             'edited_script': None,
+            'voice': data.get('voice') or 'zh-CN-YunzeNeural',
             'audio_url': None,
             'final_url': None,
             'error': None,
@@ -177,16 +232,25 @@ def update_job(job_id):
         job['edited_script'] = data['edited_script']
 
     # 主 session 更新状态
-    for key in ('status', 'script', 'audio_url', 'final_url', 'error'):
+    for key in ('status', 'script', 'edited_script', 'voice', 'bgm', 'audio_url', 'final_url', 'error'):
         if key in data:
             job[key] = data[key]
 
     save_job(job)
     return jsonify(job)
 
+@app.route('/api/jobs/<job_id>', methods=['DELETE'])
+def delete_job_api(job_id):
+    """删除任务：从当前列表移除，并清理该任务生成的本地音频。"""
+    job = load_job(job_id)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
+    delete_job(job)
+    return jsonify({'ok': True})
+
 @app.route('/api/jobs/<job_id>/approve', methods=['POST'])
 def approve_job(job_id):
-    """用户审批通过，进入 TTS"""
+    """用户审批通过文稿；不自动进入 TTS。"""
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
@@ -196,7 +260,8 @@ def approve_job(job_id):
     if not script:
         return jsonify({'error': '文稿为空，无法生成'}), 400
 
-    job['status'] = 'tts'
+    job['status'] = 'ready'
+    job['approved_at'] = datetime.now().isoformat()
     save_job(job)
     return jsonify(job)
 
@@ -206,10 +271,13 @@ def retry_job(job_id):
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
+    cleanup_job_outputs(job)
     job['status'] = 'pending'
-    job['script'] = None
-    job['edited_script'] = None
-    job['error'] = None
+    for key in (
+        'script', 'edited_script', 'audio_url', 'final_url', 'audio_path',
+        'final_path', 'approved_at', 'error'
+    ):
+        job[key] = None
     save_job(job)
     return jsonify(job)
 
@@ -269,21 +337,24 @@ def split_text_chunks(text, limit=900):
         chunks.append(current)
     return chunks
 
-def synthesize_azure_chunked(script, run_dir, voice_path):
+def synthesize_azure_chunked(script, run_dir, voice_path, voice='zh-CN-YunzeNeural'):
     """Generate long Azure narration in chunks, then concatenate as one MP3."""
     chunk_dir = run_dir / 'azure_chunks'
     chunk_dir.mkdir(parents=True, exist_ok=True)
     chunks = split_text_chunks(script)
     chunk_paths = []
 
+
     for index, chunk in enumerate(chunks, 1):
         text_path = chunk_dir / f'chunk_{index:02d}.txt'
         audio_path = chunk_dir / f'chunk_{index:02d}.mp3'
         text_path.write_text(chunk, encoding='utf-8')
 
+
         cmd = [
             'python3', str(SKILL_DIR / 'scripts' / 'azure_tts.py'),
             '--file', str(text_path),
+            '--voice', voice,
             '--style', 'calm',
             '--rate=-10%',
             '--pause-ms', '800',
@@ -334,7 +405,7 @@ def process_tts(job_id):
         job['error'] = None
         save_job(job)
 
-        synthesize_azure_chunked(script, run_dir, voice_path)
+        synthesize_azure_chunked(script, run_dir, voice_path, job.get('voice', 'zh-CN-YunzeNeural'))
         job['audio_path'] = str(voice_path)
         save_job(job)
 
