@@ -423,18 +423,37 @@ def process_tts(job_id):
             final_source = mixed_path
 
         name_base = safe_name(job.get('theme') or f'custom-{job_id}')
-        public_name = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}-{name_base}.mp3'
-        publish_out = run_cmd([
+        ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+        theme_slug = safe_name(job.get('theme') or 'direct-script')
+
+        # 上传文稿 (script.txt)
+        script_url = run_cmd([
+            'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+            '--file', str(script_path),
+            '--theme', theme_slug,
+            '--name', f'{ts}-script.txt',
+        ]).splitlines()[-1].strip()
+
+        # 上传原声 (voice.mp3)
+        voice_url = run_cmd([
+            'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+            '--file', str(voice_path),
+            '--theme', theme_slug,
+            '--name', f'{ts}-voice.mp3',
+        ]).splitlines()[-1].strip()
+
+        # 上传成品 (final.mp3 或 voice.mp3)
+        public_name = f'{ts}-{name_base}.mp3'
+        final_url = run_cmd([
             'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
             '--file', str(final_source),
-            '--folder', COSMIC_FOLDER,
+            '--theme', theme_slug,
             '--name', public_name,
-        ])
-        final_url = publish_out.splitlines()[-1].strip()
+        ]).splitlines()[-1].strip()
 
-        job['status'] = 'done'
         job['final_url'] = final_url
-        job['final_path'] = str(final_source)
+        job['voice_url'] = voice_url      # 原声 OSS URL
+        job['script_url'] = script_url    # 文稿 OSS URL
         save_job(job)
         return jsonify(job)
     except Exception as exc:
