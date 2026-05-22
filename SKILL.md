@@ -76,8 +76,8 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 - **TTS (primary):** Azure `zh-CN-YunzeNeural` via `scripts/azure_tts.py`
 - **TTS (fallback):** MiniMax `speech-2.8-hd` via `scripts/minimax_tts.py`
 - **BGM:** `skills/voice-studio/assets/bgm_default.mp3` (默认混入成品；除非用户明确要 voice-only)
-- **Public downloads root:** `/root/.openclaw/workspace/public-downloads/`
-- **Public URL prefix:** `http://43.173.67.197:18082/` when static server is running
+- **BGM:** `skills/voice-studio/assets/bgm_default.mp3` (默认混入成品；除非用户明确要 voice-only)
+- **OSS upload:** `scripts/upload_to_oss.py` → R2 bucket `openclaw`, 30-day pre-signed URL
 
 ## Web job script workflow
 
@@ -170,19 +170,16 @@ Rules:
 
 ## Web publish implementation
 
+Upload to Cloudflare R2 with 30-day pre-signed URL. Do not store to local public-downloads.
+
 ```bash
-python3 skills/voice-studio/scripts/publish_download.py \
+python3 skills/voice-studio/scripts/upload_to_oss.py \
   --file <final-mixed.mp3> \
   --folder cosmic-sleep \
   --name <safe-name>.mp3
 ```
 
-Return the direct URL:
-```
-http://43.173.67.197:18082/<folder>/<file>.mp3
-```
-
-Do not use OpenClaw control port `18789`; it requires auth and returns `Unauthorized`.
+Returns a pre-signed URL (e.g. `https://fd978dbd...r2.cloudflarestorage.com/openclaw/2026-05-22/cosmic-sleep/xxx.mp3?X-Amz-...&X-Amz-Expires=2592000`). Link is valid for 30 days.
 
 ## Legacy video mode
 

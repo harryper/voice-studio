@@ -425,7 +425,7 @@ def process_tts(job_id):
         name_base = safe_name(job.get('theme') or f'custom-{job_id}')
         public_name = f'{datetime.now().strftime("%Y%m%d-%H%M%S")}-{name_base}.mp3'
         publish_out = run_cmd([
-            'python3', str(SKILL_DIR / 'scripts' / 'publish_download.py'),
+            'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
             '--file', str(final_source),
             '--folder', COSMIC_FOLDER,
             '--name', public_name,
