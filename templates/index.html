@@ -551,6 +551,33 @@
       .panel { border-radius: var(--radius-md); padding: 18px; }
       textarea { min-height: 300px; }
     }
+  
+    .generate-section { margin-top: 16px; }
+    .generate-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .generate-row select { flex: 1; }
+    .generate-row button { white-space: nowrap; }
+    #voiceRunsBox { margin-top: 16px; }
+    #voiceRunsList { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .voice-run-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .voice-run-card:hover { border-color: var(--accent); background: var(--accent-light); }
+    .voice-run-card.active { border-color: var(--accent); background: var(--accent-light); }
+    .voice-run-info { flex: 1; min-width: 0; }
+    .voice-run-name { font-size: 13px; font-weight: 500; color: var(--text); }
+    .voice-run-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .voice-run-card audio { flex: 1; min-width: 160px; height: 32px; border-radius: 6px; }
+    .audio-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+    .audio-meta a { font-size: 12px; }
+
   </style>
 </head>
 <body>
@@ -642,34 +669,43 @@
         <span class="section-label">文稿预览 / 编辑</span>
         <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
 
-        <div class="action-row">
-          <button id="saveEditBtn">保存修改</button>
-          <button id="processBtn" class="primary">执行 TTS</button>
-          <button id="retryBtn" class="warn">重新创作</button>
-          <button id="deleteBtn" class="danger">删除文稿</button>
-        </div>
-
-        <div class="voice-row">
-          <label>音色</label>
-          <select id="voiceSelect">
-            <option value="zh-CN-YunzeNeural">云泽（默认）</option>
-            <option value="zh-CN-YunxiNeural">云希</option>
-            <option value="zh-CN-YunjianNeural">云健</option>
-            <option value="zh-CN-YunyangNeural">云扬</option>
-            <option value="zh-CN-YunfengNeural">云枫</option>
-            <option value="zh-CN-XiaoxiaoNeural">晓晓</option>
-            <option value="zh-CN-XiaoyiNeural">晓依</option>
-            <option value="zh-CN-XiaochenNeural">晓辰</option>
-          </select>
-        </div>
-
         <p id="actionFeedback" class="action-feedback"></p>
         <p id="errorBox" class="error"></p>
 
         <div id="audioBox" class="hidden">
           <audio id="audio" controls></audio>
-          <p id="voiceUrlBox"><a id="voiceUrlLink" href="#" target="_blank" rel="noreferrer">原音链接</a></p>
-          <p><a id="downloadLink" href="#" target="_blank" rel="noreferrer">打开下载链接</a></p>
+          <div class="audio-meta">
+            <span id="voiceUrlBox"><a id="voiceUrlLink" href="#" target="_blank" rel="noreferrer">原音链接</a></span>
+            <span><a id="downloadLink" href="#" target="_blank" rel="noreferrer">打开下载链接</a></span>
+          </div>
+        </div>
+
+        <div class="generate-section">
+          <span class="section-label">生成音色</span>
+          <div class="generate-row">
+            <select id="voiceSelect">
+              <option value="zh-CN-YunzeNeural">云泽</option>
+              <option value="zh-CN-YunxiNeural">云希</option>
+              <option value="zh-CN-YunjianNeural">云健</option>
+              <option value="zh-CN-YunyangNeural">云扬</option>
+              <option value="zh-CN-YunfengNeural">云枫</option>
+              <option value="zh-CN-XiaoxiaoNeural">晓晓</option>
+              <option value="zh-CN-XiaoyiNeural">晓依</option>
+              <option value="zh-CN-XiaochenNeural">晓辰</option>
+            </select>
+            <button id="generateVoiceBtn" class="primary">生成</button>
+          </div>
+        </div>
+
+        <div id="voiceRunsBox" class="hidden">
+          <span class="section-label">生成历史</span>
+          <div id="voiceRunsList"></div>
+        </div>
+
+        <div class="action-row" style="margin-top:20px;">
+          <button id="saveEditBtn">保存修改</button>
+          <button id="retryBtn" class="warn">重新创作</button>
+          <button id="deleteBtn" class="danger">删除文稿</button>
         </div>
       </section>
 
@@ -769,6 +805,10 @@
 
     function renderJob(job) {
       activeJobId = job.id;
+      // Immediately sync left-panel active highlight — no waiting for refreshJobs
+      $('jobList').querySelectorAll('.job').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.jobId === job.id);
+      });
       $('jobId').textContent = job.id;
       $('jobTitle').textContent = job.theme || '直接输入文稿';
       $('jobStatus').textContent = statusLabel(job.status);
@@ -777,14 +817,12 @@
       $('errorBox').textContent = job.error || '';
       $('retryBtn').disabled = job.mode !== 'theme';
       $('deleteBtn').disabled = false;
-      $('processBtn').disabled = job.status !== 'ready';
       $('voiceSelect').value = job.voice || 'zh-CN-YunzeNeural';
       const hasAudio = job.final_url || job.voice_url;
       $('audioBox').classList.toggle('hidden', !hasAudio);
       if (hasAudio) {
         const audioEl = $('audio');
         const isPlaying = !audioEl.paused;
-        // 页面勾选混音 → 播混音成品；未勾选 → 播原音
         const bgmChecked = (mode === 'theme' && $('themeBgm').checked) || (mode === 'script' && $('scriptBgm').checked);
         const playUrl = bgmChecked ? (job.final_url || job.voice_url) : (job.voice_url || job.final_url);
         const srcChanged = audioEl.src !== playUrl;
@@ -793,7 +831,6 @@
         }
         $('downloadLink').href = playUrl;
         $('downloadLink').textContent = playUrl;
-        // 原音链接始终显示
         if (job.voice_url) {
           $('voiceUrlBox').classList.remove('hidden');
           $('voiceUrlLink').href = job.voice_url;
@@ -802,6 +839,53 @@
           $('voiceUrlBox').classList.add('hidden');
         }
       }
+      // Voice runs
+      const runs = job.voice_runs || [];
+      const runsBox = $('voiceRunsBox');
+      const runsList = $('voiceRunsList');
+      if (runs.length === 0) {
+        runsBox.classList.add('hidden');
+      } else {
+        runsBox.classList.remove('hidden');
+        runsList.innerHTML = '';
+        const VOICE_NAMES = {
+          'zh-CN-YunzeNeural': '云泽', 'zh-CN-YunxiNeural': '云希',
+          'zh-CN-YunjianNeural': '云健', 'zh-CN-YunyangNeural': '云扬',
+          'zh-CN-YunfengNeural': '云枫', 'zh-CN-XiaoxiaoNeural': '晓晓',
+          'zh-CN-XiaoyiNeural': '晓依', 'zh-CN-XiaochenNeural': '晓辰',
+        };
+        runs.forEach((run, i) => {
+          const card = document.createElement('div');
+          card.className = 'voice-run-card';
+          card.dataset.runIndex = i;
+          const voiceName = VOICE_NAMES[run.voice] || run.voice;
+          const time = new Date(run.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+          card.innerHTML = `
+            <div class="voice-run-info">
+              <div class="voice-run-name">${voiceName}${run.bgm ? ' + 混音' : ' 原音'}</div>
+              <div class="voice-run-meta">${time}</div>
+            </div>
+            <audio controls src="${run.voice_url}"></audio>
+          `;
+          card.onclick = (e) => {
+            if (e.target.tagName === 'AUDIO') return;
+            // Play this run
+            const audioEl = $('audio');
+            audioEl.src = run.voice_url;
+            audioEl.play().catch(() => {});
+            $('downloadLink').href = run.final_url;
+            $('downloadLink').textContent = run.final_url;
+            $('voiceUrlLink').href = run.voice_url;
+            $('voiceUrlLink').textContent = run.voice_url;
+            $('voiceUrlBox').classList.remove('hidden');
+            $('audioBox').classList.remove('hidden');
+          };
+          runsList.appendChild(card);
+        });
+      }
+      // Process button: enable if script is not empty (not just 'ready' check)
+      const hasScript = (job.edited_script || job.script || '').trim().length > 0;
+      $('processBtn') && ($('processBtn').disabled = !hasScript);
     }
 
     async function refreshJobs() {
@@ -812,6 +896,7 @@
       jobs.forEach(job => {
         const btn = document.createElement('button');
         btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
+        btn.dataset.jobId = job.id;
         btn.innerHTML = `<strong>${job.theme || '直接文稿'}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
         btn.onclick = () => loadJob(job.id);
         $('jobList').appendChild(btn);
@@ -821,18 +906,21 @@
     }
 
     async function loadJob(jobId) {
+      // Optimistic: set active immediately before API call
+      $('jobList').querySelectorAll('.job').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.jobId === jobId);
+      });
       const job = await api('/api/jobs/' + jobId);
       renderJob(job);
-      refreshJobs().catch(() => {});
     }
 
     async function pollActive() {
       if (activeJobId && !editorDirty && !editorIsActive()) {
-        const savedVoice = $('voiceSelect').value;
-        await loadJob(activeJobId).catch(() => {});
-        $('voiceSelect').value = savedVoice;
+        // Only refresh job list, don't reload full job data to avoid UI flicker
+        await refreshJobs().catch(() => {});
+      } else {
+        await refreshJobs().catch(() => {});
       }
-      await refreshJobs().catch(() => {});
     }
 
     $('loginBtn').onclick = async () => {
@@ -881,7 +969,7 @@
       try {
         const job = await api('/api/jobs/' + activeJobId, {
           method: 'PATCH',
-          body: JSON.stringify({ edited_script: editedScript, voice: $('voiceSelect').value })
+          body: JSON.stringify({ edited_script: editedScript })
         });
         editorDirty = false;
         renderJob(job);
@@ -895,26 +983,31 @@
       }
     };
 
-    $('processBtn').onclick = async () => {
+    $('generateVoiceBtn').onclick = async () => {
       if (!activeJobId) return;
-      $('processBtn').disabled = true;
+      const btn = $('generateVoiceBtn');
+      btn.disabled = true;
+      btn.textContent = '生成中...';
       try {
-        showActionFeedback('正在执行 TTS...');
-        // 先把当前音色和 BGM 状态同步到 job，再执行 TTS
-        const currentVoice = $('voiceSelect').value;
+        showActionFeedback('正在生成语音...');
         const currentBgm = (document.getElementById('themeBgm').checked) || (document.getElementById('scriptBgm').checked);
-        await api('/api/jobs/' + activeJobId, {
-          method: 'PATCH',
-          body: JSON.stringify({ voice: currentVoice, bgm: currentBgm, bgm_asset: $('bgmSelect').value })
+        const bgmAsset = mode === 'theme' ? $('bgmSelect').value : $('bgmScriptSelect').value;
+        const job = await api('/api/jobs/' + activeJobId + '/tts-voice-run', {
+          method: 'POST',
+          body: JSON.stringify({
+            voice: $('voiceSelect').value,
+            bgm: currentBgm,
+            bgm_asset: bgmAsset,
+          })
         });
-        const job = await api('/api/jobs/' + activeJobId + '/process-tts', { method: 'POST', body: '{}' });
         renderJob(job);
-        showActionFeedback('TTS 已完成', 'ok');
+        showActionFeedback('生成完成', 'ok');
       } catch (err) {
-        showActionFeedback('TTS 失败：' + err.message, 'error');
+        showActionFeedback('生成失败：' + err.message, 'error');
         $('errorBox').textContent = err.message;
       } finally {
-        $('processBtn').disabled = false;
+        btn.disabled = false;
+        btn.textContent = '生成';
       }
     };
 

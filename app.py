@@ -190,6 +190,7 @@ def create_job():
             'created_at': datetime.now().isoformat(),
             'bgm': data.get('bgm', True),
             'bgm_asset': data.get('bgm_asset') or 'bgm_default.mp3',
+            'voice_runs': [],
         }
     elif mode == 'script':
         script = (data.get('script') or '').strip()
@@ -208,6 +209,7 @@ def create_job():
             'created_at': datetime.now().isoformat(),
             'bgm': data.get('bgm', True),
             'bgm_asset': data.get('bgm_asset') or 'bgm_default.mp3',
+            'voice_runs': [],
         }
     else:
         return jsonify({'error': 'mode 必须是 theme 或 script'}), 400
@@ -386,9 +388,79 @@ def synthesize_azure_chunked(script, run_dir, voice_path, voice='zh-CN-YunzeNeur
         str(voice_path),
     ])
 
+def _synthesize_run(job, run_id, voice, do_mix, bgm_asset):
+    """Generate one voice run: TTS + optional mix + upload to OSS. Returns run dict."""
+    script = (job.get('edited_script') or job.get('script') or '').strip()
+    if not script:
+        raise ValueError('文稿为空')
+
+    run_dir = RUNS_DIR / job['id'] / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    script_path = run_dir / 'script.txt'
+    voice_path = run_dir / 'voice.mp3'
+    mixed_path = run_dir / 'mixed.mp3'
+    script_path.write_text(script, encoding='utf-8')
+
+    synthesize_azure_chunked(script, run_dir, voice_path, voice)
+
+    bgm_path = BGM_DIR / bgm_asset
+    if not bgm_path.exists():
+        bgm_path = SKILL_DIR / 'assets' / 'bgm_default.mp3'
+
+    name_base = safe_name(job.get('theme') or f'custom-{job["id"]}')
+    ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+    theme_slug = safe_name(job.get('theme') or 'direct-script')
+
+    # Upload script
+    script_url = run_cmd([
+        'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+        '--file', str(script_path), '--theme', theme_slug,
+        '--name', f'{ts}-{run_id}-script.txt',
+    ]).splitlines()[-1].strip()
+
+    # Upload voice
+    voice_url = run_cmd([
+        'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+        '--file', str(voice_path), '--theme', theme_slug,
+        '--name', f'{ts}-{run_id}-voice.mp3',
+    ]).splitlines()[-1].strip()
+
+    # Mix + upload if needed
+    if do_mix and bgm_path.exists():
+        run_cmd([
+            'python3', str(SKILL_DIR / 'scripts' / 'mix_with_bgm.py'),
+            '--voice', str(voice_path), '--bgm', str(bgm_path),
+            '--out', str(mixed_path), '--bgm-volume', '0.03',
+        ])
+        final_source = mixed_path
+    else:
+        final_source = voice_path
+
+    final_url = run_cmd([
+        'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+        '--file', str(final_source), '--theme', theme_slug,
+        '--name', f'{ts}-{run_id}-final.mp3',
+    ]).splitlines()[-1].strip()
+
+    return {
+        'run_id': run_id,
+        'voice': voice,
+        'bgm': do_mix,
+        'bgm_asset': bgm_asset,
+        'status': 'done',
+        'script_url': script_url,
+        'voice_url': voice_url,
+        'final_url': final_url,
+        'created_at': datetime.now().isoformat(),
+    }
+
+
 @app.route('/api/jobs/<job_id>/process-tts', methods=['POST'])
 def process_tts(job_id):
-    """Convert an approved script into narration, optional BGM mix, and public URL."""
+    """
+    Create a new voice run with the job's current voice setting.
+    Can be called multiple times — each call creates a new run in voice_runs.
+    """
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
@@ -397,74 +469,67 @@ def process_tts(job_id):
     if not script:
         return jsonify({'error': '文稿为空，无法生成'}), 400
 
-    try:
-        run_dir = RUNS_DIR / job_id
-        run_dir.mkdir(parents=True, exist_ok=True)
-        script_path = run_dir / 'script.txt'
-        voice_path = run_dir / 'voice.mp3'
-        mixed_path = run_dir / 'final.mp3'
-        script_path.write_text(script, encoding='utf-8')
+    if job.get('voice_runs') is None:
+        job['voice_runs'] = []
 
+    run_id = f'run-{datetime.now().strftime("%Y%m%d-%H%M%S")}-{len(job["voice_runs"])+1}'
+    voice = job.get('voice', 'zh-CN-YunzeNeural')
+    do_mix = job.get('bgm', True)
+    bgm_asset = job.get('bgm_asset', 'bgm_default.mp3')
+
+    try:
         job['status'] = 'tts'
         job['error'] = None
         save_job(job)
 
-        synthesize_azure_chunked(script, run_dir, voice_path, job.get('voice', 'zh-CN-YunzeNeural'))
-        job['audio_path'] = str(voice_path)
+        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset)
+        job['voice_runs'].append(run_info)
+        # Mirror last run to top-level fields for backward compatibility
+        job['final_url'] = run_info['final_url']
+        job['voice_url'] = run_info['voice_url']
         job['status'] = 'done'
-        job['voice_url'] = None  # placeholder until uploaded below
+        save_job(job)
+        return jsonify(job)
+    except Exception as exc:
+        job['status'] = 'error'
+        job['error'] = str(exc)
+        save_job(job)
+        return jsonify(job), 500
+
+
+@app.route('/api/jobs/<job_id>/tts-voice-run', methods=['POST'])
+def tts_voice_run(job_id):
+    """
+    Create a new voice run with a SPECIFIC voice (for A/B comparison).
+    Body: { "voice": "zh-CN-YunxiNeural", "bgm": true, "bgm_asset": "..." }
+    """
+    job = load_job(job_id)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
+
+    script = (job.get('edited_script') or job.get('script') or '').strip()
+    if not script:
+        return jsonify({'error': '文稿为空，无法生成'}), 400
+
+    if job.get('voice_runs') is None:
+        job['voice_runs'] = []
+
+    data = request.get_json() or {}
+    run_id = f'run-{datetime.now().strftime("%Y%m%d-%H%M%S")}-{len(job["voice_runs"])+1}'
+    voice = data.get('voice', job.get('voice', 'zh-CN-YunzeNeural'))
+    do_mix = data.get('bgm', job.get('bgm', True))
+    bgm_asset = data.get('bgm_asset', job.get('bgm_asset', 'bgm_default.mp3'))
+
+    try:
+        job['status'] = 'tts'
+        job['error'] = None
         save_job(job)
 
-        do_mix = job.get('bgm', True)
-        bgm_asset = job.get('bgm_asset', 'bgm_default.mp3')
-        bgm_path = BGM_DIR / bgm_asset
-        if not bgm_path.exists():
-            bgm_path = SKILL_DIR / 'assets' / 'bgm_default.mp3'
-        final_source = voice_path
-        if do_mix:
-            job['status'] = 'mixing'
-            save_job(job)
-            run_cmd([
-                'python3', str(SKILL_DIR / 'scripts' / 'mix_with_bgm.py'),
-                '--voice', str(voice_path),
-                '--bgm', str(bgm_path),
-                '--out', str(mixed_path),
-                '--bgm-volume', '0.03',
-            ])
-            final_source = mixed_path
-
-        name_base = safe_name(job.get('theme') or f'custom-{job_id}')
-        ts = datetime.now().strftime('%Y%m%d-%H%M%S')
-        theme_slug = safe_name(job.get('theme') or 'direct-script')
-
-        # 上传文稿 (script.txt)
-        script_url = run_cmd([
-            'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
-            '--file', str(script_path),
-            '--theme', theme_slug,
-            '--name', f'{ts}-script.txt',
-        ]).splitlines()[-1].strip()
-
-        # 上传原声 (voice.mp3)
-        voice_url = run_cmd([
-            'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
-            '--file', str(voice_path),
-            '--theme', theme_slug,
-            '--name', f'{ts}-voice.mp3',
-        ]).splitlines()[-1].strip()
-
-        # 上传成品 (final.mp3 或 voice.mp3)
-        public_name = f'{ts}-{name_base}.mp3'
-        final_url = run_cmd([
-            'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
-            '--file', str(final_source),
-            '--theme', theme_slug,
-            '--name', public_name,
-        ]).splitlines()[-1].strip()
-
-        job['final_url'] = final_url
-        job['voice_url'] = voice_url      # 原声 OSS URL
-        job['script_url'] = script_url    # 文稿 OSS URL
+        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset)
+        job['voice_runs'].append(run_info)
+        job['final_url'] = run_info['final_url']
+        job['voice_url'] = run_info['voice_url']
+        job['status'] = 'done'
         save_job(job)
         return jsonify(job)
     except Exception as exc:
