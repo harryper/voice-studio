@@ -6,203 +6,652 @@
   <title>熊喵助眠创作台</title>
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #0f1318;
-      --panel: #171d24;
-      --panel-2: #202833;
-      --text: #edf2f7;
-      --muted: #94a3b8;
-      --line: #2d3745;
-      --accent: #6ee7b7;
-      --accent-2: #38bdf8;
-      --danger: #fb7185;
-      --warn: #fbbf24;
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-2: #fafafa;
+      --surface-3: #f0f0f2;
+      --border: #d2d2d7;
+      --border-light: #e8e8ed;
+      --text: #1d1d1f;
+      --text-2: #6e6e73;
+      --text-3: #86868b;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --accent-light: rgba(0,113,227,0.08);
+      --danger: #ff3b30;
+      --danger-light: rgba(255,59,48,0.08);
+      --warn: #ff9500;
+      --success: #30d158;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
     }
-    * { box-sizing: border-box; }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
     body {
       margin: 0;
       min-height: 100vh;
       background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
       color: var(--text);
-      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
-    button, input, textarea { font: inherit; }
-    button {
-      border: 1px solid var(--line);
-      background: var(--panel-2);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 10px 14px;
-      cursor: pointer;
-    }
-    button.primary { background: #0f766e; border-color: #14b8a6; }
-    button.blue { background: #075985; border-color: #0ea5e9; }
-    button.warn { background: #713f12; border-color: #f59e0b; }
-    button.small { padding: 6px 10px; font-size: .85em; }
-    button.danger { background: #7f1d1d; border-color: #ef4444; }
-    button:disabled { cursor: not-allowed; opacity: .55; }
-    input, textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #0b0f14;
-      color: var(--text);
-      padding: 12px;
-      outline: none;
-    }
-    textarea {
-      min-height: 420px;
-      resize: vertical;
-      white-space: pre-wrap;
-    }
-    label { display: block; color: var(--muted); margin-bottom: 8px; }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 28px; }
-    .top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 22px;
-    }
-    h1 { font-size: 24px; margin: 0; letter-spacing: 0; }
-    .sub { color: var(--muted); margin-top: 4px; }
-    .grid { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 18px; align-items: start; }
-    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-    .tab.active { border-color: var(--accent); color: var(--accent); }
+
     .hidden { display: none !important; }
-    .status {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px;
-      background: #0b0f14;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      margin-bottom: 14px;
-    }
-    .pill {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 4px 10px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .pill.ready { color: var(--accent); border-color: #059669; }
-    .pill.error { color: var(--danger); border-color: #be123c; }
-    .note { color: var(--muted); font-size: 13px; margin-top: 8px; }
-    .action-feedback {
-      min-height: 22px;
-      margin: 8px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .action-feedback.ok { color: var(--accent); }
-    .action-feedback.error { color: var(--danger); }
-    .error { color: var(--danger); white-space: pre-wrap; }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface-2); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+    /* ─── Login ─── */
     .login {
       min-height: 100vh;
       display: grid;
       place-items: center;
       padding: 24px;
+      background: var(--bg);
     }
-    .login .panel { width: min(420px, 100%); }
-    .job-list { display: grid; gap: 8px; margin-top: 14px; }
-    .job {
-      text-align: left;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: #0b0f14;
+
+    .login .panel {
+      width: min(400px, 100%);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login h1 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin: 0 0 6px;
+    }
+
+    .login .login-sub {
+      color: var(--text-2);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    /* ─── Layout ─── */
+    .app-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* ─── Header ─── */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .app-title {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .app-subtitle {
+      margin-top: 5px;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ─── Grid ─── */
+    .app-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ─── Panel ─── */
+    .panel {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-light);
+    }
+
+    /* ─── Section Label ─── */
+    .section-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+
+    /* ─── Tabs ─── */
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--surface-3);
+      border-radius: var(--radius-md);
+      padding: 4px;
+      gap: 0;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      border: none;
+      background: transparent;
+      border-radius: calc(var(--radius-md) - 2px);
+      color: var(--text-2);
+      font-weight: 500;
+      font-size: 13px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .tab:hover:not(.active) {
+      color: var(--text);
+    }
+
+    .tab.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ─── Status Bar / Job Header ─── */
+    .job-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .job-header .title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .job-header-new {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+    }
+
+    .job-header-new .label {
+      font-size: 13px;
+      color: var(--text-2);
+      font-weight: 500;
+    }
+
+    /* ─── Pill ─── */
+    .pill {
+      background: var(--surface-3);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+
+    .pill.ready {
+      color: var(--success);
+      background: rgba(48,209,88,0.1);
+      border-color: rgba(48,209,88,0.3);
+    }
+
+    .pill.error {
+      color: var(--danger);
+      background: var(--danger-light);
+      border-color: rgba(255,59,48,0.3);
+    }
+
+    /* ─── Input / Textarea / Select ─── */
+    input, textarea, select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      padding: 11px 14px;
+      font-size: 14px;
+      width: 100%;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-light);
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: var(--text-3);
+    }
+
+    textarea {
+      min-height: 360px;
+      resize: vertical;
+      white-space: pre-wrap;
+      line-height: 1.7;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236e6e73' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
       cursor: pointer;
     }
-    .job.active { border-color: var(--accent-2); }
-    audio { width: 100%; margin-top: 12px; }
+
+    /* ─── Checkbox ─── */
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+      padding: 0;
+      border-radius: 4px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    /* ─── Buttons ─── */
+    button {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: inherit;
+    }
+
+    button:not(:disabled):hover {
+      background: var(--surface-3);
+      box-shadow: var(--shadow-sm);
+    }
+
+    button:not(:disabled):active { transform: scale(0.98); }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    button.primary:not(:disabled):hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 12px rgba(0,113,227,0.25);
+    }
+
+    button.blue {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    button.blue:not(:disabled):hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 12px rgba(0,113,227,0.25);
+    }
+
+    button.warn {
+      background: #fff;
+      border-color: var(--warn);
+      color: var(--warn);
+    }
+
+    button.warn:not(:disabled):hover {
+      background: rgba(255,149,0,0.06);
+    }
+
+    button.danger {
+      background: var(--danger-light);
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    button.danger:not(:disabled):hover {
+      background: rgba(255,59,48,0.12);
+    }
+
+    button.small {
+      padding: 7px 13px;
+      font-size: 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    button.full { width: 100%; }
+
+    /* ─── Row ─── */
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .row + .row { margin-top: 10px; }
+
+    /* ─── Note ─── */
+    .note {
+      color: var(--text-3);
+      font-size: 12px;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* ─── Action Feedback ─── */
+    .action-feedback {
+      min-height: 20px;
+      font-size: 12px;
+      margin-top: 8px;
+      color: var(--text-3);
+      transition: color 0.2s;
+    }
+
+    .action-feedback.ok { color: var(--success); }
+
+    .action-feedback.error { color: var(--danger); }
+
+    /* ─── Error Box ─── */
+    .error {
+      color: var(--danger);
+      font-size: 12px;
+      margin-top: 8px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      min-height: 0;
+    }
+
+    /* ─── Job List ─── */
+    .job-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .job {
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 11px 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 13px;
+      text-align: left;
+      font-family: inherit;
+    }
+
+    .job:hover:not(.active) {
+      background: var(--surface-3);
+    }
+
+    .job.active {
+      border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .job strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .job-meta {
+      color: var(--text-3);
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    /* ─── Audio Box ─── */
+    #audioBox {
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-top: 14px;
+    }
+
+    #audioBox audio {
+      width: 100%;
+      margin-bottom: 10px;
+      display: block;
+      border-radius: var(--radius-sm);
+    }
+
+    #audioBox a {
+      color: var(--accent);
+      font-size: 13px;
+      text-decoration: none;
+      display: inline-block;
+      margin-right: 16px;
+    }
+
+    #audioBox a:hover { text-decoration: underline; }
+
+    /* ─── BGM Selector inline ─── */
+    .bgm-inline {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    .bgm-inline select {
+      flex: 1;
+      max-width: 180px;
+    }
+
+    /* ─── Checkbox label row ─── */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .check-row + .check-row { margin-top: 8px; }
+
+    /* ─── Separator ─── */
+    .sep {
+      height: 1px;
+      background: var(--border-light);
+      margin: 20px 0;
+    }
+
+    /* ─── Right panel voice row ─── */
+    .voice-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .voice-row label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .voice-row select {
+      width: auto;
+      min-width: 160px;
+      flex: 1;
+      max-width: 220px;
+    }
+
+    /* ─── Login panel extras ─── */
+    .login-panel label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+
+    .login-panel .row { margin-top: 16px; }
+
+    /* ─── Action row ─── */
+    .action-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    /* ─── Responsive ─── */
     @media (max-width: 860px) {
-      .wrap { padding: 16px; }
-      .grid { grid-template-columns: 1fr; }
-      textarea { min-height: 340px; }
+      .app-wrap { padding: 20px 16px; }
+      .app-grid { grid-template-columns: 1fr; }
+      .panel { border-radius: var(--radius-md); padding: 18px; }
+      textarea { min-height: 300px; }
     }
   </style>
 </head>
 <body>
-  <main id="loginView" class="login">
-    <section class="panel">
+
+  <!-- ─── Login ─── -->
+  <div id="loginView" class="login">
+    <section class="panel login-panel">
       <h1>熊喵助眠创作台</h1>
-      <p class="sub">输入访问密码后进入。</p>
+      <p class="login-sub">输入访问密码后进入。</p>
       <label for="password">访问密码</label>
       <input id="password" type="password" autocomplete="current-password" placeholder="Password">
-      <div class="row" style="margin-top: 12px;">
+      <div class="row">
         <button id="loginBtn" class="primary">进入</button>
       </div>
       <p id="loginError" class="error"></p>
     </section>
-  </main>
+  </div>
 
-  <main id="appView" class="wrap hidden">
-    <div class="top">
+  <!-- ─── App ─── -->
+  <main id="appView" class="app-wrap hidden">
+
+    <header class="app-header">
       <div>
-        <h1>熊喵助眠创作台</h1>
-        <div class="sub">主题创作先预览，确认后再生成语音；也可以直接粘贴文稿生成。</div>
+        <h1 class="app-title">熊喵助眠创作台</h1>
+        <p class="app-subtitle">主题创作先预览，确认后再生成语音；也可以直接粘贴文稿生成。</p>
       </div>
       <button id="logoutBtn">退出</button>
-    </div>
+    </header>
 
-    <section class="grid">
+    <div class="app-grid">
+
+      <!-- ─── Left Sidebar ─── -->
       <aside class="panel">
         <div class="tabs">
           <button id="tabTheme" class="tab active">主题创作</button>
           <button id="tabScript" class="tab">直接文稿</button>
         </div>
 
+        <!-- Theme Mode -->
         <div id="themeBox">
-          <label for="themeInput">主题</label>
+          <span class="section-label">主题输入</span>
           <input id="themeInput" placeholder="例：宇宙的边界、黑洞、海底火山">
-          <label style="margin-top: 12px;"><input id="themeBgm" type="checkbox" checked style="width:auto;"> 混入背景音</label>
-          <div id="bgmSelector" style="margin-top:6px; display:flex;gap:6px;align-items:center;">
-            <select id="bgmSelect" style="flex:1;max-width:160px;"><option>加载中…</option></select>
+          <div class="check-row">
+            <input id="themeBgm" type="checkbox" checked>
+            <label for="themeBgm">混入背景音</label>
+          </div>
+          <div class="bgm-inline">
+            <select id="bgmSelect"><option>加载中…</option></select>
             <button id="uploadBgmBtn" class="small" style="white-space:nowrap;">上传</button>
             <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
           </div>
-          <button id="createThemeBtn" class="primary" style="margin-top: 12px; width:100%;">创作文稿</button>
+          <button id="createThemeBtn" class="primary full" style="margin-top: 14px;">创作文稿</button>
           <p class="note">主题任务会进入待创作队列，由 OpenClaw 巡检生成文稿后回填到右侧。</p>
         </div>
 
+        <!-- Script Mode -->
         <div id="scriptBox" class="hidden">
-          <label for="directScript">直接输入文稿</label>
-          <textarea id="directScript" style="min-height: 220px;" placeholder="把完整文稿粘贴到这里"></textarea>
-          <label style="margin-top: 12px;"><input id="scriptBgm" type="checkbox" checked style="width:auto;"> 混入背景音</label>
-          <div id="bgmScriptSelector" style="margin-top:6px; display:flex;gap:6px;align-items:center;">
-            <select id="bgmScriptSelect" style="flex:1;max-width:160px;"><option>加载中…</option></select>
+          <span class="section-label">文稿输入</span>
+          <textarea id="directScript" placeholder="把完整文稿粘贴到这里" style="min-height: 220px;"></textarea>
+          <div class="check-row">
+            <input id="scriptBgm" type="checkbox" checked>
+            <label for="scriptBgm">混入背景音</label>
+          </div>
+          <div class="bgm-inline">
+            <select id="bgmScriptSelect"><option>加载中…</option></select>
             <button id="uploadScriptBgmBtn" class="small" style="white-space:nowrap;">上传</button>
             <input type="file" id="bgmScriptFileInput" accept="audio/*" class="hidden">
           </div>
-          <button id="createScriptBtn" class="primary" style="margin-top: 12px; width:100%;">载入文稿</button>
+          <button id="createScriptBtn" class="primary full" style="margin-top: 14px;">载入文稿</button>
           <p class="note">载入后仍会进入右侧预览区，可以再改，确认后生成语音。</p>
         </div>
 
-        <div class="status" style="margin-top: 16px;">
-          <span>当前任务</span>
+        <div class="sep"></div>
+
+        <div class="job-header-new">
+          <span class="label">当前任务</span>
           <span id="jobStatus" class="pill">无</span>
         </div>
         <div id="jobList" class="job-list"></div>
       </aside>
 
+      <!-- ─── Right Main ─── -->
       <section class="panel">
-        <div class="status">
-          <span id="jobTitle">还没有任务</span>
+        <div class="job-header">
+          <span id="jobTitle" class="title">还没有任务</span>
           <span id="jobId" class="pill">-</span>
         </div>
-        <label for="scriptEditor">文稿预览 / 编辑</label>
+
+        <span class="section-label">文稿预览 / 编辑</span>
         <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
-        <div class="row" style="margin-top: 12px;">
+
+        <div class="action-row">
           <button id="saveEditBtn">保存修改</button>
           <button id="processBtn" class="primary">执行 TTS</button>
           <button id="retryBtn" class="warn">重新创作</button>
           <button id="deleteBtn" class="danger">删除文稿</button>
-          <select id="voiceSelect" style="margin-left: 8px;">
+        </div>
+
+        <div class="voice-row">
+          <label>音色</label>
+          <select id="voiceSelect">
             <option value="zh-CN-YunzeNeural">云泽（默认）</option>
             <option value="zh-CN-YunxiNeural">云希</option>
             <option value="zh-CN-YunjianNeural">云健</option>
@@ -213,15 +662,18 @@
             <option value="zh-CN-XiaochenNeural">晓辰</option>
           </select>
         </div>
+
         <p id="actionFeedback" class="action-feedback"></p>
         <p id="errorBox" class="error"></p>
+
         <div id="audioBox" class="hidden">
           <audio id="audio" controls></audio>
           <p id="voiceUrlBox"><a id="voiceUrlLink" href="#" target="_blank" rel="noreferrer">原音链接</a></p>
           <p><a id="downloadLink" href="#" target="_blank" rel="noreferrer">打开下载链接</a></p>
         </div>
       </section>
-    </section>
+
+    </div>
   </main>
 
   <script>
@@ -360,7 +812,7 @@
       jobs.forEach(job => {
         const btn = document.createElement('button');
         btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
-        btn.innerHTML = `<strong>${job.theme || '直接文稿'}</strong><br><span class="note">${job.id} · ${statusLabel(job.status)}</span>`;
+        btn.innerHTML = `<strong>${job.theme || '直接文稿'}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
         btn.onclick = () => loadJob(job.id);
         $('jobList').appendChild(btn);
       });
@@ -569,5 +1021,6 @@
     }).catch(() => showApp(false));
     pollTimer = setInterval(pollActive, 5000);
   </script>
+
 </body>
 </html>
