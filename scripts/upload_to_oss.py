@@ -41,7 +41,7 @@ def upload_file(file_path: str, theme: str, name: str = None) -> str:
     url = client.generate_presigned_url(
         'get_object',
         Params={'Bucket': BUCKET, 'Key': object_key},
-        ExpiresIn=30 * 24 * 3600,
+        ExpiresIn=7 * 24 * 3600,  # R2 max 7 days
     )
     return url
 

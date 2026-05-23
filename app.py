@@ -52,6 +52,8 @@ COSMIC_DIR = os.path.join(DOWNLOAD_ROOT, COSMIC_FOLDER)
 SKILL_DIR = Path(__file__).resolve().parent
 RUNS_DIR = SKILL_DIR / 'runs'
 RUNS_DIR.mkdir(exist_ok=True)
+BGM_DIR = SKILL_DIR / 'bgm'
+BGM_DIR.mkdir(exist_ok=True)
 
 # ── 状态文件 ──────────────────────────────────────────────
 JOBS_DIR = os.path.join(os.path.dirname(__file__), 'jobs')
@@ -187,6 +189,7 @@ def create_job():
             'error': None,
             'created_at': datetime.now().isoformat(),
             'bgm': data.get('bgm', True),
+            'bgm_asset': data.get('bgm_asset') or 'bgm_default.mp3',
         }
     elif mode == 'script':
         script = (data.get('script') or '').strip()
@@ -204,6 +207,7 @@ def create_job():
             'error': None,
             'created_at': datetime.now().isoformat(),
             'bgm': data.get('bgm', True),
+            'bgm_asset': data.get('bgm_asset') or 'bgm_default.mp3',
         }
     else:
         return jsonify({'error': 'mode 必须是 theme 或 script'}), 400
@@ -232,7 +236,7 @@ def update_job(job_id):
         job['edited_script'] = data['edited_script']
 
     # 主 session 更新状态
-    for key in ('status', 'script', 'edited_script', 'voice', 'bgm', 'audio_url', 'final_url', 'error'):
+    for key in ('status', 'script', 'edited_script', 'voice', 'bgm', 'bgm_asset', 'audio_url', 'final_url', 'error'):
         if key in data:
             job[key] = data[key]
 
@@ -407,16 +411,23 @@ def process_tts(job_id):
 
         synthesize_azure_chunked(script, run_dir, voice_path, job.get('voice', 'zh-CN-YunzeNeural'))
         job['audio_path'] = str(voice_path)
+        job['status'] = 'done'
+        job['voice_url'] = None  # placeholder until uploaded below
         save_job(job)
 
+        do_mix = job.get('bgm', True)
+        bgm_asset = job.get('bgm_asset', 'bgm_default.mp3')
+        bgm_path = BGM_DIR / bgm_asset
+        if not bgm_path.exists():
+            bgm_path = SKILL_DIR / 'assets' / 'bgm_default.mp3'
         final_source = voice_path
-        if job.get('bgm', True):
+        if do_mix:
             job['status'] = 'mixing'
             save_job(job)
             run_cmd([
                 'python3', str(SKILL_DIR / 'scripts' / 'mix_with_bgm.py'),
                 '--voice', str(voice_path),
-                '--bgm', str(SKILL_DIR / 'assets' / 'bgm_default.mp3'),
+                '--bgm', str(bgm_path),
                 '--out', str(mixed_path),
                 '--bgm-volume', '0.03',
             ])
@@ -462,10 +473,37 @@ def process_tts(job_id):
         save_job(job)
         return jsonify(job), 500
 
-# ── 音频文件服务 ──────────────────────────────────────────
-@app.route('/download/<path:filename>')
-def download(filename):
-    return send_from_directory(DOWNLOAD_ROOT, filename)
+# ── BGM 文件服务 ────────────────────────────────────────
+ALLOWED_EXT = {'.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'}
+
+@app.route('/api/bgm', methods=['GET'])
+def list_bgm():
+    """返回 BGM 目录下所有可用音频文件"""
+    files = []
+    for f in BGM_DIR.iterdir():
+        if f.is_file() and f.suffix.lower() in ALLOWED_EXT:
+            files.append({'name': f.name, 'size': f.stat().st_size})
+    # 也包含内置 BGM
+    default = SKILL_DIR / 'assets' / 'bgm_default.mp3'
+    if default.exists():
+        files.insert(0, {'name': 'bgm_default.mp3', 'size': default.stat().st_size, 'builtin': True})
+    return jsonify(files)
+
+@app.route('/api/bgm/upload', methods=['POST'])
+def upload_bgm():
+    """上传 BGM 音频文件（需认证）"""
+    if 'file' not in request.files:
+        return jsonify({'error': '没有文件字段'}), 400
+    f = request.files['file']
+    if not f.filename:
+        return jsonify({'error': '文件名为空'}), 400
+    ext = Path(f.filename).suffix.lower()
+    if ext not in ALLOWED_EXT:
+        return jsonify({'error': f'不支持的格式 {ext}，支持: {", ".join(sorted(ALLOWED_EXT))}'}), 400
+    safe_name = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{Path(f.filename).name}"
+    out_path = BGM_DIR / safe_name
+    f.save(str(out_path))
+    return jsonify({'name': safe_name, 'size': out_path.stat().st_size})
 
 # ── 前端页面 ──────────────────────────────────────────────
 @app.route('/')
