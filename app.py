@@ -478,6 +478,14 @@ def process_tts(job_id):
     bgm_asset = job.get('bgm_asset', 'bgm_default.mp3')
 
     try:
+        # Guard: if job already has final_url but status is stuck at tts/mixing,
+        # it means a prior run completed but didn't update status (e.g. crash/restart mid-save).
+        # Mark it done and skip re-synthesis.
+        if job.get('final_url') and job.get('status') in ('tts', 'mixing'):
+            job['status'] = 'done'
+            save_job(job)
+            return jsonify(job)
+
         job['status'] = 'tts'
         job['error'] = None
         save_job(job)
@@ -521,6 +529,12 @@ def tts_voice_run(job_id):
     bgm_asset = data.get('bgm_asset', job.get('bgm_asset', 'bgm_default.mp3'))
 
     try:
+        # Guard: if job already has final_url but status is stuck, skip re-synthesis
+        if job.get('final_url') and job.get('status') in ('tts', 'mixing'):
+            job['status'] = 'done'
+            save_job(job)
+            return jsonify(job)
+
         job['status'] = 'tts'
         job['error'] = None
         save_job(job)

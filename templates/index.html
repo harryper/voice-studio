@@ -278,7 +278,31 @@
       padding: 0;
       border-radius: 4px;
       cursor: pointer;
-      accent-color: var(--accent);
+      appearance: none;
+      -webkit-appearance: none;
+      border: 2px solid var(--border, #ccc);
+      background: var(--surface, #fff);
+      position: relative;
+      vertical-align: middle;
+    }
+    input[type="checkbox"]:checked {
+      background: var(--accent, #0071e3);
+      border-color: var(--accent, #0071e3);
+    }
+    input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: -1px;
+      width: 8px;
+      height: 10px;
+      border: 2px solid #fff;
+      border-top: none;
+      border-left: none;
+      transform: rotate(45deg);
+    }
+    input[type="checkbox"]:hover {
+      border-color: var(--accent, #0071e3);
     }
 
     /* ─── Buttons ─── */
@@ -562,21 +586,55 @@
       background: var(--surface-2);
       border: 1px solid var(--border-light);
       border-radius: var(--radius-md);
-      padding: 12px 14px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      overflow: hidden;
       cursor: pointer;
       transition: all 0.15s;
     }
-    .voice-run-card:hover { border-color: var(--accent); background: var(--accent-light); }
-    .voice-run-card.active { border-color: var(--accent); background: var(--accent-light); }
-    .voice-run-info { flex: 1; min-width: 0; }
+    .voice-run-card:hover { border-color: var(--accent); }
+    .voice-run-card.active { border-color: var(--accent); }
+    .voice-run-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface-3);
+    }
     .voice-run-name { font-size: 13px; font-weight: 500; color: var(--text); }
-    .voice-run-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
-    .voice-run-card audio { flex: 1; min-width: 160px; height: 32px; border-radius: 6px; }
-    .audio-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
-    .audio-meta a { font-size: 12px; }
+    .voice-run-time { font-size: 11px; color: var(--text-3); }
+    .voice-run-versions { padding: 6px 0; }
+    .voice-run-ver {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      font-size: 12px;
+      color: var(--text-2);
+      transition: background 0.12s;
+    }
+    .voice-run-ver:hover { background: var(--surface-3); }
+    .voice-run-ver-label { flex: 1; }
+    .voice-run-ver.playing { color: var(--accent); font-weight: 500; }
+    .ver-play-btn {
+      background: none;
+      border: none;
+      padding: 2px 6px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      border-radius: 4px;
+      color: var(--text-2);
+      transition: color 0.12s;
+    }
+    .ver-play-btn:hover { color: var(--accent); }
+    .ver-badge {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      background: var(--surface-3);
+      color: var(--text-3);
+    }
+    .ver-badge.mixed { background: rgba(0,113,227,0.1); color: var(--accent); }
 
   </style>
 </head>
@@ -674,10 +732,6 @@
 
         <div id="audioBox" class="hidden">
           <audio id="audio" controls></audio>
-          <div class="audio-meta">
-            <span id="voiceUrlBox"><a id="voiceUrlLink" href="#" target="_blank" rel="noreferrer">原音链接</a></span>
-            <span><a id="downloadLink" href="#" target="_blank" rel="noreferrer">打开下载链接</a></span>
-          </div>
         </div>
 
         <div class="generate-section">
@@ -829,15 +883,6 @@
         if (!isPlaying && srcChanged) {
           audioEl.src = playUrl;
         }
-        $('downloadLink').href = playUrl;
-        $('downloadLink').textContent = playUrl;
-        if (job.voice_url) {
-          $('voiceUrlBox').classList.remove('hidden');
-          $('voiceUrlLink').href = job.voice_url;
-          $('voiceUrlLink').textContent = job.voice_url;
-        } else {
-          $('voiceUrlBox').classList.add('hidden');
-        }
       }
       // Voice runs
       const runs = job.voice_runs || [];
@@ -860,25 +905,49 @@
           card.dataset.runIndex = i;
           const voiceName = VOICE_NAMES[run.voice] || run.voice;
           const time = new Date(run.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+          const verHtml = [];
+          if (run.voice_url) {
+            verHtml.push(`
+              <div class="voice-run-ver" data-url="${run.voice_url}" data-type="voice">
+                <span class="ver-play-btn">▶</span>
+                <span class="voice-run-ver-label">原音版本</span>
+              </div>`);
+          }
+          if (run.bgm && run.final_url && run.final_url !== run.voice_url) {
+            verHtml.push(`
+              <div class="voice-run-ver" data-url="${run.final_url}" data-type="mixed">
+                <span class="ver-play-btn">▶</span>
+                <span class="voice-run-ver-label">混音版本</span>
+                <span class="ver-badge mixed">BGM</span>
+              </div>`);
+          }
           card.innerHTML = `
-            <div class="voice-run-info">
-              <div class="voice-run-name">${voiceName}${run.bgm ? ' + 混音' : ' 原音'}</div>
-              <div class="voice-run-meta">${time}</div>
+            <div class="voice-run-header">
+              <span class="voice-run-name">${voiceName}</span>
+              <span class="voice-run-time">${time}</span>
             </div>
-            <audio controls src="${run.voice_url}"></audio>
+            <div class="voice-run-versions">${verHtml.join('')}</div>
           `;
+          // Bind play buttons
+          card.querySelectorAll('.voice-run-ver').forEach(verEl => {
+            verEl.onclick = (e) => {
+              e.stopPropagation();
+              const url = verEl.dataset.url;
+              const audioEl = $('audio');
+              audioEl.src = url;
+              audioEl.play().catch(() => {});
+              $('audioBox').classList.remove('hidden');
+              // Update playing state
+              card.querySelectorAll('.voice-run-ver').forEach(v => v.classList.remove('playing'));
+              verEl.classList.add('playing');
+            };
+          });
           card.onclick = (e) => {
-            if (e.target.tagName === 'AUDIO') return;
-            // Play this run
-            const audioEl = $('audio');
-            audioEl.src = run.voice_url;
-            audioEl.play().catch(() => {});
-            $('downloadLink').href = run.final_url;
-            $('downloadLink').textContent = run.final_url;
-            $('voiceUrlLink').href = run.voice_url;
-            $('voiceUrlLink').textContent = run.voice_url;
-            $('voiceUrlBox').classList.remove('hidden');
-            $('audioBox').classList.remove('hidden');
+            if (e.target.closest('.voice-run-ver')) return;
+            // Default: play mixed if available, else voice
+            const defaultVer = card.querySelector('.voice-run-ver[data-type="mixed"]') || card.querySelector('.voice-run-ver[data-type="voice"]');
+            if (defaultVer) defaultVer.click();
           };
           runsList.appendChild(card);
         });
@@ -1038,10 +1107,11 @@
       const title = $('jobTitle').textContent || activeJobId;
       if (!confirm(`确定删除这个文稿任务吗？\n\n${title}\n${activeJobId}\n\n已生成的本地音频也会一起清理。`)) return;
       const deleteJobId = activeJobId;
-      const button = $('deleteBtn');
-      const originalText = button.textContent;
-      button.disabled = true;
-      button.textContent = '删除中...';
+      const btn = $('deleteBtn');
+      if (!btn) return;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '删除中...';
       showActionFeedback('正在删除文稿并清理音频...');
       $('errorBox').textContent = '';
       try {
@@ -1053,8 +1123,9 @@
         showActionFeedback('删除失败：' + err.message, 'error');
         $('errorBox').textContent = err.message;
       } finally {
-        button.disabled = false;
-        button.textContent = originalText;
+        // Restore button only if it still exists in DOM
+        const btn2 = $('deleteBtn');
+        if (btn2) { btn2.disabled = false; btn2.textContent = originalText; }
       }
     };
 
