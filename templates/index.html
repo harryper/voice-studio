@@ -735,6 +735,16 @@
         </div>
 
         <div class="generate-section">
+          <span class="section-label">服务商</span>
+          <div class="generate-row">
+            <select id="providerSelect">
+              <option value="azure">Azure TTS</option>
+              <option value="minimax">MiniMax TTS</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="generate-section">
           <span class="section-label">生成音色</span>
           <div class="generate-row">
             <select id="voiceSelect">
@@ -872,6 +882,9 @@
       $('retryBtn').disabled = job.mode !== 'theme';
       $('deleteBtn').disabled = false;
       $('voiceSelect').value = job.voice || 'zh-CN-YunzeNeural';
+      const provider = job.provider || 'azure';
+      $('providerSelect').value = provider;
+      buildVoiceOptions(provider);
       const hasAudio = job.final_url || job.voice_url;
       $('audioBox').classList.toggle('hidden', !hasAudio);
       if (hasAudio) {
@@ -1064,6 +1077,7 @@
         const job = await api('/api/jobs/' + activeJobId + '/tts-voice-run', {
           method: 'POST',
           body: JSON.stringify({
+            provider: $('providerSelect').value,
             voice: $('voiceSelect').value,
             bgm: currentBgm,
             bgm_asset: bgmAsset,
@@ -1175,6 +1189,31 @@
     }
     initBgmUpload('uploadBgmBtn', 'bgmFileInput', $('bgmSelect'));
     initBgmUpload('uploadScriptBgmBtn', 'bgmScriptFileInput', $('bgmScriptSelect'));
+
+    const AZURE_VOICES = [
+      { value: 'zh-CN-YunzeNeural', label: '云泽' },
+      { value: 'zh-CN-YunxiNeural', label: '云希' },
+      { value: 'zh-CN-YunjianNeural', label: '云健' },
+      { value: 'zh-CN-YunyangNeural', label: '云扬' },
+      { value: 'zh-CN-YunfengNeural', label: '云枫' },
+      { value: 'zh-CN-XiaoxiaoNeural', label: '晓晓' },
+      { value: 'zh-CN-XiaoyiNeural', label: '晓依' },
+      { value: 'zh-CN-XiaochenNeural', label: '晓辰' },
+    ];
+    const MINIMAX_VOICES = [
+      { value: 'Chinese (Mandarin)_Gentleman', label: 'Gentleman（沉稳男声）' },
+      { value: 'Chinese_deep_voiced_male_vv1', label: 'Deep Voice（低沉男声）' },
+    ];
+
+    function buildVoiceOptions(provider) {
+      const list = provider === 'minimax' ? MINIMAX_VOICES : AZURE_VOICES;
+      const sel = $('voiceSelect');
+      sel.innerHTML = '';
+      list.forEach(v => { const opt = document.createElement('option'); opt.value = v.value; opt.textContent = v.label; sel.appendChild(opt); });
+    }
+
+    $('providerSelect').onchange = () => buildVoiceOptions($('providerSelect').value);
+    buildVoiceOptions('azure');
     api('/api/check-auth').then(async r => {
       showApp(r.authenticated);
       if (r.authenticated) {

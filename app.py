@@ -490,7 +490,7 @@ def synthesize_azure_chunked(script, run_dir, voice_path, voice='zh-CN-YunzeNeur
         str(voice_path),
     ])
 
-def _synthesize_run(job, run_id, voice, do_mix, bgm_asset):
+def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure'):
     """Generate one voice run: TTS + optional mix + upload to OSS. Returns run dict."""
     script = (job.get('edited_script') or job.get('script') or '').strip()
     if not script:
@@ -503,7 +503,14 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset):
     mixed_path = run_dir / 'mixed.mp3'
     script_path.write_text(script, encoding='utf-8')
 
-    synthesize_azure_chunked(script, run_dir, voice_path, voice)
+    if provider == 'minimax':
+        run_cmd([
+            'python3', str(SKILL_DIR / 'scripts' / 'minimax_tts.py'),
+            '--text', str(script_path), '--out', str(voice_path),
+            '--voice', voice, '--speed', '0.85',
+        ])
+    else:
+        synthesize_azure_chunked(script, run_dir, voice_path, voice)
 
     bgm_path = BGM_DIR / bgm_asset
     if not bgm_path.exists():
@@ -546,6 +553,7 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset):
 
     return {
         'run_id': run_id,
+        'provider': provider,
         'voice': voice,
         'bgm': do_mix,
         'bgm_asset': bgm_asset,
@@ -592,7 +600,7 @@ def process_tts(job_id):
         job['error'] = None
         save_job(job)
 
-        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset)
+        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure')
         job['voice_runs'].append(run_info)
         # Mirror last run to top-level fields for backward compatibility
         job['final_url'] = run_info['final_url']
@@ -641,7 +649,7 @@ def tts_voice_run(job_id):
         job['error'] = None
         save_job(job)
 
-        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset)
+        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'))
         job['voice_runs'].append(run_info)
         job['final_url'] = run_info['final_url']
         job['voice_url'] = run_info['voice_url']
