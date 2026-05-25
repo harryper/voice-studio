@@ -578,6 +578,20 @@
   
     .generate-section { margin-top: 16px; }
     .generate-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+    .volume-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+    .vol-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-2);
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .vol-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .vol-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
     .generate-row select { flex: 1; }
     .generate-row button { white-space: nowrap; }
     #voiceRunsBox { margin-top: 16px; }
@@ -678,15 +692,6 @@
         <div id="themeBox">
           <span class="section-label">主题输入</span>
           <input id="themeInput" placeholder="例：宇宙的边界、黑洞、海底火山">
-          <div class="check-row">
-            <input id="themeBgm" type="checkbox" checked>
-            <label for="themeBgm">混入背景音</label>
-          </div>
-          <div class="bgm-inline">
-            <select id="bgmSelect"><option>加载中…</option></select>
-            <button id="uploadBgmBtn" class="small" style="white-space:nowrap;">上传</button>
-            <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
-          </div>
           <button id="createThemeBtn" class="primary full" style="margin-top: 14px;">创作文稿</button>
           <p class="note">主题任务会进入待创作队列，由 OpenClaw 巡检生成文稿后回填到右侧。</p>
         </div>
@@ -695,15 +700,6 @@
         <div id="scriptBox" class="hidden">
           <span class="section-label">文稿输入</span>
           <textarea id="directScript" placeholder="把完整文稿粘贴到这里" style="min-height: 220px;"></textarea>
-          <div class="check-row">
-            <input id="scriptBgm" type="checkbox" checked>
-            <label for="scriptBgm">混入背景音</label>
-          </div>
-          <div class="bgm-inline">
-            <select id="bgmScriptSelect"><option>加载中…</option></select>
-            <button id="uploadScriptBgmBtn" class="small" style="white-space:nowrap;">上传</button>
-            <input type="file" id="bgmScriptFileInput" accept="audio/*" class="hidden">
-          </div>
           <button id="createScriptBtn" class="primary full" style="margin-top: 14px;">载入文稿</button>
           <p class="note">载入后仍会进入右侧预览区，可以再改，确认后生成语音。</p>
         </div>
@@ -734,6 +730,14 @@
           <audio id="audio" controls></audio>
         </div>
 
+        <div class="action-row" style="margin-top:20px;">
+          <button id="saveEditBtn">保存修改</button>
+          <button id="retryBtn" class="warn">重新创作</button>
+          <button id="deleteBtn" class="danger">删除文稿</button>
+        </div>
+
+        <div class="sep"></div>
+
         <div class="generate-section">
           <span class="section-label">服务商</span>
           <div class="generate-row">
@@ -761,6 +765,26 @@
           </div>
         </div>
 
+        <div class="generate-section">
+          <span class="section-label">混入背景音</span>
+          <div class="generate-row">
+            <input type="checkbox" id="mixBgmCheck" checked>
+            <label for="mixBgmCheck" style="margin-right:12px;">开启</label>
+            <select id="bgmSelect" style="max-width:140px;"><option>加载中…</option></select>
+            <button id="uploadBgmBtn" class="small" style="white-space:nowrap;">上传</button>
+            <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
+          </div>
+          <div class="volume-row">
+            <span style="font-size:12px;color:#666;line-height:26px;margin-right:6px;">音量</span>
+            <button class="vol-btn" onclick="setVol(0)">关</button>
+            <button class="vol-btn" onclick="setVol(3)">3%</button>
+            <button class="vol-btn active" onclick="setVol(6)">6%</button>
+            <button class="vol-btn" onclick="setVol(10)">10%</button>
+            <input type="hidden" id="bgmVolInput" value="6">
+            <span id="bgmVolValue" style="font-size:12px;color:#666;min-width:30px;">6%</span>
+          </div>
+        </div>
+
         <div id="voiceRunsBox" class="hidden">
           <span class="section-label">生成历史</span>
           <div id="voiceRunsList"></div>
@@ -778,7 +802,30 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
+    function setVol(v) {
+      document.querySelectorAll('.vol-btn').forEach(b => b.classList.remove('active'));
+      const btns = document.querySelectorAll('.vol-btn');
+      btns.forEach(b => { if (parseInt(b.textContent) === v || (v === 0 && b.textContent === '关')) b.classList.add('active'); });
+      $('bgmVolValue').textContent = v + '%';
+      $('bgmVolInput').value = v;
+    }
     let activeJobId = null;
+
+    const AZURE_VOICES = [
+      { value: 'zh-CN-YunzeNeural', label: '云泽' },
+      { value: 'zh-CN-YunxiNeural', label: '云希' },
+      { value: 'zh-CN-YunjianNeural', label: '云健' },
+      { value: 'zh-CN-YunyangNeural', label: '云扬' },
+      { value: 'zh-CN-YunfengNeural', label: '云枫' },
+      { value: 'zh-CN-XiaoxiaoNeural', label: '晓晓' },
+      { value: 'zh-CN-XiaoyiNeural', label: '晓依' },
+      { value: 'zh-CN-XiaochenNeural', label: '晓辰' },
+    ];
+    const MINIMAX_VOICES = [
+      { value: 'Chinese (Mandarin)_Gentleman', label: 'Gentleman（沉稳男声）' },
+      { value: 'Chinese_deep_voiced_male_vv1', label: 'Deep Voice（低沉男声）' },
+      { value: 'Chinese (Mandarin)_Gentle_Senior', label: '温婉柔和' },
+    ];
     let mode = 'theme';
     let pollTimer = null;
     let editorDirty = false;
@@ -861,7 +908,7 @@
       $('errorBox').textContent = '';
       $('audioBox').classList.add('hidden');
       $('saveEditBtn').disabled = true;
-      $('processBtn').disabled = true;
+      $('generateVoiceBtn').disabled = true;
       $('retryBtn').disabled = true;
       $('deleteBtn').disabled = true;
       showActionFeedback(message, type);
@@ -890,8 +937,7 @@
       if (hasAudio) {
         const audioEl = $('audio');
         const isPlaying = !audioEl.paused;
-        const bgmChecked = (mode === 'theme' && $('themeBgm').checked) || (mode === 'script' && $('scriptBgm').checked);
-        const playUrl = bgmChecked ? (job.final_url || job.voice_url) : (job.voice_url || job.final_url);
+                const playUrl = $('mixBgmCheck').checked ? (job.final_url || job.voice_url) : (job.voice_url || job.final_url);
         const srcChanged = audioEl.src !== playUrl;
         if (!isPlaying && srcChanged) {
           audioEl.src = playUrl;
@@ -967,7 +1013,7 @@
       }
       // Process button: enable if script is not empty (not just 'ready' check)
       const hasScript = (job.edited_script || job.script || '').trim().length > 0;
-      $('processBtn') && ($('processBtn').disabled = !hasScript);
+      $('generateVoiceBtn').disabled = !hasScript;
     }
 
     async function refreshJobs() {
@@ -1024,7 +1070,7 @@
     $('createThemeBtn').onclick = async () => {
       const job = await api('/api/jobs', {
         method: 'POST',
-        body: JSON.stringify({ mode: 'theme', theme: $('themeInput').value, bgm: $('themeBgm').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
+        body: JSON.stringify({ mode: 'theme', theme: $('themeInput').value, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
       });
       renderJob(job.job);
       refreshJobs();
@@ -1033,7 +1079,7 @@
     $('createScriptBtn').onclick = async () => {
       const job = await api('/api/jobs', {
         method: 'POST',
-        body: JSON.stringify({ mode: 'script', script: $('directScript').value, bgm: $('scriptBgm').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
+        body: JSON.stringify({ mode: 'script', script: $('directScript').value, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
       });
       renderJob(job.job);
       refreshJobs();
@@ -1072,8 +1118,9 @@
       btn.textContent = '生成中...';
       try {
         showActionFeedback('正在生成语音...');
-        const currentBgm = (document.getElementById('themeBgm').checked) || (document.getElementById('scriptBgm').checked);
-        const bgmAsset = mode === 'theme' ? $('bgmSelect').value : $('bgmScriptSelect').value;
+        const currentBgm = $('mixBgmCheck').checked;
+        const bgmVolume = $('bgmVolInput').value / 100;
+        const bgmAsset = $('bgmSelect').value || 'bgm_default.mp3';
         const job = await api('/api/jobs/' + activeJobId + '/tts-voice-run', {
           method: 'POST',
           body: JSON.stringify({
@@ -1081,6 +1128,7 @@
             voice: $('voiceSelect').value,
             bgm: currentBgm,
             bgm_asset: bgmAsset,
+            bgm_volume: bgmVolume,
           })
         });
         renderJob(job);
@@ -1188,22 +1236,11 @@
       });
     }
     initBgmUpload('uploadBgmBtn', 'bgmFileInput', $('bgmSelect'));
-    initBgmUpload('uploadScriptBgmBtn', 'bgmScriptFileInput', $('bgmScriptSelect'));
+    // initBgmUpload for script mode removed (no longer in DOM)
 
-    const AZURE_VOICES = [
-      { value: 'zh-CN-YunzeNeural', label: '云泽' },
-      { value: 'zh-CN-YunxiNeural', label: '云希' },
-      { value: 'zh-CN-YunjianNeural', label: '云健' },
-      { value: 'zh-CN-YunyangNeural', label: '云扬' },
-      { value: 'zh-CN-YunfengNeural', label: '云枫' },
-      { value: 'zh-CN-XiaoxiaoNeural', label: '晓晓' },
-      { value: 'zh-CN-XiaoyiNeural', label: '晓依' },
-      { value: 'zh-CN-XiaochenNeural', label: '晓辰' },
-    ];
-    const MINIMAX_VOICES = [
-      { value: 'Chinese (Mandarin)_Gentleman', label: 'Gentleman（沉稳男声）' },
-      { value: 'Chinese_deep_voiced_male_vv1', label: 'Deep Voice（低沉男声）' },
-    ];
+    // BGM volume slider sync
+
+
 
     function buildVoiceOptions(provider) {
       const list = provider === 'minimax' ? MINIMAX_VOICES : AZURE_VOICES;
@@ -1219,8 +1256,7 @@
       if (r.authenticated) {
         await refreshJobs();
         await loadBgmSelect($('bgmSelect'));
-        await loadBgmSelect($('bgmScriptSelect'));
-      }
+          }
     }).catch(() => showApp(false));
     pollTimer = setInterval(pollActive, 5000);
   </script>

@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import subprocess
-import threading
 import time
 import uuid
 from datetime import datetime
@@ -63,103 +62,17 @@ os.makedirs(JOBS_DIR, exist_ok=True)
 ARCHIVE_DIR = os.path.join(os.path.dirname(__file__), 'archive')
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
-# ── 事件驱动 Writer 线程 ──────────────────────────────────
-_writer_event = threading.Event()
-
-def _writer_loop():
-    """Background thread: waits for event, calls openclaw agent to write scripts."""
-    while True:
-        _writer_event.wait()  # sleep until triggered
-        _writer_event.clear()
-
-        # Find oldest pending theme job
-        pending = []
-        try:
-            for fname in os.listdir(JOBS_DIR):
-                if not fname.endswith('.json'):
-                    continue
-                try:
-                    with open(os.path.join(JOBS_DIR, fname), encoding='utf-8') as f:
-                        job = json.load(f)
-                    if job.get('mode') == 'theme' and job.get('status') == 'pending':
-                        pending.append(job)
-                except (json.JSONDecodeError, KeyError):
-                    continue
-        except OSError:
-            continue
-
-        if not pending:
-            continue
-
-        # Process oldest first
-        pending.sort(key=lambda j: j.get('created_at', ''))
-        job = pending[0]
-
-        # Mark as writing
-        job['status'] = 'writing'
-        save_job(job)
-
-        try:
-            prompt = (
-                f'为 voice-studio Web 项目写一篇助眠旁白文稿。主题：{job["theme"]}\n\n'
-                '要求：\n'
-                '1. 读 skills/voice-studio/SKILL.md 中的 Script style 章节，严格遵守其规则\n'
-                '2. 约 3300-3600 中文字，纯口语化散文\n'
-                '3. 将文稿写入 skills/voice-studio/runs/{job_id}/script.txt\n'
-                '4. 更新 skills/voice-studio/jobs/{job_id}.json：status="ready", script=<全文>, edited_script=null, error=null\n'
-                f'5. job_id={job["id"]}\n\n'
-                '只做以上步骤，不要生成音频，不要发布，不要发消息给用户。'
-            )
-
-            result = subprocess.run(
-                ['openclaw', 'agent', '--message', prompt, '--json', '--timeout', '300'],
-                capture_output=True, text=True, timeout=320,
-                cwd=str(SKILL_DIR.parent),  # workspace root
-            )
-
-            if result.returncode != 0:
-                raise RuntimeError(f'openclaw agent failed (rc={result.returncode}): {result.stderr[:500]}')
-
-            # Reload job (agent may have updated it)
-            updated = load_job(job['id'])
-            if updated and updated.get('status') == 'ready' and updated.get('script'):
-                print(f'[writer] Job {job["id"]} script ready ({len(updated["script"])} chars)')
-            else:
-                # Agent didn't update job; read script file as fallback
-                script_path = RUNS_DIR / job['id'] / 'script.txt'
-                if script_path.exists():
-                    script = script_path.read_text(encoding='utf-8')
-                    job['status'] = 'ready'
-                    job['script'] = script
-                    job['edited_script'] = None
-                    job['error'] = None
-                    save_job(job)
-                    print(f'[writer] Job {job["id"]} script ready from file ({len(script)} chars)')
-                else:
-                    raise RuntimeError('Agent did not write script file or update job JSON')
-
-        except subprocess.TimeoutExpired:
-            job['status'] = 'error'
-            job['error'] = 'openclaw agent timed out (320s)'
-            save_job(job)
-            print(f'[writer] Job {job["id"]} timeout')
-        except Exception as e:
-            job['status'] = 'error'
-            job['error'] = str(e)
-            save_job(job)
-            print(f'[writer] Job {job["id"]} error: {e}')
-
-        # Check for more pending jobs
-        _writer_event.set()
-
 def _trigger_writer():
-    """Signal the writer thread to check for pending jobs."""
-    _writer_event.set()
+    """Touch a host-watched trigger file.
 
-# Start writer thread at module level (works with gunicorn)
-_writer_thread = threading.Thread(target=_writer_loop, daemon=True, name='voice-studio-writer')
-_writer_thread.start()
-print('[writer] Background writer thread started (event-driven, no polling)')
+    The Flask app runs inside Docker and must not call `openclaw agent` there:
+    the container cannot reach the host gateway/auth context reliably. A
+    systemd path unit on the host watches this file and runs the writer.
+    """
+    try:
+        (SKILL_DIR / '.writer-trigger').write_text(str(time.time()), encoding='utf-8')
+    except OSError as e:
+        print(f'[writer] failed to touch trigger: {e}')
 
 def job_path(job_id):
     return os.path.join(JOBS_DIR, f'{job_id}.json')
@@ -252,11 +165,17 @@ def logout():
 
 @app.before_request
 def check_auth():
-    public_endpoints = {'static', 'index', 'login', 'logout', 'api_check_auth'}
+    public_endpoints = {'static', 'index', 'login', 'logout', 'api_check_auth', 'list_bgm'}
     if request.endpoint in public_endpoints:
         return
     if session.get('authenticated') is not True:
         return jsonify({'error': '未登录'}), 401
+
+@app.after_request
+def no_cache_for_web_ui(response):
+    if request.endpoint == 'index':
+        response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
 
 @app.route('/api/check-auth')
 def api_check_auth():
@@ -289,6 +208,7 @@ def create_job():
             'created_at': datetime.now().isoformat(),
             'bgm': data.get('bgm', True),
             'bgm_asset': data.get('bgm_asset') or 'bgm_default.mp3',
+            'bgm_volume': data.get('bgm_volume'),
             'voice_runs': [],
         }
     elif mode == 'script':
@@ -308,6 +228,7 @@ def create_job():
             'created_at': datetime.now().isoformat(),
             'bgm': data.get('bgm', True),
             'bgm_asset': data.get('bgm_asset') or 'bgm_default.mp3',
+            'bgm_volume': data.get('bgm_volume'),
             'voice_runs': [],
         }
     else:
@@ -490,7 +411,7 @@ def synthesize_azure_chunked(script, run_dir, voice_path, voice='zh-CN-YunzeNeur
         str(voice_path),
     ])
 
-def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure'):
+def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm_volume=None):
     """Generate one voice run: TTS + optional mix + upload to OSS. Returns run dict."""
     script = (job.get('edited_script') or job.get('script') or '').strip()
     if not script:
@@ -539,7 +460,7 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure'):
         run_cmd([
             'python3', str(SKILL_DIR / 'scripts' / 'mix_with_bgm.py'),
             '--voice', str(voice_path), '--bgm', str(bgm_path),
-            '--out', str(mixed_path), '--bgm-volume', '0.03',
+            '--out', str(mixed_path), '--bgm-volume', str(bgm_volume if bgm_volume is not None else 0.03),
         ])
         final_source = mixed_path
     else:
@@ -557,6 +478,7 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure'):
         'voice': voice,
         'bgm': do_mix,
         'bgm_asset': bgm_asset,
+        'bgm_volume': bgm_volume,
         'status': 'done',
         'script_url': script_url,
         'voice_url': voice_url,
@@ -637,6 +559,7 @@ def tts_voice_run(job_id):
     voice = data.get('voice', job.get('voice', 'zh-CN-YunzeNeural'))
     do_mix = data.get('bgm', job.get('bgm', True))
     bgm_asset = data.get('bgm_asset', job.get('bgm_asset', 'bgm_default.mp3'))
+    bgm_volume = data.get('bgm_volume', 0.06)
 
     try:
         # Guard: if job already has final_url but status is stuck, skip re-synthesis
@@ -649,7 +572,7 @@ def tts_voice_run(job_id):
         job['error'] = None
         save_job(job)
 
-        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'))
+        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'), bgm_volume=bgm_volume)
         job['voice_runs'].append(run_info)
         job['final_url'] = run_info['final_url']
         job['voice_url'] = run_info['voice_url']
@@ -700,8 +623,4 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    # Start event-driven writer thread
-    _wt = threading.Thread(target=_writer_loop, daemon=True, name='voice-studio-writer')
-    _wt.start()
-    print('[writer] Background writer thread started (event-driven, no polling)')
     app.run(host='0.0.0.0', port=PORT, debug=False)

@@ -7,6 +7,9 @@ services:
       - "9999:9999"
     volumes:
       - .:/app
+      - /root/.openclaw/workspace:/root/.openclaw/workspace:ro
       - /root/.openclaw/workspace/public-downloads:/root/.openclaw/workspace/public-downloads
+      - /usr/lib/node_modules:/usr/lib/node_modules:ro
     environment:
       - PYTHONUNBUFFERED=1
+      - PATH=/usr/bin:/bin:/usr/local/bin:/root/.openclaw/workspace/skills/voice-studio/scripts:/root/.openclaw/workspace/public-downloads

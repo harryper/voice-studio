@@ -33,7 +33,7 @@ def main():
     ap.add_argument("--voice", required=True)
     ap.add_argument("--bgm", default=DEFAULT_BGM)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--bgm-volume", type=float, default=0.03,
+    ap.add_argument("--bgm-volume", type=float, default=0.06,
                     help="BGM volume as linear multiplier (default 0.03, i.e. 3%%)")
     args = ap.parse_args()
 
