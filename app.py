@@ -7,7 +7,6 @@ import subprocess
 import threading
 import time
 import uuid
-import requests
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse, unquote
@@ -65,68 +64,10 @@ ARCHIVE_DIR = os.path.join(os.path.dirname(__file__), 'archive')
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
 
 # ── 事件驱动 Writer 线程 ──────────────────────────────────
-OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
 _writer_event = threading.Event()
 
-# LLM prompt for script generation
-_SCRIPT_SYSTEM = """你是老波，一个助眠旁白作者。你的文稿会被 Azure TTS 朗读为沉浸式助眠音频。
-
-严格遵守以下规则：
-1. 必须是沉浸式助眠音频文稿，不是知识文章朗读
-2. 开头 60-90 秒内必须让听者明确主题
-3. 使用第二人称"你"，具体感官场景，呼吸/黑暗/距离/安静等元素建立代入感
-4. 知识点要低负荷，不要堆数字/定义
-5. 纯口语化散文，无标题、无编号、无 markdown、无项目符号
-6. 自然分段，段间留呼吸空间
-7. 约 3300-3600 中文字（~15 分钟朗读）
-8. 不要编造具体研究名称/日期/数字
-9. 保持原创，不要模仿他人标志性用语"""
-
-def _get_openclaw_config():
-    """Read OpenClaw config for LLM API credentials."""
-    try:
-        with open(OPENCLAW_CONFIG_PATH, encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def _get_nvidia_api_key():
-    """Extract NVIDIA NIM API key from OpenClaw config."""
-    cfg = _get_openclaw_config()
-    providers = cfg.get('models', {}).get('providers', {})
-    nvidia = providers.get('nvidia-nim', {})
-    return nvidia.get('apiKey', '')
-
-def _generate_script(theme):
-    """Call NVIDIA NIM (qwen3.5-397b) to generate a narration script."""
-    api_key = _get_nvidia_api_key()
-    if not api_key:
-        raise RuntimeError('NVIDIA NIM API key not found in OpenClaw config')
-
-    user_msg = f'请为以下主题写一篇完整的助眠旁白文稿（约 3300-3600 中文字）：\n\n{theme}'
-
-    resp = requests.post(
-        'https://integrate.api.nvidia.com/v1/chat/completions',
-        headers={
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-        },
-        json={
-            'model': 'qwen/qwen3.5-397b-a17b',
-            'messages': [
-                {'role': 'system', 'content': _SCRIPT_SYSTEM},
-                {'role': 'user', 'content': user_msg},
-            ],
-            'max_tokens': 8000,
-            'temperature': 0.8,
-        },
-        timeout=180,
-    )
-    resp.raise_for_status()
-    return resp.json()['choices'][0]['message']['content'].strip()
-
 def _writer_loop():
-    """Background thread: waits for event, processes pending theme jobs."""
+    """Background thread: waits for event, calls openclaw agent to write scripts."""
     while True:
         _writer_event.wait()  # sleep until triggered
         _writer_event.clear()
@@ -159,22 +100,49 @@ def _writer_loop():
         save_job(job)
 
         try:
-            script = _generate_script(job['theme'])
+            prompt = (
+                f'为 voice-studio Web 项目写一篇助眠旁白文稿。主题：{job["theme"]}\n\n'
+                '要求：\n'
+                '1. 读 skills/voice-studio/SKILL.md 中的 Script style 章节，严格遵守其规则\n'
+                '2. 约 3300-3600 中文字，纯口语化散文\n'
+                '3. 将文稿写入 skills/voice-studio/runs/{job_id}/script.txt\n'
+                '4. 更新 skills/voice-studio/jobs/{job_id}.json：status="ready", script=<全文>, edited_script=null, error=null\n'
+                f'5. job_id={job["id"]}\n\n'
+                '只做以上步骤，不要生成音频，不要发布，不要发消息给用户。'
+            )
 
-            # Write script file
-            run_dir = RUNS_DIR / job['id']
-            run_dir.mkdir(parents=True, exist_ok=True)
-            script_path = run_dir / 'script.txt'
-            script_path.write_text(script, encoding='utf-8')
+            result = subprocess.run(
+                ['openclaw', 'agent', '--message', prompt, '--json', '--timeout', '300'],
+                capture_output=True, text=True, timeout=320,
+                cwd=str(SKILL_DIR.parent),  # workspace root
+            )
 
-            # Update job
-            job['status'] = 'ready'
-            job['script'] = script
-            job['edited_script'] = None
-            job['error'] = None
-            job['updated_at'] = datetime.now().isoformat()
+            if result.returncode != 0:
+                raise RuntimeError(f'openclaw agent failed (rc={result.returncode}): {result.stderr[:500]}')
+
+            # Reload job (agent may have updated it)
+            updated = load_job(job['id'])
+            if updated and updated.get('status') == 'ready' and updated.get('script'):
+                print(f'[writer] Job {job["id"]} script ready ({len(updated["script"])} chars)')
+            else:
+                # Agent didn't update job; read script file as fallback
+                script_path = RUNS_DIR / job['id'] / 'script.txt'
+                if script_path.exists():
+                    script = script_path.read_text(encoding='utf-8')
+                    job['status'] = 'ready'
+                    job['script'] = script
+                    job['edited_script'] = None
+                    job['error'] = None
+                    save_job(job)
+                    print(f'[writer] Job {job["id"]} script ready from file ({len(script)} chars)')
+                else:
+                    raise RuntimeError('Agent did not write script file or update job JSON')
+
+        except subprocess.TimeoutExpired:
+            job['status'] = 'error'
+            job['error'] = 'openclaw agent timed out (320s)'
             save_job(job)
-            print(f'[writer] Job {job["id"]} script ready ({len(script)} chars)')
+            print(f'[writer] Job {job["id"]} timeout')
         except Exception as e:
             job['status'] = 'error'
             job['error'] = str(e)

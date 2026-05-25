@@ -1,6 +1,6 @@
 # voice-studio
 
-Web project for creating original ~15-minute audio narrations (sleep / narration / ambient), using **Azure Speech REST TTS** (primary, 云泽 voice) with **MiniMax** as fallback.
+Web project for creating original ~20-minute audio narrations (sleep / narration / ambient), using **Azure Speech REST TTS** (primary, 云泽 voice) with **MiniMax** as fallback.
 
 ## Workflow
 
@@ -16,7 +16,7 @@ theme → event-driven writer thread (NVIDIA qwen3.5-397b) → ready for review 
 4. Generate narration audio only from the Web UI TTS action or an explicit instruction tied to a specific Web job.
 5. The Web TTS action handles Azure fallback, optional BGM mixing, publishing, and the final public MP3 URL.
 
-Duration policy: default target is ~15 minutes, but **12-25 minutes is acceptable**. Do not recalibrate/rewrite solely for duration if output falls in that range.
+Duration policy: target is ~20 minutes, hard floor **15 minutes**, acceptable range **15-25 minutes**. Do not recalibrate/rewrite solely for duration if output falls in that range.
 
 ## Narrator Persona: 老波
 

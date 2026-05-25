@@ -28,7 +28,7 @@ Direct chat requests like "用 voice-studio 做一个主题" should create or gu
 
 ## Script writing
 
-The Web app (`app.py`) runs an **event-driven writer thread** (no polling). When a `mode="theme"` job is created or retried with `status="pending"`, the thread automatically wakes up, calls NVIDIA NIM (qwen3.5-397b) to generate the script, writes it to `runs/<job_id>/script.txt`, and updates the job to `status="ready"`. The main chat session should only orchestrate the Web job workflow: create or inspect jobs, set `status="ready"`, and stop for review. Do not draft the long narration directly in the main chat session.
+The Web app (`app.py`) runs an **event-driven writer thread** (no polling). When a `mode="theme"` job is created or retried with `status="pending"`, the thread automatically wakes up, calls `openclaw agent` (via CLI) to generate the script, and updates the job to `status="ready"`. The agent has full tool access (reads SKILL.md, writes files, updates job JSON) and uses the default model. The main chat session should only orchestrate the Web job workflow: create or inspect jobs, and stop for review. Do not draft the long narration directly in the main chat session.
 
 **Important constraint for content style:** The script is for a **narration/voice blog**, not a document or article with formal section headers. Do not prefix paragraphs with titles or labels (e.g. "一、", "1.", "【】", or bolded headings). Write in continuous, breathable prose with natural paragraph breaks — the kind that sounds like someone talking softly, not reading a report. Keep the tone intimate, unhurried, and suited for listening rather than scanning.
 
@@ -83,7 +83,7 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 
 1. Receive or inspect a Web job topic/theme.
 2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
-3. Determine script length from the target audio duration and the current voice reading speed. Do **not** use a fixed length blindly. For Azure `zh-CN-YunzeNeural` with `--style calm --rate=-10%`, use the latest measured calibration when available. Until a full-length calibration is measured, start from about **220 Chinese characters/minute** as a conservative estimate. For a ~15-minute target, draft about **3300-3600 Chinese characters** first, then keep it slow and breathable. Avoid scripts that are obviously too short or too long.
+3. Determine script length from the target audio duration and calibrated reading speed. Do **not** use a fixed length blindly. Target: **20 minutes** (minimum 15 minutes). Until a full-length calibration is measured, estimate using **~220 Chinese characters/minute** for Azure `zh-CN-YunzeNeural` with `--style calm --rate=-10%`. For a 20-minute target, draft about **4400 Chinese characters** (minimum 3300 characters for the 15-minute floor). Keep it slow and breathable. Avoid scripts that are obviously too short or too long.
 4. Narrator identity: **老波** (first-person, consistent throughout)
 5. Write the script to `runs/<job_id>/script.txt` and update the job JSON with `status="ready"`, `script=<full script>`, `edited_script=null`, `error=null`, and `updated_at`.
 6. Stop. TTS/mixing/publishing are separate Web actions.
@@ -105,8 +105,8 @@ Structure:
 
 Rules:
 
-- Before drafting, estimate required script length from target duration: `target_minutes × calibrated_chars_per_minute`. Use the latest measured speed from prior productions when available. If no full-length calibration exists, start with ~230 Chinese chars/min for `Chinese (Mandarin)_Gentleman` speed `0.85`.
-- After Web TTS generation, check actual audio duration. The default acceptable range is **12-25 minutes**; if the generated audio falls within this range, do **not** recalibrate or rewrite just for duration. Only if it is shorter than 12 minutes or longer than 25 minutes, adjust future script length using the observed ratio: `new_chars = current_chars × target_seconds / actual_seconds`.
+- Before drafting, calculate target character count: `target_minutes × calibrated_chars_per_minute`. Target: **20 minutes** (~4400 chars at 220 chars/min). Hard floor: **15 minutes** (~3300 chars). Use the latest measured speed from prior productions when available. If no calibration exists, use ~220 Chinese chars/min for Azure.
+- After Web TTS generation, check actual audio duration. The acceptable range is **15-25 minutes**; 20 minutes is the target. Do **not** recalibrate or rewrite solely for duration if output falls within 15-25 minutes. Only if it is shorter than 15 minutes, adjust future script length: `new_chars = current_chars × target_seconds / actual_seconds`.
 - The listener must have **代入感**: use second-person perspective (`你`) often, concrete sensations, slow breathing cues, darkness, distance, silence, temperature, and bodily relaxation.
 - The opening must quickly answer: "我现在在听什么主题？" If the listener cannot identify the theme within the first minute, rewrite the opening.
 - Keep cognitive load low. Do not stack too many facts, numbers, or definitions. Use facts as quiet stepping stones, not lecture notes.
