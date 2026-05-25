@@ -28,7 +28,7 @@ Direct chat requests like "用 voice-studio 做一个主题" should create or gu
 
 ## Script writing
 
-The scheduled Web writer cron should use the system/default model; do not hard-code a model override there. It is already an isolated writing session, so it should draft directly and update the Web job itself; do **not** spawn a second child writer from that cron. The main chat session should only orchestrate the Web job workflow: save the script to the job, set `status="ready"`, and stop for review. Do not draft the long narration directly in the main chat session.
+The Web app (`app.py`) runs an **event-driven writer thread** (no polling). When a `mode="theme"` job is created or retried with `status="pending"`, the thread automatically wakes up, calls NVIDIA NIM (qwen3.5-397b) to generate the script, writes it to `runs/<job_id>/script.txt`, and updates the job to `status="ready"`. The main chat session should only orchestrate the Web job workflow: create or inspect jobs, set `status="ready"`, and stop for review. Do not draft the long narration directly in the main chat session.
 
 **Important constraint for content style:** The script is for a **narration/voice blog**, not a document or article with formal section headers. Do not prefix paragraphs with titles or labels (e.g. "一、", "1.", "【】", or bolded headings). Write in continuous, breathable prose with natural paragraph breaks — the kind that sounds like someone talking softly, not reading a report. Keep the tone intimate, unhurried, and suited for listening rather than scanning.
 
@@ -84,7 +84,7 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 1. Receive or inspect a Web job topic/theme.
 2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
 3. Determine script length from the target audio duration and the current voice reading speed. Do **not** use a fixed length blindly. For Azure `zh-CN-YunzeNeural` with `--style calm --rate=-10%`, use the latest measured calibration when available. Until a full-length calibration is measured, start from about **220 Chinese characters/minute** as a conservative estimate. For a ~15-minute target, draft about **3300-3600 Chinese characters** first, then keep it slow and breathable. Avoid scripts that are obviously too short or too long.
-4. Narrator identity: use **Jesse** if self-reference is needed.
+4. Narrator identity: **老波** (first-person, consistent throughout)
 5. Write the script to `runs/<job_id>/script.txt` and update the job JSON with `status="ready"`, `script=<full script>`, `edited_script=null`, `error=null`, and `updated_at`.
 6. Stop. TTS/mixing/publishing are separate Web actions.
 
@@ -101,7 +101,7 @@ Structure:
 3. Theme anchoring: within the first 60-90 seconds, clearly return to the exact theme/question. Do not delay the topic for several minutes.
 4. Gentle scale expansion: move from the listener's body and room → city/night sky → Earth → solar system → stars → galaxies → deep time/space.
 5. Soft repetition: repeat the core theme in different, quiet forms throughout the script so the listener never loses the subject.
-6. Soft landing: end calmly, with a Jesse sign-off only if natural.
+6. Soft landing: end calmly, with 老波 sign-off only if natural. Preferred endings: "我是老波，咱们在梦中的平行宇宙继续聊。" (引线式) or "我是老波，祝你晚安。" (收尾式). 留白式也很强：不解决问题，把听者扔在不安感里。
 
 Rules:
 
@@ -189,4 +189,4 @@ Only use this when explicitly requested. For Douyin links:
 python3 skills/voice-studio/scripts/download_douyin_web.py "https://v.douyin.com/.../" --out-dir tmp/cosmic-sleep/<slug>
 ```
 
-Then transcribe with `faster_whisper`, lightly clean, replace original narrator self-reference with **Jesse**, create/update a Web job for review, and stop at `status="ready"` unless the user explicitly triggers Web TTS.
+Then transcribe with `faster_whisper`, lightly clean, replace original narrator self-reference with **老波**, create/update a Web job for review, and stop at `status="ready"` unless the user explicitly triggers Web TTS.

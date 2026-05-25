@@ -5,20 +5,30 @@ Web project for creating original ~15-minute audio narrations (sleep / narration
 ## Workflow
 
 ```
-theme → gpt-5.5 script → ready for review → explicit TTS action only
+theme → event-driven writer thread (NVIDIA qwen3.5-397b) → ready for review → explicit TTS action only
 ```
 
 `voice-studio` no longer has a direct default chat workflow. All creation goes through the Web project and its job state files in `jobs/*.json`.
 
 1. Create a Web job from a theme or pasted script.
-2. For theme jobs, spawn a subagent to write an original Chinese narration script sized from target duration and calibrated reading speed (default ~3300-3600 Chinese chars for ~15 min).
-3. Update the job to `status="ready"` for review.
+2. For theme jobs, the Web app's event-driven writer thread automatically wakes up, calls NVIDIA NIM (qwen3.5-397b) to generate the original Chinese narration script, writes it to `runs/<job_id>/script.txt`, and updates the job to `status="ready"`.
+3. Review the script in the Web UI.
 4. Generate narration audio only from the Web UI TTS action or an explicit instruction tied to a specific Web job.
 5. The Web TTS action handles Azure fallback, optional BGM mixing, publishing, and the final public MP3 URL.
 
 Duration policy: default target is ~15 minutes, but **12-25 minutes is acceptable**. Do not recalibrate/rewrite solely for duration if output falls in that range.
 
-Writing policy: script must create listener immersion and surface the theme within the first 60-90 seconds. Use second-person sensory scenes and low cognitive load; avoid sounding like a knowledge article.
+## Narrator Persona: 老波
+
+The script is written in the voice of **老波** (first-person, consistent throughout).
+
+**Script style** (see `reference-style.md` for full details):
+- Immersive sleep audio, not a knowledge article
+- Second-person sensory scenes (你 lying in bed, darkness, night sounds)
+- Theme must surface within the first 60-90 seconds
+- Low cognitive load; facts as stepping stones, not lecture notes
+- Plain prose with natural paragraph breaks; no titles, labels, or markdown
+- Brand sign-off: **"我是老波，咱们在梦中的平行宇宙继续聊。"** (引线式) or **"我是老波，祝你晚安。"** (收尾式)
 
 ## TTS Providers
 
@@ -31,11 +41,11 @@ Writing policy: script must create listener immersion and surface the theme with
 
 | Script | Purpose |
 |--------|---------|
-| `azure_tts.py` | TTS generation via Azure Speech REST API (primary) |
-| `minimax_tts.py` | TTS generation via MiniMax HTTP API (fallback) |
-| `mix_with_bgm.py` | Mix voice + BGM into final MP3 |
-| `publish_download.py` | Copy file to public-downloads and report URL |
-| `download_douyin_web.py` | Download Douyin video (legacy / on request only) |
+| `scripts/azure_tts.py` | TTS generation via Azure Speech REST API (primary) |
+| `scripts/minimax_tts.py` | TTS generation via MiniMax HTTP API (fallback) |
+| `scripts/mix_with_bgm.py` | Mix voice + BGM into final MP3 |
+| `scripts/publish_download.py` | Copy file to public-downloads and report URL |
+| `scripts/download_douyin_web.py` | Download Douyin video (legacy / on request only) |
 
 ## Setup
 

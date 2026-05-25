@@ -4,8 +4,10 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import time
 import uuid
+import requests
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse, unquote
@@ -61,6 +63,135 @@ os.makedirs(JOBS_DIR, exist_ok=True)
 
 ARCHIVE_DIR = os.path.join(os.path.dirname(__file__), 'archive')
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
+
+# ── 事件驱动 Writer 线程 ──────────────────────────────────
+OPENCLAW_CONFIG_PATH = os.path.expanduser('~/.openclaw/openclaw.json')
+_writer_event = threading.Event()
+
+# LLM prompt for script generation
+_SCRIPT_SYSTEM = """你是老波，一个助眠旁白作者。你的文稿会被 Azure TTS 朗读为沉浸式助眠音频。
+
+严格遵守以下规则：
+1. 必须是沉浸式助眠音频文稿，不是知识文章朗读
+2. 开头 60-90 秒内必须让听者明确主题
+3. 使用第二人称"你"，具体感官场景，呼吸/黑暗/距离/安静等元素建立代入感
+4. 知识点要低负荷，不要堆数字/定义
+5. 纯口语化散文，无标题、无编号、无 markdown、无项目符号
+6. 自然分段，段间留呼吸空间
+7. 约 3300-3600 中文字（~15 分钟朗读）
+8. 不要编造具体研究名称/日期/数字
+9. 保持原创，不要模仿他人标志性用语"""
+
+def _get_openclaw_config():
+    """Read OpenClaw config for LLM API credentials."""
+    try:
+        with open(OPENCLAW_CONFIG_PATH, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _get_nvidia_api_key():
+    """Extract NVIDIA NIM API key from OpenClaw config."""
+    cfg = _get_openclaw_config()
+    providers = cfg.get('models', {}).get('providers', {})
+    nvidia = providers.get('nvidia-nim', {})
+    return nvidia.get('apiKey', '')
+
+def _generate_script(theme):
+    """Call NVIDIA NIM (qwen3.5-397b) to generate a narration script."""
+    api_key = _get_nvidia_api_key()
+    if not api_key:
+        raise RuntimeError('NVIDIA NIM API key not found in OpenClaw config')
+
+    user_msg = f'请为以下主题写一篇完整的助眠旁白文稿（约 3300-3600 中文字）：\n\n{theme}'
+
+    resp = requests.post(
+        'https://integrate.api.nvidia.com/v1/chat/completions',
+        headers={
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json',
+        },
+        json={
+            'model': 'qwen/qwen3.5-397b-a17b',
+            'messages': [
+                {'role': 'system', 'content': _SCRIPT_SYSTEM},
+                {'role': 'user', 'content': user_msg},
+            ],
+            'max_tokens': 8000,
+            'temperature': 0.8,
+        },
+        timeout=180,
+    )
+    resp.raise_for_status()
+    return resp.json()['choices'][0]['message']['content'].strip()
+
+def _writer_loop():
+    """Background thread: waits for event, processes pending theme jobs."""
+    while True:
+        _writer_event.wait()  # sleep until triggered
+        _writer_event.clear()
+
+        # Find oldest pending theme job
+        pending = []
+        try:
+            for fname in os.listdir(JOBS_DIR):
+                if not fname.endswith('.json'):
+                    continue
+                try:
+                    with open(os.path.join(JOBS_DIR, fname), encoding='utf-8') as f:
+                        job = json.load(f)
+                    if job.get('mode') == 'theme' and job.get('status') == 'pending':
+                        pending.append(job)
+                except (json.JSONDecodeError, KeyError):
+                    continue
+        except OSError:
+            continue
+
+        if not pending:
+            continue
+
+        # Process oldest first
+        pending.sort(key=lambda j: j.get('created_at', ''))
+        job = pending[0]
+
+        # Mark as writing
+        job['status'] = 'writing'
+        save_job(job)
+
+        try:
+            script = _generate_script(job['theme'])
+
+            # Write script file
+            run_dir = RUNS_DIR / job['id']
+            run_dir.mkdir(parents=True, exist_ok=True)
+            script_path = run_dir / 'script.txt'
+            script_path.write_text(script, encoding='utf-8')
+
+            # Update job
+            job['status'] = 'ready'
+            job['script'] = script
+            job['edited_script'] = None
+            job['error'] = None
+            job['updated_at'] = datetime.now().isoformat()
+            save_job(job)
+            print(f'[writer] Job {job["id"]} script ready ({len(script)} chars)')
+        except Exception as e:
+            job['status'] = 'error'
+            job['error'] = str(e)
+            save_job(job)
+            print(f'[writer] Job {job["id"]} error: {e}')
+
+        # Check for more pending jobs
+        _writer_event.set()
+
+def _trigger_writer():
+    """Signal the writer thread to check for pending jobs."""
+    _writer_event.set()
+
+# Start writer thread at module level (works with gunicorn)
+_writer_thread = threading.Thread(target=_writer_loop, daemon=True, name='voice-studio-writer')
+_writer_thread.start()
+print('[writer] Background writer thread started (event-driven, no polling)')
 
 def job_path(job_id):
     return os.path.join(JOBS_DIR, f'{job_id}.json')
@@ -215,6 +346,8 @@ def create_job():
         return jsonify({'error': 'mode 必须是 theme 或 script'}), 400
 
     save_job(job)
+    if mode == 'theme':
+        _trigger_writer()
     return jsonify({'job_id': job_id, 'job': job})
 
 @app.route('/api/jobs/<job_id>')
@@ -285,6 +418,7 @@ def retry_job(job_id):
     ):
         job[key] = None
     save_job(job)
+    _trigger_writer()
     return jsonify(job)
 
 @app.route('/api/jobs/<job_id>/archive', methods=['POST'])
@@ -590,4 +724,8 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
+    # Start event-driven writer thread
+    _wt = threading.Thread(target=_writer_loop, daemon=True, name='voice-studio-writer')
+    _wt.start()
+    print('[writer] Background writer thread started (event-driven, no polling)')
     app.run(host='0.0.0.0', port=PORT, debug=False)
