@@ -739,6 +739,23 @@
         <div class="sep"></div>
 
         <div class="generate-section">
+          <span class="section-label">混入背景音</span>
+          <div class="generate-row">
+            <input type="checkbox" id="mixBgmCheck" checked>
+            <label for="mixBgmCheck" style="margin-right:12px;">开启</label>
+            <select id="bgmSelect" style="max-width:140px;"><option>加载中…</option></select>
+            <button id="uploadBgmBtn" class="small" style="white-space:nowrap;">上传</button>
+            <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
+          </div>
+          <div class="volume-row">
+            <span style="font-size:12px;color:#666;line-height:26px;margin-right:6px;">混音音量</span>
+            <input type="range" id="bgmVolSlider" min="0" max="20" value="6" step="1" style="flex:1;cursor:pointer;">
+            <input type="hidden" id="bgmVolInput" value="6">
+            <span id="bgmVolValue" style="font-size:12px;color:#666;min-width:36px;text-align:right;">6%</span>
+          </div>
+        </div>
+
+        <div class="generate-section">
           <span class="section-label">服务商</span>
           <div class="generate-row">
             <select id="providerSelect">
@@ -769,23 +786,6 @@
               <option value="1.00">1.00x</option>
             </select>
             <button id="generateVoiceBtn" class="primary">生成</button>
-          </div>
-        </div>
-
-        <div class="generate-section">
-          <span class="section-label">混入背景音</span>
-          <div class="generate-row">
-            <input type="checkbox" id="mixBgmCheck" checked>
-            <label for="mixBgmCheck" style="margin-right:12px;">开启</label>
-            <select id="bgmSelect" style="max-width:140px;"><option>加载中…</option></select>
-            <button id="uploadBgmBtn" class="small" style="white-space:nowrap;">上传</button>
-            <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
-          </div>
-          <div class="volume-row">
-            <span style="font-size:12px;color:#666;line-height:26px;margin-right:6px;">混音音量</span>
-            <input type="range" id="bgmVolSlider" min="0" max="20" value="6" step="1" style="flex:1;cursor:pointer;">
-            <input type="hidden" id="bgmVolInput" value="6">
-            <span id="bgmVolValue" style="font-size:12px;color:#666;min-width:36px;text-align:right;">6%</span>
           </div>
         </div>
 
