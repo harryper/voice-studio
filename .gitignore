@@ -14,3 +14,5 @@ __pycache__/
 tmp/
 *.tmp
 .DS_Store
+.writer-trigger
+.writer.lock
