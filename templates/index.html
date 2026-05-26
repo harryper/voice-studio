@@ -761,6 +761,13 @@
               <option value="zh-CN-XiaoyiNeural">晓依</option>
               <option value="zh-CN-XiaochenNeural">晓辰</option>
             </select>
+            <select id="speedSelect" style="max-width:90px;">
+              <option value="0.75">0.75x</option>
+              <option value="0.80">0.80x</option>
+              <option value="0.85" selected>0.85x</option>
+              <option value="0.90">0.90x</option>
+              <option value="1.00">1.00x</option>
+            </select>
             <button id="generateVoiceBtn" class="primary">生成</button>
           </div>
         </div>
@@ -775,13 +782,10 @@
             <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
           </div>
           <div class="volume-row">
-            <span style="font-size:12px;color:#666;line-height:26px;margin-right:6px;">音量</span>
-            <button class="vol-btn" onclick="setVol(0)">关</button>
-            <button class="vol-btn" onclick="setVol(3)">3%</button>
-            <button class="vol-btn active" onclick="setVol(6)">6%</button>
-            <button class="vol-btn" onclick="setVol(10)">10%</button>
+            <span style="font-size:12px;color:#666;line-height:26px;margin-right:6px;">混音音量</span>
+            <input type="range" id="bgmVolSlider" min="0" max="20" value="6" step="1" style="flex:1;cursor:pointer;">
             <input type="hidden" id="bgmVolInput" value="6">
-            <span id="bgmVolValue" style="font-size:12px;color:#666;min-width:30px;">6%</span>
+            <span id="bgmVolValue" style="font-size:12px;color:#666;min-width:36px;text-align:right;">6%</span>
           </div>
         </div>
 
@@ -802,10 +806,8 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    function setVol(v) {
-      document.querySelectorAll('.vol-btn').forEach(b => b.classList.remove('active'));
-      const btns = document.querySelectorAll('.vol-btn');
-      btns.forEach(b => { if (parseInt(b.textContent) === v || (v === 0 && b.textContent === '关')) b.classList.add('active'); });
+    $('bgmVolSlider').oninput = () => {
+      const v = parseInt($('bgmVolSlider').value);
       $('bgmVolValue').textContent = v + '%';
       $('bgmVolInput').value = v;
     }
@@ -822,7 +824,6 @@
       { value: 'zh-CN-XiaochenNeural', label: '晓辰' },
     ];
     const MINIMAX_VOICES = [
-      { value: 'Chinese (Mandarin)_Gentleman', label: 'Gentleman（沉稳男声）' },
       { value: 'Chinese_deep_voiced_male_vv1', label: 'Deep Voice（低沉男声）' },
       { value: 'Chinese (Mandarin)_Gentle_Senior', label: '温婉柔和' },
     ];
@@ -1126,6 +1127,7 @@
           body: JSON.stringify({
             provider: $('providerSelect').value,
             voice: $('voiceSelect').value,
+            speed: parseFloat($('speedSelect').value),
             bgm: currentBgm,
             bgm_asset: bgmAsset,
             bgm_volume: bgmVolume,

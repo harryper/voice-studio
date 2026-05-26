@@ -411,7 +411,7 @@ def synthesize_azure_chunked(script, run_dir, voice_path, voice='zh-CN-YunzeNeur
         str(voice_path),
     ])
 
-def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm_volume=None):
+def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm_volume=None, speed=None):
     """Generate one voice run: TTS + optional mix + upload to OSS. Returns run dict."""
     script = (job.get('edited_script') or job.get('script') or '').strip()
     if not script:
@@ -424,11 +424,13 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm
     mixed_path = run_dir / 'mixed.mp3'
     script_path.write_text(script, encoding='utf-8')
 
+    speed_val = speed if speed is not None else 0.85
+
     if provider == 'minimax':
         run_cmd([
             'python3', str(SKILL_DIR / 'scripts' / 'minimax_tts.py'),
             '--text', str(script_path), '--out', str(voice_path),
-            '--voice', voice, '--speed', '0.85',
+            '--voice', voice, '--speed', str(speed_val),
         ])
     else:
         synthesize_azure_chunked(script, run_dir, voice_path, voice)
@@ -572,7 +574,7 @@ def tts_voice_run(job_id):
         job['error'] = None
         save_job(job)
 
-        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'), bgm_volume=bgm_volume)
+        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'), bgm_volume=bgm_volume, speed=data.get('speed', 0.85))
         job['voice_runs'].append(run_info)
         job['final_url'] = run_info['final_url']
         job['voice_url'] = run_info['voice_url']
