@@ -84,7 +84,7 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 1. Receive or inspect a Web job topic/theme.
 2. Create an original Chinese narration script, written for listening (not a titled document). Avoid all section headers, numbered labels, and structured article formatting. The output should read like natural speech across a handful of unhurried paragraphs.
 3. Determine script length from the target audio duration and calibrated reading speed. Do **not** use a fixed length blindly. Target: **20 minutes** (minimum 15 minutes). Until a full-length calibration is measured, estimate using **~220 Chinese characters/minute** for Azure `zh-CN-YunzeNeural` with `--style calm --rate=-10%`. For a 20-minute target, draft about **4400 Chinese characters** (minimum 3300 characters for the 15-minute floor). Keep it slow and breathable. Avoid scripts that are obviously too short or too long.
-4. Narrator identity: **老波** (first-person, consistent throughout)
+4. Narrator identity: **老波**. 品牌锚点不必每处都显——开头"我是老波"可视情况省略（若能直接入题效果更好则省略），结尾锚点偶用即可，不必强求。全程以第二人称"你"与听众对话，像睡前聊天的朋友，不是课堂讲师。
 5. Write the script to `runs/<job_id>/script.txt` and update the job JSON with `status="ready"`, `script=<full script>`, `edited_script=null`, `error=null`, and `updated_at`.
 6. Stop. TTS/mixing/publishing are separate Web actions.
 
@@ -101,7 +101,7 @@ Structure:
 3. Theme anchoring: within the first 60-90 seconds, clearly return to the exact theme/question. Do not delay the topic for several minutes.
 4. Gentle scale expansion: move from the listener's body and room → city/night sky → Earth → solar system → stars → galaxies → deep time/space.
 5. Soft repetition: repeat the core theme in different, quiet forms throughout the script so the listener never loses the subject.
-6. Soft landing: end calmly, with 老波 sign-off only if natural. Preferred endings: "我是老波，咱们在梦中的平行宇宙继续聊。" (引线式) or "我是老波，祝你晚安。" (收尾式). 留白式也很强：不解决问题，把听者扔在不安感里。
+6. Soft landing: end calmly. 留白式很强：不解决问题，把听者扔在不安感里。品牌锚点（"我是老波，咱们在梦中的平行宇宙继续聊。" / "我是老波，祝你晚安。"）偶用即可，不必每篇都强求。
 
 Rules:
 

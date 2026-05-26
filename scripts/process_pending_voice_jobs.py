@@ -116,9 +116,12 @@ def finalize_from_script_file(job):
     if not script:
         return False
     if len(script) < MIN_SCRIPT_CHARS:
-        job["status"] = "error"
-        job["error"] = f"script too short: {len(script)} chars, minimum is {MIN_SCRIPT_CHARS}"
+        #字数不够，不是 fatal error；写入了说明 agent 完成了工作，只是太短
+        #重置为 retry_pending，让下一轮 writer 补写，不占用 error 状态
+        job["status"] = "retry_pending"
+        job["error"] = f"script too short ({len(script)} chars, min {MIN_SCRIPT_CHARS}); will retry"
         save_job(job)
+        print(f"[voice-writer] {job['id']} short ({len(script)} chars), set to retry_pending", file=sys.stderr)
         return False
     job["status"] = "ready"
     job["script"] = script
