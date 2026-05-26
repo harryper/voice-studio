@@ -1,125 +1,163 @@
 # voice-studio
 
-Web project for creating original ~20-minute audio narrations (sleep / narration / ambient), using **Azure Speech REST TTS** (primary, 云泽 voice) with **MiniMax** as fallback.
+一键创作 **~20分钟** 沉浸式助眠音频（睡前故事 / 叙事 / 氛围音景）的 Web 项目。
 
-## Workflow
+**核心流程：** 主题 → AI 写稿（NVIDIA qwen3.5-397b）→ 人工审核 → Web UI 一键生成音频 + 混入 BGM → 发布公网链接。
 
-```
-theme → event-driven writer thread (NVIDIA qwen3.5-397b) → ready for review → explicit TTS action only
-```
+---
 
-`voice-studio` no longer has a direct default chat workflow. All creation goes through the Web project and its job state files in `jobs/*.json`.
-
-1. Create a Web job from a theme or pasted script.
-2. For theme jobs, the Web app's event-driven writer thread automatically wakes up, calls NVIDIA NIM (qwen3.5-397b) to generate the original Chinese narration script, writes it to `runs/<job_id>/script.txt`, and updates the job to `status="ready"`.
-3. Review the script in the Web UI.
-4. Generate narration audio only from the Web UI TTS action or an explicit instruction tied to a specific Web job.
-5. The Web TTS action handles Azure fallback, optional BGM mixing, publishing, and the final public MP3 URL.
-
-Duration policy: target is ~20 minutes, hard floor **15 minutes**, acceptable range **15-25 minutes**. Do not recalibrate/rewrite solely for duration if output falls in that range.
-
-## Narrator Persona: 老波
-
-The script is written in the voice of **老波** (first-person, consistent throughout).
-
-**Script style** (see `reference-style.md` for full details):
-- Immersive sleep audio, not a knowledge article
-- Second-person sensory scenes (你 lying in bed, darkness, night sounds)
-- Theme must surface within the first 60-90 seconds
-- Low cognitive load; facts as stepping stones, not lecture notes
-- Plain prose with natural paragraph breaks; no titles, labels, or markdown
-- Brand sign-off: **"我是老波，咱们在梦中的平行宇宙继续聊。"** (引线式) or **"我是老波，祝你晚安。"** (收尾式)
-
-## TTS Providers
-
-| Provider | Voice | Notes |
-|----------|-------|-------|
-| **Azure (primary)** | `zh-CN-YunzeNeural` | 云泽，中年男声；REST API，免费层 50 万字符/月 |
-| **MiniMax (fallback)** | `Chinese (Mandarin)_Gentleman` | 每日上限 11000 字 |
-
-## Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `scripts/azure_tts.py` | TTS generation via Azure Speech REST API (primary) |
-| `scripts/minimax_tts.py` | TTS generation via MiniMax HTTP API (fallback) |
-| `scripts/mix_with_bgm.py` | Mix voice + BGM into final MP3 |
-| `scripts/publish_download.py` | Copy file to public-downloads and report URL |
-| `scripts/download_douyin_web.py` | Download Douyin video (legacy / on request only) |
-
-## Setup
+## 30 秒极速接入（新机器）
 
 ```bash
-# Web UI config (not tracked by git)
-cp config.example.json config.json
-# then edit config.json and replace password / secret_key
+# 1. 克隆项目
+git clone https://github.com/harryper/voice-studio.git
+cd voice-studio
 
-# Azure TTS key (not tracked by git)
-echo "your-azure-key" > scripts/azure_speech_key.txt
+# 2. 配置密钥（任选一种）
+cp config.example.json config.json
+# 编辑 config.json，填入密码和密钥
+
+# 或者直接用环境变量
+export VOICE_STUDIO_PASSWORD=你的密码
+export VOICE_STUDIO_SECRET_KEY=你的密钥
+
+# 3. Azure TTS 密钥
+echo "你的Azure密钥" > scripts/azure_speech_key.txt
 chmod 600 scripts/azure_speech_key.txt
 
-# MiniMax key (fallback, not tracked by git)
-echo "your-minimax-key" > scripts/minimax_api_key.txt
+# MiniMax 密钥（备用）
+echo "你的MiniMax密钥" > scripts/minimax_api_key.txt
 chmod 600 scripts/minimax_api_key.txt
-```
 
-The Web UI can also be configured with environment variables:
-
-- `VOICE_STUDIO_PASSWORD`
-- `VOICE_STUDIO_SECRET_KEY`
-- `VOICE_STUDIO_PORT`
-- `VOICE_STUDIO_DOWNLOAD_ROOT`
-- `VOICE_STUDIO_COSMIC_FOLDER`
-
-## Web UI
-
-```bash
+# 4. 启动
 docker compose up -d --build
+
+# 5. 打开浏览器
+open http://<服务器IP>:9999/
 ```
 
-Open `http://<host>:9999/`. The generated public MP3 links are published by `publish_download.py`, normally through the separate public-downloads HTTP service.
+---
 
-## Implementation Commands
+## 工作流
 
-These commands are implementation details behind the Web TTS action. Do not use them as a separate default workflow.
-
-```bash
-# TTS generation (primary: Azure)
-python3 scripts/azure_tts.py --text script.md --out voice.mp3 --voice zh-CN-YunzeNeural --style calm --rate=-10%
-
-# Fallback: MiniMax
-python3 scripts/minimax_tts.py --text script.md --out voice.mp3 --voice "Chinese (Mandarin)_Gentleman" --speed 0.85
-
-# Mix with BGM
-python3 scripts/mix_with_bgm.py --voice voice.mp3 --out final.mp3 --bgm-volume 0.03
-
-# Publish
-python3 scripts/publish_download.py --file final.mp3 --folder cosmic-sleep --name my-audio.mp3
+```
+主题/文稿 → Web Job → AI 自动写稿（后台）→ ready 状态 → 人工审核 → TTS 生成 → 混入 BGM → 发布公网链接
 ```
 
-## Assets
+1. 在 Web UI 创建主题任务或粘贴文稿
+2. 后台自动触发 NVIDIA qwen3.5-397b 生成中文旁白稿，写入 `runs/<job_id>/script.txt`，状态更新为 `ready`
+3. 在 Web UI 审核 / 编辑文稿
+4. 选择音色、语速、混音音量，点击「生成」
+5. 完成后自动发布公网 MP3 链接
 
-- `assets/bgm_default.mp3` — default ambient BGM (looped for full narration, 3% volume by default, felt more than heard)
+---
 
-## TTS Config (defaults)
+## 旁白角色：老波
 
-### Azure (primary)
-| Parameter | Value |
-|-----------|-------|
-| Voice | `zh-CN-YunzeNeural` (云泽) |
+文稿以 **老波** 第一人称贯穿始终。
+
+**写作风格**（详见 `reference-style.md`）：
+- 沉浸式助眠音频，非知识科普文章
+- 第二人称感官场景（你躺在床上、黑暗、夜声）
+- 前 60-90 秒内必须让听者明确主题
+- 低认知负荷；知识点是垫脚石，不是课堂讲义
+- 纯散文，自然分段；无标题、无标签、无 markdown
+- 品牌落款：**"我是老波，咱们在梦中的平行宇宙继续聊。"** 或 **"我是老波，祝你晚安。"**
+
+---
+
+## 目录结构
+
+```
+voice-studio/
+├── app.py                  # Flask 后端（全部 API）
+├── templates/index.html    # Web UI（全前端逻辑）
+├── docker-compose.yml      # 容器编排
+├── scripts/
+│   ├── azure_tts.py        # Azure TTS（主用）
+│   ├── minimax_tts.py      # MiniMax TTS（备用）
+│   ├── mix_with_bgm.py    # 混音
+│   ├── upload_to_oss.py    # 上传 OSS
+│   └── publish_download.py # 发布公网链接
+├── jobs/                  # Web Job 状态文件（JSON）
+├── runs/                  # 生成物（脚本、音频、分段文件）
+├── assets/
+│   └── bgm_default.mp3    # 默认氛围 BGM
+└── reference-style.md      # 写作风格参考
+```
+
+---
+
+## 音色与配置
+
+### Web UI 可调参数
+
+| 参数 | 选项 / 默认值 |
+|------|-------------|
+| **服务商** | Azure TTS（主用）/ MiniMax TTS（备用） |
+| **Azure 音色** | 云泽 / 云希 / 云健 / 云扬 / 云枫 / 晓晓 / 晓依 / 晓辰 |
+| **MiniMax 音色** | Deep Voice（低沉男声）/ 温婉柔和 |
+| **语速** | 0.75x / 0.80x / **0.85x（默认）** / 0.90x / 1.00x |
+| **混音音量** | 滑块 0~20%，默认 6% |
+
+### Azure TTS（主用）
+
+| 参数 | 值 |
+|------|---|
+| Voice | `zh-CN-YunzeNeural`（云泽，中年男声）|
 | Style | `calm` |
 | Rate | `-10%` |
 | Region | `eastasia` |
+| 免费额度 | 50 万字符 / 月 |
 
-### MiniMax (fallback)
-| Parameter | Value |
-|-----------|-------|
+### MiniMax TTS（备用）
+
+| 参数 | 值 |
+|------|---|
 | Model | `speech-2.8-hd` |
-| Voice | `Chinese (Mandarin)_Gentleman` |
+| 可用音色 | Deep Voice / 温婉柔和（Gentleman 已下线）|
 | Speed | `0.85` |
+| 每日额度 | 11000 字 |
 
-## Token-saving rules
+---
 
-- Write the script only once (no multi-draft rewrites)
-- Do not transcribe videos unless explicitly requested
-- If the script is too long, trim locally rather than rewriting
+## 环境变量
+
+| 变量 | 说明 |
+|------|------|
+| `VOICE_STUDIO_PASSWORD` | Web UI 登录密码 |
+| `VOICE_STUDIO_SECRET_KEY` | API 签名密钥 |
+| `VOICE_STUDIO_PORT` | 端口（默认 9999）|
+| `VOICE_STUDIO_DOWNLOAD_ROOT` | 公网下载根目录 |
+| `VOICE_STUDIO_COSMIC_FOLDER` | cosmic-sleep 发布文件夹 |
+
+---
+
+## 常见问题
+
+**Q: 页面打不开**
+```bash
+# 检查容器状态
+docker ps | grep voice
+
+# 看日志
+docker logs voice-studio-web -f
+```
+
+**Q: TTS 生成失败**
+- 检查 `scripts/azure_speech_key.txt` 是否存在且权限正确（600）
+- 检查 Azure 余额是否充足
+- 尝试切 MiniMax 备用
+
+**Q: 内存不足（OOM）**
+- 减少文稿长度或分段生成
+- MiniMax 备用链路对长文本更稳定
+
+**Q: 想改 BGM**
+Web UI 内支持上传自定义 BGM（MP3/WAV 等），也可直接在 `assets/` 目录替换 `bgm_default.mp3`。
+
+---
+
+## 衍生项目
+
+- **voice-studio-scripts** — https://github.com/harryper/voice-studio-scripts（独立脚本合集）
