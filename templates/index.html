@@ -141,7 +141,7 @@
     /* ─── Tabs ─── */
     .tabs {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       background: var(--surface-3);
       border-radius: var(--radius-md);
       padding: 4px;
@@ -686,6 +686,7 @@
         <div class="tabs">
           <button id="tabTheme" class="tab active">主题创作</button>
           <button id="tabScript" class="tab">直接文稿</button>
+          <button id="tabMusic" class="tab">音乐创作</button>
         </div>
 
         <!-- Theme Mode -->
@@ -704,6 +705,19 @@
           <p class="note">载入后仍会进入右侧预览区，可以再改，确认后生成语音。</p>
         </div>
 
+        <!-- Music Mode -->
+        <div id="musicBox" class="hidden">
+          <span class="section-label">音乐创作</span>
+          <input id="musicThemeInput" placeholder="例：一首关于雨夜的蓝调">
+          <input id="musicTitleInput" placeholder="歌曲标题（可选）" style="margin-top: 8px;">
+          <div class="check-row">
+            <input type="checkbox" id="instrumentalCheck">
+            <label for="instrumentalCheck">纯音乐（无人声）</label>
+          </div>
+          <button id="createMusicBtn" class="primary full" style="margin-top: 14px;">生成歌词</button>
+          <p class="note">输入主题/风格描述，AI 自动生成结构化歌词，确认后再生成完整歌曲。</p>
+        </div>
+
         <div class="sep"></div>
 
         <div class="job-header-new">
@@ -720,20 +734,40 @@
           <span id="jobId" class="pill">-</span>
         </div>
 
-        <span class="section-label">文稿预览 / 编辑</span>
+        <span class="section-label" id="editorLabel">文稿预览 / 编辑</span>
         <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
+
+        <div id="musicMeta" class="hidden">
+          <div style="margin-top:12px; padding:12px 14px; background:var(--surface-2); border-radius:var(--radius-md); border:1px solid var(--border-light);">
+            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+              <div><span class="section-label" style="margin-bottom:2px;">歌曲标题</span><span id="songTitle" style="font-size:14px; font-weight:500;">-</span></div>
+              <div><span class="section-label" style="margin-bottom:2px;">风格标签</span><span id="styleTags" style="font-size:13px; color:var(--text-2);">-</span></div>
+            </div>
+          </div>
+        </div>
 
         <p id="actionFeedback" class="action-feedback"></p>
         <p id="errorBox" class="error"></p>
 
         <div id="audioBox" class="hidden">
           <audio id="audio" controls></audio>
+          <div id="audioLinks" style="margin-top:8px;"></div>
         </div>
 
-        <div class="action-row" style="margin-top:20px;">
+        <!-- Voice job actions -->
+        <div id="voiceActions" class="action-row" style="margin-top:20px;">
           <button id="saveEditBtn">保存修改</button>
           <button id="retryBtn" class="warn">重新创作</button>
           <button id="deleteBtn" class="danger">删除文稿</button>
+        </div>
+
+        <!-- Music job actions -->
+        <div id="musicActions" class="action-row hidden" style="margin-top:20px;">
+          <button id="saveLyricsBtn">保存歌词</button>
+          <button id="retryLyricsBtn" class="warn">重新生成歌词</button>
+          <button id="generateMusicBtn" class="primary">生成歌曲</button>
+          <button id="retryMusicBtn" class="warn hidden">重新生成歌曲</button>
+          <button id="deleteMusicBtn" class="danger">删除</button>
         </div>
 
         <div class="generate-section">
@@ -845,8 +879,10 @@
       mode = next;
       $('tabTheme').classList.toggle('active', mode === 'theme');
       $('tabScript').classList.toggle('active', mode === 'script');
+      $('tabMusic').classList.toggle('active', mode === 'music');
       $('themeBox').classList.toggle('hidden', mode !== 'theme');
       $('scriptBox').classList.toggle('hidden', mode !== 'script');
+      $('musicBox').classList.toggle('hidden', mode !== 'music');
     }
 
     function statusLabel(status) {
@@ -858,6 +894,9 @@
         mixing: '混音中',
         done: '已完成',
         error: '出错',
+        generating_lyrics: '生成歌词中',
+        lyrics_ready: '歌词待确认',
+        generating: '生成音乐中',
       }[status] || status || '无';
     }
 
@@ -901,6 +940,11 @@
       $('scriptEditor').value = '';
       $('errorBox').textContent = '';
       $('audioBox').classList.add('hidden');
+      $('musicMeta').classList.add('hidden');
+      $('voiceActions').classList.remove('hidden');
+      $('musicActions').classList.add('hidden');
+      $('editorLabel').textContent = '文稿预览 / 编辑';
+      $('scriptEditor').placeholder = '主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。';
       $('saveEditBtn').disabled = true;
       $('generateVoiceBtn').disabled = true;
       $('retryBtn').disabled = true;
@@ -915,26 +959,89 @@
         btn.classList.toggle('active', btn.dataset.jobId === job.id);
       });
       $('jobId').textContent = job.id;
-      $('jobTitle').textContent = job.theme || '直接输入文稿';
+      $('jobTitle').textContent = job.theme || (job.mode === 'music' ? '音乐创作' : '直接输入文稿');
       $('jobStatus').textContent = statusLabel(job.status);
-      $('jobStatus').className = 'pill ' + (job.status === 'error' ? 'error' : ['ready', 'done'].includes(job.status) ? 'ready' : '');
-      syncScriptEditor(job);
+      $('jobStatus').className = 'pill ' + (job.status === 'error' ? 'error' : ['ready', 'done', 'lyrics_ready'].includes(job.status) ? 'ready' : '');
+
+      const isMusic = job.mode === 'music';
+
+      // Toggle between voice and music UI
+      $('voiceActions').classList.toggle('hidden', isMusic);
+      $('musicActions').classList.toggle('hidden', !isMusic);
+      $('musicMeta').classList.toggle('hidden', !isMusic);
+      // Hide voice-specific sections for music jobs
+      document.querySelectorAll('.generate-section').forEach(el => {
+        el.classList.toggle('hidden', isMusic);
+      });
+      $('voiceRunsBox').classList.toggle('hidden', isMusic || !(job.voice_runs || []).length);
+
+      if (isMusic) {
+        // Music mode: editor shows lyrics
+        $('editorLabel').textContent = '歌词';
+        $('scriptEditor').placeholder = '歌词将在这里显示...';
+        const lyrics = job.edited_lyrics || job.lyrics || '';
+        syncScriptEditor({ ...job, script: lyrics, edited_script: null });
+        // Sync editorJobId manually since we modified the job object
+        if (editorJobId !== job.id) {
+          $('scriptEditor').value = lyrics;
+          editorDirty = false;
+          editorJobId = job.id;
+        }
+
+        // Music metadata
+        $('songTitle').textContent = job.title || '-';
+        $('styleTags').textContent = job.style_tags || '-';
+
+        // Music action buttons
+        const hasLyrics = lyrics.trim().length > 0;
+        const canGenerateMusic = hasLyrics || job.is_instrumental;
+        const isDone = job.status === 'done';
+        const isLyricsReady = job.status === 'lyrics_ready';
+        const isPending = job.status === 'pending';
+        const isGenerating = ['generating', 'generating_lyrics'].includes(job.status);
+
+        $('saveLyricsBtn').disabled = !hasLyrics;
+        $('retryLyricsBtn').disabled = isGenerating;
+        $('generateMusicBtn').disabled = !canGenerateMusic || isGenerating;
+        $('generateMusicBtn').classList.toggle('hidden', isDone);
+        $('retryMusicBtn').classList.toggle('hidden', !isDone);
+        $('deleteMusicBtn').disabled = false;
+      } else {
+        // Voice mode
+        $('editorLabel').textContent = '文稿预览 / 编辑';
+        $('scriptEditor').placeholder = '主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。';
+        syncScriptEditor(job);
+      }
+
       $('errorBox').textContent = job.error || '';
       $('retryBtn').disabled = job.mode !== 'theme';
       $('deleteBtn').disabled = false;
-      $('voiceSelect').value = job.voice || 'zh-CN-YunzeNeural';
-      const provider = job.provider || 'azure';
-      $('providerSelect').value = provider;
-      buildVoiceOptions(provider);
-      const hasAudio = job.final_url || job.voice_url;
+      if (!isMusic) {
+        $('voiceSelect').value = job.voice || 'zh-CN-YunzeNeural';
+        const provider = job.provider || 'azure';
+        $('providerSelect').value = provider;
+        buildVoiceOptions(provider);
+      }
+      const hasAudio = job.final_url || job.voice_url || job.audio_url;
       $('audioBox').classList.toggle('hidden', !hasAudio);
       if (hasAudio) {
         const audioEl = $('audio');
         const isPlaying = !audioEl.paused;
-                const playUrl = $('mixBgmCheck').checked ? (job.final_url || job.voice_url) : (job.voice_url || job.final_url);
+        let playUrl;
+        if (isMusic) {
+          playUrl = job.audio_url;
+        } else {
+          playUrl = $('mixBgmCheck').checked ? (job.final_url || job.voice_url) : (job.voice_url || job.final_url);
+        }
         const srcChanged = audioEl.src !== playUrl;
-        if (!isPlaying && srcChanged) {
+        if (!isPlaying && srcChanged && playUrl) {
           audioEl.src = playUrl;
+        }
+        // Audio links
+        const linksEl = $('audioLinks');
+        linksEl.innerHTML = '';
+        if (isMusic && job.audio_url) {
+          linksEl.innerHTML = '<a href="' + job.audio_url + '" target="_blank" style="color:var(--accent);font-size:13px;">下载歌曲 (R2 链接，24h 有效)</a>';
         }
       }
       // Voice runs
@@ -1019,7 +1126,8 @@
         const btn = document.createElement('button');
         btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
         btn.dataset.jobId = job.id;
-        btn.innerHTML = `<strong>${job.theme || '直接文稿'}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
+        const jobLabel = job.mode === 'music' ? (job.title || job.theme || '音乐创作') : (job.theme || '直接文稿');
+        btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
         btn.onclick = () => loadJob(job.id);
         $('jobList').appendChild(btn);
       });
@@ -1059,7 +1167,140 @@
     $('logoutBtn').onclick = async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); showApp(false); };
     $('tabTheme').onclick = () => setMode('theme');
     $('tabScript').onclick = () => setMode('script');
+    $('tabMusic').onclick = () => setMode('music');
     $('scriptEditor').addEventListener('input', () => { editorDirty = true; });
+
+    $('createMusicBtn').onclick = async () => {
+      const theme = $('musicThemeInput').value.trim();
+      if (!theme) { showActionFeedback('请输入主题/风格描述', 'error'); return; }
+      $('createMusicBtn').disabled = true;
+      $('createMusicBtn').textContent = '创建中...';
+      try {
+        const resp = await api('/api/jobs', {
+          method: 'POST',
+          body: JSON.stringify({
+            mode: 'music',
+            theme: theme,
+            title: $('musicTitleInput').value.trim(),
+            is_instrumental: $('instrumentalCheck').checked,
+          })
+        });
+        renderJob(resp.job);
+        await refreshJobs();
+        // Auto-generate lyrics
+        showActionFeedback('正在生成歌词...');
+        try {
+          const job = await api('/api/jobs/' + resp.job_id + '/generate-lyrics', { method: 'POST' });
+          renderJob(job);
+          showActionFeedback('歌词已生成，请确认后生成歌曲', 'ok');
+        } catch (err) {
+          showActionFeedback('歌词生成失败：' + err.message, 'error');
+        }
+      } catch (err) {
+        showActionFeedback('创建失败：' + err.message, 'error');
+      } finally {
+        $('createMusicBtn').disabled = false;
+        $('createMusicBtn').textContent = '生成歌词';
+      }
+    };
+
+    // Music action buttons
+    $('saveLyricsBtn').onclick = async () => {
+      if (!activeJobId) return;
+      const btn = $('saveLyricsBtn');
+      btn.disabled = true;
+      btn.textContent = '保存中...';
+      try {
+        const job = await api('/api/jobs/' + activeJobId, {
+          method: 'PATCH',
+          body: JSON.stringify({ edited_lyrics: $('scriptEditor').value })
+        });
+        editorDirty = false;
+        renderJob(job);
+        showActionFeedback('歌词已保存', 'ok');
+      } catch (err) {
+        showActionFeedback('保存失败：' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '保存歌词';
+      }
+    };
+
+    $('retryLyricsBtn').onclick = async () => {
+      if (!activeJobId) return;
+      const btn = $('retryLyricsBtn');
+      btn.disabled = true;
+      btn.textContent = '重新生成中...';
+      showActionFeedback('正在重新生成歌词...');
+      try {
+        const job = await api('/api/jobs/' + activeJobId + '/retry-lyrics', { method: 'POST' });
+        renderJob(job);
+        showActionFeedback('歌词已重新生成', 'ok');
+      } catch (err) {
+        showActionFeedback('重新生成失败：' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '重新生成歌词';
+      }
+    };
+
+    $('generateMusicBtn').onclick = async () => {
+      if (!activeJobId) return;
+      // Save lyrics first
+      if (editorDirty) {
+        try {
+          await api('/api/jobs/' + activeJobId, {
+            method: 'PATCH',
+            body: JSON.stringify({ edited_lyrics: $('scriptEditor').value })
+          });
+          editorDirty = false;
+        } catch (e) { /* continue anyway */ }
+      }
+      const btn = $('generateMusicBtn');
+      btn.disabled = true;
+      btn.textContent = '生成中...';
+      showActionFeedback('正在生成音乐，这可能需要 1-3 分钟...');
+      try {
+        const job = await api('/api/jobs/' + activeJobId + '/generate-music', { method: 'POST' });
+        renderJob(job);
+        showActionFeedback('歌曲生成完成', 'ok');
+      } catch (err) {
+        showActionFeedback('生成失败：' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '生成歌曲';
+      }
+    };
+
+    $('retryMusicBtn').onclick = async () => {
+      if (!activeJobId) return;
+      const btn = $('retryMusicBtn');
+      btn.disabled = true;
+      btn.textContent = '重新生成中...';
+      showActionFeedback('正在重新生成音乐...');
+      try {
+        const job = await api('/api/jobs/' + activeJobId + '/retry-music', { method: 'POST' });
+        renderJob(job);
+        showActionFeedback('歌曲已重新生成', 'ok');
+      } catch (err) {
+        showActionFeedback('重新生成失败：' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '重新生成歌曲';
+      }
+    };
+
+    $('deleteMusicBtn').onclick = async () => {
+      if (!activeJobId) return;
+      if (!confirm('确定删除这个音乐任务吗？')) return;
+      try {
+        await api('/api/jobs/' + activeJobId, { method: 'DELETE' });
+        clearActiveJob('已删除', 'ok');
+        await refreshJobs();
+      } catch (err) {
+        showActionFeedback('删除失败：' + err.message, 'error');
+      }
+    };
 
     $('createThemeBtn').onclick = async () => {
       const job = await api('/api/jobs', {
