@@ -21,7 +21,7 @@ WORKSPACE_DIR = SKILL_DIR.parents[1]
 JOBS_DIR = SKILL_DIR / "jobs"
 RUNS_DIR = SKILL_DIR / "runs"
 LOCK_PATH = SKILL_DIR / ".writer.lock"
-NODE = SKILL_DIR / "scripts" / "node"
+NODE = Path("/usr/bin/node")
 OPENCLAW = Path("/usr/lib/node_modules/openclaw/openclaw.mjs")
 MIN_SCRIPT_CHARS = 3300
 
