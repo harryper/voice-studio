@@ -141,7 +141,7 @@
     /* ─── Tabs ─── */
     .tabs {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       background: var(--surface-3);
       border-radius: var(--radius-md);
       padding: 4px;
@@ -150,6 +150,10 @@
     }
 
     .tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
       border: none;
       background: transparent;
       border-radius: calc(var(--radius-md) - 2px);
@@ -160,6 +164,11 @@
       cursor: pointer;
       transition: all 0.2s;
       font-family: inherit;
+      line-height: 1.2;
+      min-height: 40px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tab:hover:not(.active) {
@@ -479,15 +488,49 @@
       border-radius: var(--radius-sm);
     }
 
-    #audioBox a {
-      color: var(--accent);
-      font-size: 13px;
-      text-decoration: none;
-      display: inline-block;
-      margin-right: 16px;
+    .download-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
     }
 
-    #audioBox a:hover { text-decoration: underline; }
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      padding: 0 12px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .15s ease, border-color .15s ease, color .15s ease;
+    }
+
+    .download-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+      text-decoration: none;
+    }
+
+    .download-btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    .download-btn.primary:hover {
+      background: var(--accent-dark);
+      color: white;
+    }
 
     /* ─── BGM Selector inline ─── */
     .bgm-inline {
@@ -684,28 +727,25 @@
       <!-- ─── Left Sidebar ─── -->
       <aside class="panel">
         <div class="tabs">
-          <button id="tabTheme" class="tab active">主题创作</button>
-          <button id="tabScript" class="tab">直接文稿</button>
-          <button id="tabMusic" class="tab">音乐创作</button>
+          <button id="tabVoice" class="tab active">🎤 声音创作</button>
+          <button id="tabMusic" class="tab">🎵 音乐创作</button>
         </div>
 
-        <!-- Theme Mode -->
-        <div id="themeBox">
-          <span class="section-label">主题输入</span>
+        <!-- Voice Module -->
+        <div id="voiceBox">
+          <span class="section-label">主题创作</span>
           <input id="themeInput" placeholder="例：宇宙的边界、黑洞、海底火山">
-          <button id="createThemeBtn" class="primary full" style="margin-top: 14px;">创作文稿</button>
-          <p class="note">主题任务会进入待创作队列，由 OpenClaw 巡检生成文稿后回填到右侧。</p>
+          <button id="createThemeBtn" class="primary full" style="margin-top: 10px;">创作文稿</button>
+
+          <div class="sep"></div>
+
+          <span class="section-label">直接文稿</span>
+          <textarea id="directScript" placeholder="把完整文稿粘贴到这里" style="min-height: 120px;"></textarea>
+          <button id="createScriptBtn" class="primary full" style="margin-top: 10px;">载入文稿</button>
+          <p class="note">声音模块只处理文稿、TTS、BGM 和音色版本。</p>
         </div>
 
-        <!-- Script Mode -->
-        <div id="scriptBox" class="hidden">
-          <span class="section-label">文稿输入</span>
-          <textarea id="directScript" placeholder="把完整文稿粘贴到这里" style="min-height: 220px;"></textarea>
-          <button id="createScriptBtn" class="primary full" style="margin-top: 14px;">载入文稿</button>
-          <p class="note">载入后仍会进入右侧预览区，可以再改，确认后生成语音。</p>
-        </div>
-
-        <!-- Music Mode -->
+        <!-- Music Module -->
         <div id="musicBox" class="hidden">
           <span class="section-label">音乐创作</span>
           <input id="musicThemeInput" placeholder="例：一首关于雨夜的蓝调">
@@ -715,22 +755,35 @@
             <label for="instrumentalCheck">纯音乐（无人声）</label>
           </div>
           <button id="createMusicBtn" class="primary full" style="margin-top: 14px;">生成歌词</button>
-          <p class="note">输入主题/风格描述，AI 自动生成结构化歌词，确认后再生成完整歌曲。</p>
+          <p class="note">音乐模块只处理歌词、风格标签和歌曲生成。</p>
         </div>
 
         <div class="sep"></div>
 
-        <div class="job-header-new">
-          <span class="label">当前任务</span>
-          <span id="jobStatus" class="pill">无</span>
+        <!-- Voice jobs -->
+        <div id="voiceJobsBlock">
+          <div class="job-header-new">
+            <span class="label">🎤 声音任务</span>
+            <span id="voiceJobCount" class="pill">0</span>
+          </div>
+          <div id="voiceJobList" class="job-list"></div>
         </div>
-        <div id="jobList" class="job-list"></div>
+
+        <!-- Music jobs -->
+        <div id="musicJobsBlock" class="hidden">
+          <div class="job-header-new">
+            <span class="label">🎵 音乐任务</span>
+            <span id="musicJobCount" class="pill">0</span>
+          </div>
+          <div id="musicJobList" class="job-list"></div>
+        </div>
       </aside>
 
       <!-- ─── Right Main ─── -->
       <section class="panel">
         <div class="job-header">
           <span id="jobTitle" class="title">还没有任务</span>
+          <span id="jobStatus" class="pill">声音</span>
           <span id="jobId" class="pill">-</span>
         </div>
 
@@ -770,7 +823,7 @@
           <button id="deleteMusicBtn" class="danger">删除</button>
         </div>
 
-        <div class="generate-section">
+        <div class="generate-section voice-only">
           <span class="section-label">混入背景音</span>
           <div class="generate-row">
             <input type="checkbox" id="mixBgmCheck" checked>
@@ -787,7 +840,7 @@
           </div>
         </div>
 
-        <div class="generate-section">
+        <div class="generate-section voice-only">
           <span class="section-label">服务商</span>
           <div class="generate-row">
             <select id="providerSelect">
@@ -797,7 +850,7 @@
           </div>
         </div>
 
-        <div class="generate-section">
+        <div class="generate-section voice-only">
           <span class="section-label">生成音色</span>
           <div class="generate-row">
             <select id="voiceSelect">
@@ -854,7 +907,16 @@
       { value: 'Chinese_deep_voiced_male_vv1', label: 'Deep Voice（低沉男声）' },
       { value: 'Chinese (Mandarin)_Gentle_Senior', label: '温婉柔和' },
     ];
-    let mode = 'theme';
+
+    // 可扩展模块配置（新增 video 只需在这里加一条）
+    const MODES = {
+      voice: { key: 'voice', name: '声音', icon: '🎤' },
+      music: { key: 'music', name: '音乐', icon: '🎵' },
+      // video: { key: 'video', name: '视频', icon: '🎬' }
+    };
+
+    let mode = 'voice';
+    let lastJobs = [];
     let pollTimer = null;
     let editorDirty = false;
     let editorJobId = null;
@@ -875,19 +937,39 @@
       $('appView').classList.toggle('hidden', !show);
     }
 
-    function setMode(next) {
+    function jobGroup(job) {
+      return job && job.mode === 'music' ? 'music' : 'voice';
+    }
+
+    function jobsForMode(next = mode) {
+      return lastJobs.filter(job => jobGroup(job) === next);
+    }
+
+    async function setMode(next, options = {}) {
+      if (editorDirty && options.force !== true) {
+        const ok = confirm('当前编辑内容还没有保存，切换模块会离开当前任务。继续切换吗？');
+        if (!ok) return;
+        editorDirty = false;
+      }
       mode = next;
-      $('tabTheme').classList.toggle('active', mode === 'theme');
-      $('tabScript').classList.toggle('active', mode === 'script');
-      $('tabMusic').classList.toggle('active', mode === 'music');
-      $('themeBox').classList.toggle('hidden', mode !== 'theme');
-      $('scriptBox').classList.toggle('hidden', mode !== 'script');
-      $('musicBox').classList.toggle('hidden', mode !== 'music');
+      const isMusicMode = mode === 'music';
+      $('tabVoice').classList.toggle('active', !isMusicMode);
+      $('tabMusic').classList.toggle('active', isMusicMode);
+      $('voiceBox').classList.toggle('hidden', isMusicMode);
+      $('musicBox').classList.toggle('hidden', !isMusicMode);
+      $('voiceJobsBlock').classList.toggle('hidden', isMusicMode);
+      $('musicJobsBlock').classList.toggle('hidden', !isMusicMode);
+      document.querySelectorAll('.voice-only').forEach(el => {
+        el.classList.toggle('hidden', isMusicMode);
+      });
+      if (options.selectJob !== false) {
+        await selectFirstJobForMode(mode);
+      }
     }
 
     function statusLabel(status) {
       return {
-        pending: '待创作',
+        pending: '创作中',
         writing: '创作中',
         ready: '待确认',
         tts: '生成语音中',
@@ -902,6 +984,58 @@
 
     function currentJobScript(job) {
       return job.edited_script || job.script || '';
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[ch]));
+    }
+
+    function safeDownloadName(value, fallback = 'voice-script') {
+      const cleaned = String(value || fallback)
+        .trim()
+        .replace(/[\\/:*?"<>|]+/g, '-')
+        .replace(/\s+/g, '-')
+        .slice(0, 80);
+      return cleaned || fallback;
+    }
+
+    function downloadTextFile(filename, text) {
+      const blob = new Blob(['\ufeff', text || ''], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadJobScript(job) {
+      const scriptText = $('scriptEditor').value || currentJobScript(job);
+      const title = job.theme || job.title || job.id || 'voice-script';
+      const filename = `${safeDownloadName(title)}-${job.id || 'script'}.txt`;
+      downloadTextFile(filename, scriptText);
+    }
+
+    function voiceRunsForJob(job) {
+      const runs = Array.isArray(job.voice_runs) ? [...job.voice_runs] : [];
+      if (runs.length === 0 && (job.voice_url || job.final_url || job.audio_url)) {
+        runs.push({
+          run_id: 'legacy',
+          provider: job.provider || 'azure',
+          voice: job.voice || 'zh-CN-YunzeNeural',
+          bgm: job.bgm !== false,
+          bgm_asset: job.bgm_asset || 'bgm_default.mp3',
+          script_url: job.script_url || '',
+          voice_url: job.voice_url || job.audio_url || '',
+          final_url: job.final_url || job.voice_url || job.audio_url || '',
+          created_at: job.updated_at || job.created_at,
+        });
+      }
+      return runs;
     }
 
     function editorIsActive() {
@@ -934,28 +1068,41 @@
       editorJobId = null;
       editorDirty = false;
       $('jobId').textContent = '-';
-      $('jobTitle').textContent = '还没有任务';
-      $('jobStatus').textContent = '无';
+      const isMusicMode = mode === 'music';
+      $('jobTitle').textContent = isMusicMode ? '还没有音乐任务' : '还没有声音任务';
+      $('jobStatus').textContent = isMusicMode ? '音乐' : '声音';
       $('jobStatus').className = 'pill';
       $('scriptEditor').value = '';
       $('errorBox').textContent = '';
       $('audioBox').classList.add('hidden');
       $('musicMeta').classList.add('hidden');
-      $('voiceActions').classList.remove('hidden');
-      $('musicActions').classList.add('hidden');
-      $('editorLabel').textContent = '文稿预览 / 编辑';
-      $('scriptEditor').placeholder = '主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。';
+      $('voiceActions').classList.toggle('hidden', isMusicMode);
+      $('musicActions').classList.toggle('hidden', !isMusicMode);
+      document.querySelectorAll('.voice-only').forEach(el => {
+        el.classList.toggle('hidden', isMusicMode);
+      });
+      $('voiceRunsBox').classList.add('hidden');
+      $('editorLabel').textContent = isMusicMode ? '歌词' : '文稿预览 / 编辑';
+      $('scriptEditor').placeholder = isMusicMode
+        ? '创建音乐任务后，歌词会显示在这里。'
+        : '主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。';
       $('saveEditBtn').disabled = true;
       $('generateVoiceBtn').disabled = true;
       $('retryBtn').disabled = true;
       $('deleteBtn').disabled = true;
+      $('saveLyricsBtn').disabled = true;
+      $('retryLyricsBtn').disabled = true;
+      $('generateMusicBtn').disabled = true;
+      $('retryMusicBtn').classList.add('hidden');
+      $('generateMusicBtn').classList.remove('hidden');
+      $('deleteMusicBtn').disabled = true;
       showActionFeedback(message, type);
     }
 
     function renderJob(job) {
       activeJobId = job.id;
       // Immediately sync left-panel active highlight — no waiting for refreshJobs
-      $('jobList').querySelectorAll('.job').forEach(btn => {
+      document.querySelectorAll('#voiceJobList .job, #musicJobList .job').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.jobId === job.id);
       });
       $('jobId').textContent = job.id;
@@ -969,11 +1116,11 @@
       $('voiceActions').classList.toggle('hidden', isMusic);
       $('musicActions').classList.toggle('hidden', !isMusic);
       $('musicMeta').classList.toggle('hidden', !isMusic);
-      // Hide voice-specific sections for music jobs
-      document.querySelectorAll('.generate-section').forEach(el => {
+      document.querySelectorAll('.voice-only').forEach(el => {
         el.classList.toggle('hidden', isMusic);
       });
-      $('voiceRunsBox').classList.toggle('hidden', isMusic || !(job.voice_runs || []).length);
+      const normalizedRuns = voiceRunsForJob(job);
+      $('voiceRunsBox').classList.toggle('hidden', isMusic || !normalizedRuns.length);
 
       if (isMusic) {
         // Music mode: editor shows lyrics
@@ -1022,7 +1169,10 @@
         $('providerSelect').value = provider;
         buildVoiceOptions(provider);
       }
-      const hasAudio = job.final_url || job.voice_url || job.audio_url;
+      const latestRun = normalizedRuns[normalizedRuns.length - 1] || {};
+      const voiceUrl = job.voice_url || latestRun.voice_url || job.audio_url;
+      const finalUrl = job.final_url || latestRun.final_url || voiceUrl;
+      const hasAudio = finalUrl || voiceUrl || job.audio_url;
       $('audioBox').classList.toggle('hidden', !hasAudio);
       if (hasAudio) {
         const audioEl = $('audio');
@@ -1031,7 +1181,7 @@
         if (isMusic) {
           playUrl = job.audio_url;
         } else {
-          playUrl = $('mixBgmCheck').checked ? (job.final_url || job.voice_url) : (job.voice_url || job.final_url);
+          playUrl = $('mixBgmCheck').checked ? (finalUrl || voiceUrl) : (voiceUrl || finalUrl);
         }
         const srcChanged = audioEl.src !== playUrl;
         if (!isPlaying && srcChanged && playUrl) {
@@ -1041,14 +1191,26 @@
         const linksEl = $('audioLinks');
         linksEl.innerHTML = '';
         if (isMusic && job.audio_url) {
-          linksEl.innerHTML = '<a href="' + job.audio_url + '" target="_blank" style="color:var(--accent);font-size:13px;">下载歌曲 (R2 链接，24h 有效)</a>';
+          linksEl.innerHTML = `<div class="download-actions"><a class="download-btn primary" href="${escapeHtml(job.audio_url)}" target="_blank" download>下载歌曲</a></div>`;
+        } else if (!isMusic) {
+          const links = [];
+          if (finalUrl) links.push(`<a class="download-btn primary" href="${escapeHtml(finalUrl)}" target="_blank" download>下载成品音频</a>`);
+          if (voiceUrl && voiceUrl !== finalUrl) links.push(`<a class="download-btn" href="${escapeHtml(voiceUrl)}" target="_blank" download>下载原音</a>`);
+          if (($('scriptEditor').value || currentJobScript(job)).trim()) {
+            links.push('<button type="button" class="download-btn" data-action="download-script">下载文稿</button>');
+          }
+          linksEl.innerHTML = links.length ? `<div class="download-actions">${links.join('')}</div>` : '';
+          const scriptButton = linksEl.querySelector('[data-action="download-script"]');
+          if (scriptButton) {
+            scriptButton.onclick = () => downloadJobScript(job);
+          }
         }
       }
       // Voice runs
-      const runs = job.voice_runs || [];
+      const runs = normalizedRuns;
       const runsBox = $('voiceRunsBox');
       const runsList = $('voiceRunsList');
-      if (runs.length === 0) {
+      if (isMusic || runs.length === 0) {
         runsBox.classList.add('hidden');
       } else {
         runsBox.classList.remove('hidden');
@@ -1064,19 +1226,22 @@
           card.className = 'voice-run-card';
           card.dataset.runIndex = i;
           const voiceName = VOICE_NAMES[run.voice] || run.voice;
-          const time = new Date(run.created_at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+          const date = run.created_at ? new Date(run.created_at) : null;
+          const time = date && !Number.isNaN(date.getTime())
+            ? date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : (run.run_id || '历史版本');
 
           const verHtml = [];
           if (run.voice_url) {
             verHtml.push(`
-              <div class="voice-run-ver" data-url="${run.voice_url}" data-type="voice">
+              <div class="voice-run-ver" data-url="${escapeHtml(run.voice_url)}" data-type="voice">
                 <span class="ver-play-btn">▶</span>
                 <span class="voice-run-ver-label">原音版本</span>
               </div>`);
           }
           if (run.bgm && run.final_url && run.final_url !== run.voice_url) {
             verHtml.push(`
-              <div class="voice-run-ver" data-url="${run.final_url}" data-type="mixed">
+              <div class="voice-run-ver" data-url="${escapeHtml(run.final_url)}" data-type="mixed">
                 <span class="ver-play-btn">▶</span>
                 <span class="voice-run-ver-label">混音版本</span>
                 <span class="ver-badge mixed">BGM</span>
@@ -1084,8 +1249,8 @@
           }
           card.innerHTML = `
             <div class="voice-run-header">
-              <span class="voice-run-name">${voiceName}</span>
-              <span class="voice-run-time">${time}</span>
+              <span class="voice-run-name">${escapeHtml(voiceName || '历史音频')}</span>
+              <span class="voice-run-time">${escapeHtml(time)}</span>
             </div>
             <div class="voice-run-versions">${verHtml.join('')}</div>
           `;
@@ -1119,29 +1284,86 @@
 
     async function refreshJobs() {
       const jobs = await api('/api/jobs');
+      lastJobs = jobs;
       const activeExists = jobs.some(job => job.id === activeJobId);
       if (activeJobId && !activeExists && !editorDirty) activeJobId = null;
-      $('jobList').innerHTML = '';
-      jobs.forEach(job => {
-        const btn = document.createElement('button');
-        btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
-        btn.dataset.jobId = job.id;
-        const jobLabel = job.mode === 'music' ? (job.title || job.theme || '音乐创作') : (job.theme || '直接文稿');
-        btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
-        btn.onclick = () => loadJob(job.id);
-        $('jobList').appendChild(btn);
-      });
-      if (!activeJobId && jobs[0]) renderJob(jobs[0]);
-      if (!activeJobId && !jobs[0]) clearActiveJob();
+
+      // Voice jobs (theme + script)
+      const voiceList = $('voiceJobList');
+      if (voiceList) {
+        voiceList.innerHTML = '';
+        const voiceJobs = jobs.filter(j => j.mode === 'theme' || j.mode === 'script');
+        $('voiceJobCount').textContent = voiceJobs.length;
+        voiceJobs.forEach(job => {
+          const btn = document.createElement('button');
+          btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
+          btn.dataset.jobId = job.id;
+          const jobLabel = job.theme || '直接文稿';
+          btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
+          btn.onclick = () => loadJob(job.id);
+          voiceList.appendChild(btn);
+        });
+      }
+
+      // Music jobs
+      const musicList = $('musicJobList');
+      if (musicList) {
+        musicList.innerHTML = '';
+        const musicJobs = jobs.filter(j => j.mode === 'music');
+        $('musicJobCount').textContent = musicJobs.length;
+        musicJobs.forEach(job => {
+          const btn = document.createElement('button');
+          btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
+          btn.dataset.jobId = job.id;
+          const jobLabel = job.title || job.theme || '音乐创作';
+          btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
+          btn.onclick = () => loadJob(job.id);
+          musicList.appendChild(btn);
+        });
+      }
+
+      const activeJob = jobs.find(job => job.id === activeJobId);
+      if (activeJob && jobGroup(activeJob) !== mode && !editorDirty) {
+        activeJobId = null;
+      }
+      if (!activeJobId) {
+        const visibleJobs = jobsForMode(mode);
+        if (visibleJobs[0]) renderJob(visibleJobs[0]);
+        else clearActiveJob();
+      }
     }
 
     async function loadJob(jobId) {
+      if (editorDirty) {
+        const ok = confirm('当前编辑内容还没有保存，切换任务会离开当前内容。继续切换吗？');
+        if (!ok) return;
+        editorDirty = false;
+      }
+      activeJobId = jobId;
       // Optimistic: set active immediately before API call
-      $('jobList').querySelectorAll('.job').forEach(btn => {
+      document.querySelectorAll('#voiceJobList .job, #musicJobList .job').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.jobId === jobId);
       });
       const job = await api('/api/jobs/' + jobId);
       renderJob(job);
+    }
+
+    async function selectFirstJobForMode(next = mode) {
+      let visibleJobs = jobsForMode(next);
+      if (lastJobs.length === 0) {
+        try {
+          lastJobs = await api('/api/jobs');
+          visibleJobs = jobsForMode(next);
+        } catch (err) {
+          clearActiveJob('任务列表加载失败：' + err.message, 'error');
+          return;
+        }
+      }
+      if (visibleJobs[0]) {
+        await loadJob(visibleJobs[0].id);
+      } else {
+        clearActiveJob();
+      }
     }
 
     async function pollActive() {
@@ -1165,8 +1387,7 @@
     };
     $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn').click(); });
     $('logoutBtn').onclick = async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); showApp(false); };
-    $('tabTheme').onclick = () => setMode('theme');
-    $('tabScript').onclick = () => setMode('script');
+    $('tabVoice').onclick = () => setMode('voice');
     $('tabMusic').onclick = () => setMode('music');
     $('scriptEditor').addEventListener('input', () => { editorDirty = true; });
 
@@ -1185,6 +1406,7 @@
             is_instrumental: $('instrumentalCheck').checked,
           })
         });
+        await setMode('music', { selectJob: false, force: true });
         renderJob(resp.job);
         await refreshJobs();
         // Auto-generate lyrics
@@ -1307,6 +1529,7 @@
         method: 'POST',
         body: JSON.stringify({ mode: 'theme', theme: $('themeInput').value, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
       });
+      await setMode('voice', { selectJob: false, force: true });
       renderJob(job.job);
       refreshJobs();
     };
@@ -1316,6 +1539,7 @@
         method: 'POST',
         body: JSON.stringify({ mode: 'script', script: $('directScript').value, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
       });
+      await setMode('voice', { selectJob: false, force: true });
       renderJob(job.job);
       refreshJobs();
     };

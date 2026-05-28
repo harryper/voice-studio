@@ -55,9 +55,41 @@ RUNS_DIR.mkdir(exist_ok=True)
 BGM_DIR = SKILL_DIR / 'bgm'
 BGM_DIR.mkdir(exist_ok=True)
 
-# ── 状态文件 ──────────────────────────────────────────────
-JOBS_DIR = os.path.join(os.path.dirname(__file__), 'jobs')
-os.makedirs(JOBS_DIR, exist_ok=True)
+# ── 模块配置（可扩展，新增 video 只需在这里加一条）─────────────────────────
+MODE_CONFIG = {
+    'voice': {
+        'name': '声音',
+        'icon': '🎤',
+        'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'voice'),
+        'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'voice'),
+    },
+    'music': {
+        'name': '音乐',
+        'icon': '🎵',
+        'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'music'),
+        'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'music'),
+    },
+    # 未来添加 video：
+    # 'video': {
+    #     'name': '视频',
+    #     'icon': '🎬',
+    #     'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'video'),
+    #     'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'video'),
+    # },
+}
+
+for cfg in MODE_CONFIG.values():
+    os.makedirs(cfg['job_dir'], exist_ok=True)
+    os.makedirs(cfg['archive_dir'], exist_ok=True)
+
+# 旧目录迁移（向后兼容）
+LEGACY_JOBS_DIR = os.path.join(os.path.dirname(__file__), 'jobs')
+for fname in os.listdir(LEGACY_JOBS_DIR):
+    if fname.endswith('.json') and os.path.isfile(os.path.join(LEGACY_JOBS_DIR, fname)):
+        src = os.path.join(LEGACY_JOBS_DIR, fname)
+        dst = os.path.join(MODE_CONFIG['voice']['job_dir'], fname)
+        if not os.path.exists(dst):
+            shutil.move(src, dst)
 
 ARCHIVE_DIR = os.path.join(os.path.dirname(__file__), 'archive')
 os.makedirs(ARCHIVE_DIR, exist_ok=True)
@@ -74,27 +106,78 @@ def _trigger_writer():
     except OSError as e:
         print(f'[writer] failed to touch trigger: {e}')
 
-def job_path(job_id):
-    return os.path.join(JOBS_DIR, f'{job_id}.json')
+def get_mode_cfg(mode):
+    """返回 mode 对应的配置，未知 mode 回退 voice"""
+    return MODE_CONFIG.get(mode, MODE_CONFIG['voice'])
+
+def job_dir(mode):
+    return get_mode_cfg(mode)['job_dir']
+
+def job_archive_dir(mode):
+    return get_mode_cfg(mode)['archive_dir']
+
+def job_path(job_id, mode=None):
+    if mode is None:
+        # 兼容：遍历所有已注册 mode 找文件
+        for m, cfg in MODE_CONFIG.items():
+            p = os.path.join(cfg['job_dir'], f'{job_id}.json')
+            if os.path.exists(p):
+                return p
+        return os.path.join(MODE_CONFIG['voice']['job_dir'], f'{job_id}.json')
+    return os.path.join(job_dir(mode), f'{job_id}.json')
 
 def save_job(job):
     job['updated_at'] = datetime.now().isoformat()
-    with open(job_path(job['id']), 'w', encoding='utf-8') as f:
+    mode = job.get('mode', 'voice')
+    with open(job_path(job['id'], mode), 'w', encoding='utf-8') as f:
         json.dump(job, f, ensure_ascii=False, indent=2)
 
-def load_job(job_id):
-    p = job_path(job_id)
+def load_job(job_id, mode=None):
+    p = job_path(job_id, mode)
     if not os.path.exists(p):
         return None
     with open(p, encoding='utf-8') as f:
         return json.load(f)
 
+def job_response(job):
+    """Return a UI-friendly copy with legacy voice fields normalized."""
+    if not job:
+        return job
+    data = dict(job)
+    if data.get('mode') in ('theme', 'script'):
+        runs = list(data.get('voice_runs') or [])
+        if not runs and (data.get('voice_url') or data.get('final_url') or data.get('audio_url')):
+            runs.append({
+                'run_id': 'legacy',
+                'provider': data.get('provider') or 'azure',
+                'voice': data.get('voice') or 'zh-CN-YunzeNeural',
+                'bgm': bool(data.get('bgm', True)),
+                'bgm_asset': data.get('bgm_asset') or 'bgm_default.mp3',
+                'script_url': data.get('script_url'),
+                'voice_url': data.get('voice_url') or data.get('audio_url'),
+                'final_url': data.get('final_url') or data.get('voice_url') or data.get('audio_url'),
+                'created_at': data.get('updated_at') or data.get('created_at'),
+                'status': data.get('status') or 'done',
+            })
+        if runs:
+            data['voice_runs'] = runs
+            latest = runs[-1]
+            if not data.get('voice_url'):
+                data['voice_url'] = latest.get('voice_url')
+            if not data.get('final_url'):
+                data['final_url'] = latest.get('final_url') or latest.get('voice_url')
+            if not data.get('script_url'):
+                data['script_url'] = latest.get('script_url')
+    return data
+
 def archive_job(job):
     """完成后归档，保留记录"""
-    dest = os.path.join(ARCHIVE_DIR, f'{job["id"]}.json')
+    mode = job.get('mode', 'voice')
+    dest_dir = job_archive_dir(mode)
+    dest = os.path.join(dest_dir, f'{job["id"]}.json')
     with open(dest, 'w', encoding='utf-8') as f:
         json.dump(job, f, ensure_ascii=False, indent=2)
-    os.remove(job_path(job['id']))
+    os.remove(job_path(job['id'], mode))
 
 def is_relative_to(path, parent):
     try:
@@ -139,11 +222,12 @@ def cleanup_job_outputs(job):
 
 def delete_job(job):
     """Delete a job from the active UI and clean generated local outputs."""
+    mode = job.get('mode', 'voice')
     cleanup_job_outputs(job)
-    source = Path(job_path(job['id']))
+    source = Path(job_path(job['id'], mode))
     if not source.exists():
         return
-    deleted_dir = Path(ARCHIVE_DIR) / 'deleted'
+    deleted_dir = Path(job_archive_dir(mode)) / 'deleted'
     deleted_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
     shutil.move(str(source), str(deleted_dir / f'{stamp}-{job["id"]}.json'))
@@ -256,14 +340,14 @@ def create_job():
     save_job(job)
     if mode == 'theme':
         _trigger_writer()
-    return jsonify({'job_id': job_id, 'job': job})
+    return jsonify({'job_id': job_id, 'job': job_response(job)})
 
 @app.route('/api/jobs/<job_id>')
 def get_job(job_id):
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
-    return jsonify(job)
+    return jsonify(job_response(job))
 
 @app.route('/api/jobs/<job_id>', methods=['PATCH'])
 def update_job(job_id):
@@ -279,12 +363,12 @@ def update_job(job_id):
         job['edited_script'] = data['edited_script']
 
     # 主 session 更新状态
-    for key in ('status', 'script', 'edited_script', 'voice', 'bgm', 'bgm_asset', 'audio_url', 'final_url', 'error'):
+    for key in ('status', 'script', 'edited_script', 'edited_lyrics', 'voice', 'bgm', 'bgm_asset', 'audio_url', 'final_url', 'error'):
         if key in data:
             job[key] = data[key]
 
     save_job(job)
-    return jsonify(job)
+    return jsonify(job_response(job))
 
 @app.route('/api/jobs/<job_id>', methods=['DELETE'])
 def delete_job_api(job_id):
@@ -310,7 +394,7 @@ def approve_job(job_id):
     job['status'] = 'ready'
     job['approved_at'] = datetime.now().isoformat()
     save_job(job)
-    return jsonify(job)
+    return jsonify(job_response(job))
 
 @app.route('/api/jobs/<job_id>/retry', methods=['POST'])
 def retry_job(job_id):
@@ -327,7 +411,7 @@ def retry_job(job_id):
         job[key] = None
     save_job(job)
     _trigger_writer()
-    return jsonify(job)
+    return jsonify(job_response(job))
 
 @app.route('/api/jobs/<job_id>/archive', methods=['POST'])
 def archive_job_api(job_id):
@@ -373,12 +457,12 @@ def generate_lyrics_api(job_id):
         job['style_tags'] = lyrics_data.get('style_tags', '')
         job['status'] = 'lyrics_ready'
         save_job(job)
-        return jsonify(job)
+        return jsonify(job_response(job))
     except Exception as exc:
         job['status'] = 'error'
         job['error'] = str(exc)
         save_job(job)
-        return jsonify(job), 500
+        return jsonify(job_response(job)), 500
 
 
 @app.route('/api/jobs/<job_id>/generate-music', methods=['POST'])
@@ -408,6 +492,8 @@ def generate_music_api(job_id):
         run_dir.mkdir(parents=True, exist_ok=True)
         output_path = run_dir / 'music.mp3'
 
+        lyrics_path = None
+
         # Build CLI args
         cmd = [
             'python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
@@ -427,13 +513,13 @@ def generate_music_api(job_id):
         if result.returncode != 0:
             raise RuntimeError(result.stderr or result.stdout or '音乐生成失败')
 
-        # Upload to R2
-        theme_slug = safe_name(job.get('title') or job.get('theme') or 'music')
+        # Upload to R2 with readable names.
+        theme_slug = job_name_fragment(job, fallback='music')
         ts = datetime.now().strftime('%Y%m%d-%H%M%S')
         upload_result = subprocess.run(
             ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
              '--file', str(output_path), '--theme', 'music',
-             '--name', ts + '-' + job['id'] + '-' + theme_slug + '.mp3'],
+             '--name', oss_object_name(job, 'song', 'mp3', ts=ts)],
             text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
         )
         if upload_result.returncode == 0:
@@ -441,16 +527,32 @@ def generate_music_api(job_id):
         else:
             audio_url = None
 
+        lyrics_url = None
+        if lyrics_text:
+            if lyrics_path is None:
+                lyrics_path = run_dir / 'lyrics.txt'
+                lyrics_path.write_text(lyrics_text, encoding='utf-8')
+            lyrics_upload = subprocess.run(
+                ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+                 '--file', str(lyrics_path), '--theme', 'music',
+                 '--name', oss_object_name(job, 'lyrics', 'txt', ts=ts)],
+                text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
+            )
+            if lyrics_upload.returncode == 0:
+                lyrics_url = lyrics_upload.stdout.strip().splitlines()[-1].strip()
+
         job['audio_path'] = str(output_path)
         job['audio_url'] = audio_url
+        if lyrics_url:
+            job['lyrics_url'] = lyrics_url
         job['status'] = 'done'
         save_job(job)
-        return jsonify(job)
+        return jsonify(job_response(job))
     except Exception as exc:
         job['status'] = 'error'
         job['error'] = str(exc)
         save_job(job)
-        return jsonify(job), 500
+        return jsonify(job_response(job)), 500
 
 
 @app.route('/api/jobs/<job_id>/retry-lyrics', methods=['POST'])
@@ -494,23 +596,89 @@ def retry_music_api(job_id):
 
 @app.route('/api/jobs', methods=['GET'])
 def list_jobs():
-    """列出当前活跃任务（不包括已归档）"""
+    """列出当前活跃任务（不包括已归档）。?mode=voice|music|video"""
+    mode_filter = request.args.get('mode')
     jobs = []
-    for fname in os.listdir(JOBS_DIR):
+    modes_to_scan = [mode_filter] if mode_filter in MODE_CONFIG else list(MODE_CONFIG.keys())
+    for m in modes_to_scan:
+        d = MODE_CONFIG[m]['job_dir']
+        for fname in os.listdir(d):
+            if fname.endswith('.json'):
+                try:
+                    with open(os.path.join(d, fname), encoding='utf-8') as f:
+                        jobs.append(json.load(f))
+                except json.JSONDecodeError:
+                    continue
+    jobs.sort(key=lambda x: x['created_at'], reverse=True)
+    return jsonify([job_response(job) for job in jobs])
+
+
+@app.route('/api/jobs/voice', methods=['GET'])
+def list_voice_jobs():
+    return list_jobs_by_mode('voice')
+
+
+@app.route('/api/jobs/music', methods=['GET'])
+def list_music_jobs():
+    return list_jobs_by_mode('music')
+
+
+def list_jobs_by_mode(mode):
+    jobs = []
+    d = job_dir(mode)
+    for fname in os.listdir(d):
         if fname.endswith('.json'):
             try:
-                with open(os.path.join(JOBS_DIR, fname), encoding='utf-8') as f:
+                with open(os.path.join(d, fname), encoding='utf-8') as f:
                     jobs.append(json.load(f))
             except json.JSONDecodeError:
-                # A single corrupt job file should not take down the whole UI.
                 continue
     jobs.sort(key=lambda x: x['created_at'], reverse=True)
-    return jsonify(jobs)
+    return jsonify([job_response(job) for job in jobs])
 
-def safe_name(value):
-    value = value or 'voice'
-    value = re.sub(r'[^A-Za-z0-9._-]+', '-', value.strip())[:80].strip('-')
-    return value or 'voice'
+def safe_name(value, fallback='voice', max_len=80):
+    """Return a readable object-key fragment while preserving Chinese titles."""
+    value = (value or '').strip()
+    if not value:
+        value = fallback
+    chars = []
+    for char in value:
+        if char.isalnum() or char in ('.', '_', '-'):
+            chars.append(char)
+        elif char.isspace() or char in '，。、《》【】（）()[]{}：:；;、/\\|!?！？“”"\'`~@#$%^&*+=,':
+            chars.append('-')
+    slug = re.sub(r'-{2,}', '-', ''.join(chars)).strip('-._')
+    return (slug[:max_len].strip('-._') or fallback)
+
+def job_name_fragment(job, fallback='untitled'):
+    """Pick the most human-readable job label for uploaded filenames."""
+    candidates = [
+        job.get('title'),
+        job.get('theme'),
+        job.get('edited_script'),
+        job.get('script'),
+        job.get('edited_lyrics'),
+        job.get('lyrics'),
+    ]
+    for value in candidates:
+        text = (value or '').strip()
+        if text:
+            first_line = next((line.strip() for line in text.splitlines() if line.strip()), text)
+            return safe_name(first_line, fallback=fallback, max_len=48)
+    return fallback
+
+def oss_object_name(job, artifact, ext, run_id=None, ts=None):
+    """Readable OSS filename: type-title-time-shortid-artifact.ext."""
+    mode = 'music' if job.get('mode') == 'music' else 'voice'
+    title = job_name_fragment(job, fallback=mode)
+    timestamp = ts or datetime.now().strftime('%Y%m%d-%H%M%S')
+    short_id = safe_name(job.get('id', '')[:8] or 'job', fallback='job', max_len=16)
+    if run_id:
+        run_suffix = safe_name(run_id.split('-')[-1], fallback='run', max_len=12)
+        short_id = f'{short_id}-r{run_suffix}'
+    artifact_slug = safe_name(artifact, fallback='file', max_len=24)
+    ext = ext.lstrip('.')
+    return f'{mode}-{title}-{timestamp}-{short_id}-{artifact_slug}.{ext}'
 
 def run_cmd(cmd, cwd=None):
     result = subprocess.run(
@@ -612,22 +780,21 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm
     if not bgm_path.exists():
         bgm_path = SKILL_DIR / 'assets' / 'bgm_default.mp3'
 
-    name_base = safe_name(job.get('theme') or f'custom-{job["id"]}')
     ts = datetime.now().strftime('%Y%m%d-%H%M%S')
-    theme_slug = safe_name(job.get('theme') or 'direct-script')
+    theme_slug = job_name_fragment(job, fallback='direct-script')
 
     # Upload script
     script_url = run_cmd([
         'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
         '--file', str(script_path), '--theme', theme_slug,
-        '--name', f'{ts}-{run_id}-script.txt',
+        '--name', oss_object_name(job, 'script', 'txt', run_id=run_id, ts=ts),
     ]).splitlines()[-1].strip()
 
     # Upload voice
     voice_url = run_cmd([
         'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
         '--file', str(voice_path), '--theme', theme_slug,
-        '--name', f'{ts}-{run_id}-voice.mp3',
+        '--name', oss_object_name(job, 'voice-only', 'mp3', run_id=run_id, ts=ts),
     ]).splitlines()[-1].strip()
 
     # Mix + upload if needed
@@ -638,13 +805,15 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm
             '--out', str(mixed_path), '--bgm-volume', str(bgm_volume if bgm_volume is not None else 0.03),
         ])
         final_source = mixed_path
+        final_artifact = 'mixed-final'
     else:
         final_source = voice_path
+        final_artifact = 'voice-final'
 
     final_url = run_cmd([
         'python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
         '--file', str(final_source), '--theme', theme_slug,
-        '--name', f'{ts}-{run_id}-final.mp3',
+        '--name', oss_object_name(job, final_artifact, 'mp3', run_id=run_id, ts=ts),
     ]).splitlines()[-1].strip()
 
     return {
@@ -691,7 +860,7 @@ def process_tts(job_id):
         if job.get('final_url') and job.get('status') in ('tts', 'mixing'):
             job['status'] = 'done'
             save_job(job)
-            return jsonify(job)
+            return jsonify(job_response(job))
 
         job['status'] = 'tts'
         job['error'] = None
@@ -704,12 +873,12 @@ def process_tts(job_id):
         job['voice_url'] = run_info['voice_url']
         job['status'] = 'done'
         save_job(job)
-        return jsonify(job)
+        return jsonify(job_response(job))
     except Exception as exc:
         job['status'] = 'error'
         job['error'] = str(exc)
         save_job(job)
-        return jsonify(job), 500
+        return jsonify(job_response(job)), 500
 
 
 @app.route('/api/jobs/<job_id>/tts-voice-run', methods=['POST'])
@@ -741,7 +910,7 @@ def tts_voice_run(job_id):
         if job.get('final_url') and job.get('status') in ('tts', 'mixing'):
             job['status'] = 'done'
             save_job(job)
-            return jsonify(job)
+            return jsonify(job_response(job))
 
         job['status'] = 'tts'
         job['error'] = None
@@ -753,12 +922,12 @@ def tts_voice_run(job_id):
         job['voice_url'] = run_info['voice_url']
         job['status'] = 'done'
         save_job(job)
-        return jsonify(job)
+        return jsonify(job_response(job))
     except Exception as exc:
         job['status'] = 'error'
         job['error'] = str(exc)
         save_job(job)
-        return jsonify(job), 500
+        return jsonify(job_response(job)), 500
 
 # ── BGM 文件服务 ────────────────────────────────────────
 ALLOWED_EXT = {'.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'}

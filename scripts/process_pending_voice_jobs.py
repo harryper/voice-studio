@@ -18,7 +18,7 @@ from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 WORKSPACE_DIR = SKILL_DIR.parents[1]
-JOBS_DIR = SKILL_DIR / "jobs"
+JOBS_DIR = SKILL_DIR / "jobs" / "voice"
 RUNS_DIR = SKILL_DIR / "runs"
 LOCK_PATH = SKILL_DIR / ".writer.lock"
 NODE = Path("/usr/bin/node")
@@ -76,7 +76,7 @@ def build_prompt(job):
         "7. 目标 20 分钟，最低 15 分钟；按约 220 中文字/分钟估算，写 4200-4800 中文字，绝对不能低于 3300 中文字\n"
         "8. 旁白身份是老波，适合睡前听，不要使用标题、编号、小节名或 Markdown 格式\n"
         f"9. 将文稿写入 skills/voice-studio/runs/{job_id}/script.txt\n"
-        f"10. 更新 skills/voice-studio/jobs/{job_id}.json：status=\"ready\", script=<全文>, edited_script=null, error=null\n"
+        f"10. 更新 skills/voice-studio/jobs/voice/{job_id}.json：status=\"ready\", script=<全文>, edited_script=null, error=null\n"
         f"11. job_id={job_id}\n\n"
         "写完后按 reference-style.md 的自检清单自查一遍；如果开头像散文、缺少反常识钩子，或全文低于 3300 中文字，必须先重写再保存。\n"
         "只做以上步骤。不要生成音频，不要发布，不要给用户发消息。"
