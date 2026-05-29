@@ -1191,7 +1191,9 @@
         const linksEl = $('audioLinks');
         linksEl.innerHTML = '';
         if (isMusic && job.audio_url) {
-          linksEl.innerHTML = `<div class="download-actions"><a class="download-btn primary" href="${escapeHtml(job.audio_url)}" target="_blank" download>下载歌曲</a></div>`;
+          const links = [`<a class="download-btn primary" href="${escapeHtml(job.audio_url)}" target="_blank" download>下载歌曲</a>`];
+          if (job.lyrics_url) links.push(`<a class="download-btn" href="${escapeHtml(job.lyrics_url)}" target="_blank" download>下载歌词</a>`);
+          linksEl.innerHTML = `<div class="download-actions">${links.join('')}</div>`;
         } else if (!isMusic) {
           const links = [];
           if (finalUrl) links.push(`<a class="download-btn primary" href="${escapeHtml(finalUrl)}" target="_blank" download>下载成品音频</a>`);
