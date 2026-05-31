@@ -18,6 +18,9 @@
       --accent: #0071e3;
       --accent-hover: #0077ed;
       --accent-light: rgba(0,113,227,0.08);
+      --accent-music: #bf5af2;
+      --accent-music-hover: #c96fff;
+      --accent-music-light: rgba(191,90,242,0.08);
       --danger: #ff3b30;
       --danger-light: rgba(255,59,48,0.08);
       --warn: #ff9500;
@@ -134,13 +137,23 @@
 
     /* ─── Section Label ─── */
     .section-label {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.07em;
       color: var(--text-3);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+    }
+
+    .section-label::before {
+      content: '';
+      width: 3px;
+      height: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+      border-radius: 2px;
     }
 
     /* ─── Tabs ─── */
@@ -190,14 +203,18 @@
     .job-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border-light);
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border-light);
+      background: linear-gradient(to right, transparent 0%, var(--surface-2) 100%);
+      padding: 12px 16px;
+      margin: -24px -24px 20px -24px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 
     .job-header .title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--text);
       flex: 1;
@@ -255,7 +272,7 @@
       font-size: 14px;
       width: 100%;
       font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       outline: none;
       -webkit-appearance: none;
     }
@@ -263,6 +280,8 @@
     input:focus, textarea:focus, select:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 4px var(--accent-light);
+      background: #fff;
+      transform: translateY(-1px);
     }
 
     input::placeholder, textarea::placeholder {
@@ -270,10 +289,23 @@
     }
 
     textarea {
-      min-height: 360px;
+      min-height: 280px;
       resize: vertical;
       white-space: pre-wrap;
-      line-height: 1.7;
+      line-height: 1.8;
+      font-size: 14px;
+      background: linear-gradient(to bottom, var(--surface) 0%, var(--surface-2) 100%);
+      transition: all 0.2s;
+    }
+
+    textarea:focus {
+      min-height: 320px;
+      background: var(--surface);
+    }
+
+    textarea::placeholder {
+      color: var(--text-3);
+      font-style: italic;
     }
 
     select {
@@ -321,24 +353,31 @@
 
     /* ─── Buttons ─── */
     button {
-      background: var(--surface-2);
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       color: var(--text);
-      padding: 10px 18px;
+      padding: 10px 20px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.18s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       font-family: inherit;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
     button:not(:disabled):hover {
-      background: var(--surface-3);
-      box-shadow: var(--shadow-sm);
+      background: var(--surface);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transform: translateY(-1px);
     }
 
-    button:not(:disabled):active { transform: scale(0.98); }
+    button:not(:disabled):active {
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
 
     button:disabled {
       cursor: not-allowed;
@@ -346,14 +385,16 @@
     }
 
     button.primary {
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
       border-color: var(--accent);
       color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,113,227,0.2);
     }
 
     button.primary:not(:disabled):hover {
-      background: var(--accent-hover);
-      box-shadow: 0 4px 12px rgba(0,113,227,0.25);
+      background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+      box-shadow: 0 4px 16px rgba(0,113,227,0.3);
+      transform: translateY(-2px);
     }
 
     button.blue {
@@ -407,10 +448,23 @@
 
     /* ─── Note ─── */
     .note {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
       color: var(--text-3);
       font-size: 12px;
-      margin-top: 10px;
+      margin-top: 12px;
       line-height: 1.5;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--border);
+    }
+
+    .note::before {
+      content: 'ℹ️';
+      font-size: 14px;
+      flex-shrink: 0;
     }
 
     /* ─── Action Feedback ─── */
@@ -479,18 +533,20 @@
 
     /* ─── Audio Box ─── */
     #audioBox {
-      background: var(--surface-2);
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
       border: 1px solid var(--border-light);
       border-radius: var(--radius-md);
-      padding: 16px;
-      margin-top: 14px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: var(--shadow-sm);
     }
 
     #audioBox audio {
       width: 100%;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       display: block;
       border-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
 
     .download-actions {
@@ -610,10 +666,14 @@
     /* ─── Action row ─── */
     .action-row {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
       flex-wrap: wrap;
-      margin-top: 14px;
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--surface-2);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
     }
 
     /* ─── Responsive ─── */
@@ -629,22 +689,75 @@
       textarea { min-height: 300px; }
     }
   
-    .generate-section { margin-top: 16px; }
-    .generate-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-    .volume-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+    .generate-section {
+      margin-top: 0;
+      padding: 0;
+      background: transparent;
+      border: none;
+      transition: none;
+    }
+
+    .generate-section:hover {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .generate-section .section-label {
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+
+    .generate-section:first-of-type .section-label {
+      margin-top: 0;
+    }
+
+    /* ─── Config Card ─── */
+    .config-card {
+      margin-top: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .config-card .generate-section + .generate-section {
+      padding-top: 16px;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .generate-row { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+    .volume-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
     .vol-btn {
-      background: var(--surface-2);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 6px;
       color: var(--text-2);
-      padding: 4px 12px;
+      padding: 6px 12px;
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.2s;
+      min-width: 44px;
     }
-    .vol-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .vol-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .vol-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+    .vol-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(0,113,227,0.25);
+    }
+
+    .volume-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
     .generate-row select { flex: 1; }
     .generate-row button { white-space: nowrap; }
     #voiceRunsBox { margin-top: 16px; }
@@ -710,7 +823,7 @@
     }
     .topic-rec-toolbar {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       align-items: center;
       justify-content: space-between;
       margin: 8px 0 6px;
@@ -720,6 +833,8 @@
       gap: 6px;
       overflow-x: auto;
       padding-bottom: 2px;
+      flex: 1;
+      min-width: 0;
     }
     .topic-filter {
       min-height: 28px;
@@ -734,32 +849,131 @@
       background: var(--accent-light);
       color: var(--accent);
     }
+
+    /* ─── Shuffle Button Optimized ─── */
+    #shuffleTopicsBtn {
+      flex-shrink: 0;
+      min-width: 36px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    #shuffleTopicsBtn::before {
+      content: '🔄';
+      margin: 0;
+      filter: grayscale(0.2);
+    }
+
+    #shuffleTopicsBtn:hover {
+      transform: rotate(90deg);
+      background: var(--surface);
+      border-color: var(--border-light);
+      box-shadow: var(--shadow-sm);
+    }
+
+    #shuffleTopicsBtn:hover::before {
+      filter: grayscale(0);
+    }
+
+    #shuffleTopicsBtn:active {
+      transform: rotate(180deg) scale(0.95);
+      background: var(--accent-light);
+      border-color: var(--accent);
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
     .topic-rec-card {
       border: 1px solid var(--border-light);
-      background: var(--surface-2);
+      background: var(--surface);
       border-radius: var(--radius-md);
-      padding: 8px 10px;
+      padding: 12px 14px;
       text-align: left;
       cursor: pointer;
-      transition: border-color .15s, background .15s, box-shadow .15s;
+      transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .topic-rec-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .topic-rec-card:hover {
       border-color: var(--accent);
       background: #fff;
-      box-shadow: var(--shadow-sm);
+      box-shadow: 0 4px 16px rgba(0,113,227,0.12);
+      transform: translateY(-2px);
+    }
+    .topic-rec-card:hover::before {
+      transform: scaleX(1);
+    }
+    .topic-rec-card:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0,113,227,0.08);
     }
     .topic-rec-title {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      line-height: 1.35;
+      line-height: 1.5;
       color: var(--text);
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .topic-rec-title::before {
+      content: '💡';
+      font-size: 15px;
+      opacity: 0;
+      transform: scale(0) rotate(-20deg);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .topic-rec-card:hover .topic-rec-title::before {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+
+    .topic-rec-card:hover .topic-rec-title {
+      color: var(--accent);
     }
     .topic-rec-angle {
-      display: none;
-      margin-top: 4px;
+      display: block;
+      margin-top: 6px;
+      margin-bottom: 8px;
       color: var(--text-2);
       font-size: 11px;
-      line-height: 1.45;
+      line-height: 1.5;
+      padding-left: 10px;
+      border-left: 2px solid var(--border-light);
+      transition: all 0.2s;
+    }
+
+    .topic-rec-card:hover .topic-rec-angle {
+      border-left-color: var(--accent);
+      color: var(--text);
     }
     .topic-rec-meta {
       display: flex;
@@ -771,14 +985,24 @@
     .topic-badge {
       display: inline-flex;
       align-items: center;
-      min-height: 20px;
-      padding: 0 7px;
-      border-radius: 999px;
-      background: var(--surface-3);
-      color: var(--text-3);
-      font-size: 10px;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 500;
       line-height: 1;
       white-space: nowrap;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .topic-rec-card:hover .topic-badge {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      transform: scale(1.05);
     }
     .topic-rec-actions {
       display: flex;
@@ -798,10 +1022,16 @@
       padding: 10px 0 2px;
     }
     .direct-script-details {
-      border-top: 1px solid var(--border-light);
-      border-bottom: 1px solid var(--border-light);
-      padding: 10px 0;
-      margin-top: 14px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 0;
+      margin-top: 16px;
+      background: var(--surface-2);
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .direct-script-details[open] {
+      background: var(--surface);
     }
     .direct-script-details summary {
       cursor: pointer;
@@ -809,22 +1039,114 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: var(--text-3);
-      font-size: 11px;
+      color: var(--text-2);
+      font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
+      padding: 12px 14px;
+      transition: all 0.2s;
+    }
+    .direct-script-details summary:hover {
+      color: var(--text);
+      background: var(--surface-3);
     }
     .direct-script-details summary::-webkit-details-marker { display: none; }
-    .direct-script-details summary::after {
-      content: "+";
-      color: var(--text-3);
-      font-size: 16px;
-      line-height: 1;
+    .direct-script-details summary::before {
+      content: '📝';
+      margin-right: 6px;
     }
-    .direct-script-details[open] summary::after { content: "-"; }
+    .direct-script-details summary::after {
+      content: "▼";
+      color: var(--text-3);
+      font-size: 10px;
+      line-height: 1;
+      transition: transform 0.2s;
+    }
+    .direct-script-details[open] summary::after {
+      transform: rotate(180deg);
+    }
+    .direct-script-details > *:not(summary) {
+      padding: 0 14px 14px;
+    }
 
-  </style>
+    /* ─── Feature Card Group ─── */
+    .feature-card {
+      background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface) 100%);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+      transition: all 0.2s;
+    }
+
+    .feature-card:hover {
+      box-shadow: var(--shadow-sm);
+      border-color: var(--border);
+    }
+
+    .feature-card .section-label {
+      margin-bottom: 12px;
+    }
+
+    /* ─── Topic Recommendations Enhanced ─── */
+    .topic-recs {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(0,113,227,0.02) 0%, rgba(0,119,237,0.04) 100%);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(0,113,227,0.08);
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .topic-recs::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .topic-recs::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 2px;
+    }
+
+    .topic-recs::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    /* ─── Music Module Theme ─── */
+    #musicBox .section-label::before {
+      background: linear-gradient(135deg, var(--accent-music), var(--accent-music-hover));
+    }
+
+    #musicBox input:focus,
+    #musicBox textarea:focus,
+    #musicBox select:focus {
+      border-color: var(--accent-music);
+      box-shadow: 0 0 0 4px var(--accent-music-light);
+    }
+
+    #musicBox button.primary {
+      background: var(--accent-music);
+      border-color: var(--accent-music);
+    }
+
+    #musicBox button.primary:hover {
+      background: var(--accent-music-hover);
+      border-color: var(--accent-music-hover);
+    }
+
+    #musicBox .check-row input[type="checkbox"]:checked {
+      background: var(--accent-music);
+      border-color: var(--accent-music);
+    }
+
+    #tabMusic.active {
+      background: linear-gradient(135deg, rgba(191,90,242,0.1) 0%, rgba(201,111,255,0.05) 100%);
+    }
+
+</style>
 </head>
 <body>
 
@@ -864,14 +1186,16 @@
 
         <!-- Voice Module -->
         <div id="voiceBox">
-          <span class="section-label">主题创作</span>
-          <input id="themeInput" placeholder="例：宇宙的边界、黑洞、海底火山">
-          <button id="createThemeBtn" class="primary full" style="margin-top: 10px;">创作文稿</button>
+          <div class="feature-card">
+            <span class="section-label">主题创作</span>
+            <input id="themeInput" placeholder="例：宇宙的边界、黑洞、海底火山">
+            <button id="createThemeBtn" class="primary full" style="margin-top: 10px;">创作文稿</button>
+          </div>
 
-          <span class="section-label">热门主题推荐</span>
+          <span class="section-label" style="margin-top: 8px;">热门主题推荐</span>
           <div class="topic-rec-toolbar">
             <div id="topicFilters" class="topic-rec-filters"></div>
-            <button id="shuffleTopicsBtn" class="small" type="button">换一批</button>
+            <button id="shuffleTopicsBtn" class="small" type="button"></button>
           </div>
           <div id="topicRecommendations" class="topic-recs">
             <div class="topic-empty">推荐主题加载中...</div>
@@ -887,14 +1211,16 @@
 
         <!-- Music Module -->
         <div id="musicBox" class="hidden">
-          <span class="section-label">音乐创作</span>
-          <input id="musicThemeInput" placeholder="例：一首关于雨夜的蓝调">
-          <input id="musicTitleInput" placeholder="歌曲标题（可选）" style="margin-top: 8px;">
-          <div class="check-row">
-            <input type="checkbox" id="instrumentalCheck">
-            <label for="instrumentalCheck">纯音乐（无人声）</label>
+          <div class="feature-card">
+            <span class="section-label">音乐创作</span>
+            <input id="musicThemeInput" placeholder="例：一首关于雨夜的蓝调">
+            <input id="musicTitleInput" placeholder="歌曲标题（可选）" style="margin-top: 8px;">
+            <div class="check-row">
+              <input type="checkbox" id="instrumentalCheck">
+              <label for="instrumentalCheck">纯音乐（无人声）</label>
+            </div>
+            <button id="createMusicBtn" class="primary full" style="margin-top: 14px;">生成歌词</button>
           </div>
-          <button id="createMusicBtn" class="primary full" style="margin-top: 14px;">生成歌词</button>
           <p class="note">音乐模块只处理歌词、风格标签和歌曲生成。</p>
         </div>
 
@@ -944,54 +1270,63 @@
           <button id="deleteMusicBtn" class="danger">删除</button>
         </div>
 
-        <div class="generate-section voice-only">
-          <span class="section-label">混入背景音</span>
-          <div class="generate-row">
-            <input type="checkbox" id="mixBgmCheck" checked>
-            <label for="mixBgmCheck" style="margin-right:12px;">开启</label>
-            <select id="bgmSelect" style="max-width:140px;"><option>加载中…</option></select>
-            <button id="uploadBgmBtn" class="small" style="white-space:nowrap;">上传</button>
-            <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
+        <!-- Voice Configuration Card -->
+        <div class="config-card voice-only">
+          <div class="generate-section">
+            <span class="section-label">混入背景音</span>
+            <div class="generate-row">
+              <input type="checkbox" id="mixBgmCheck" checked>
+              <label for="mixBgmCheck" style="margin-right:12px;">开启</label>
+              <select id="bgmSelect" style="max-width:140px;"><option>加载中…</option></select>
+              <button id="uploadBgmBtn" class="small" style="white-space:nowrap;">上传</button>
+              <input type="file" id="bgmFileInput" accept="audio/*" class="hidden">
+            </div>
+            <div class="volume-row">
+              <span style="font-size:12px;color:var(--text-2);line-height:26px;margin-right:8px;">混音音量</span>
+              <div class="volume-buttons">
+                <button type="button" class="vol-btn" data-vol="0">0%</button>
+                <button type="button" class="vol-btn" data-vol="3">3%</button>
+                <button type="button" class="vol-btn active" data-vol="6">6%</button>
+                <button type="button" class="vol-btn" data-vol="9">9%</button>
+                <button type="button" class="vol-btn" data-vol="12">12%</button>
+              </div>
+              <input type="number" id="bgmVolInput" value="6" min="0" max="12" step="1" style="width:60px;text-align:center;" placeholder="自定义">
+              <span style="font-size:12px;color:var(--text-3);">%</span>
+            </div>
           </div>
-          <div class="volume-row">
-            <span style="font-size:12px;color:#666;line-height:26px;margin-right:6px;">混音音量</span>
-            <input type="range" id="bgmVolSlider" min="0" max="20" value="6" step="1" style="flex:1;cursor:pointer;">
-            <input type="hidden" id="bgmVolInput" value="6">
-            <span id="bgmVolValue" style="font-size:12px;color:#666;min-width:36px;text-align:right;">6%</span>
-          </div>
-        </div>
 
-        <div class="generate-section voice-only">
-          <span class="section-label">服务商</span>
-          <div class="generate-row">
-            <select id="providerSelect">
-              <option value="azure">Azure TTS</option>
-              <option value="minimax">MiniMax TTS</option>
-            </select>
+          <div class="generate-section">
+            <span class="section-label">服务商</span>
+            <div class="generate-row">
+              <select id="providerSelect">
+                <option value="azure">Azure TTS</option>
+                <option value="minimax">MiniMax TTS</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="generate-section voice-only">
-          <span class="section-label">生成音色</span>
-          <div class="generate-row">
-            <select id="voiceSelect">
-              <option value="zh-CN-YunzeNeural">云泽</option>
-              <option value="zh-CN-YunxiNeural">云希</option>
-              <option value="zh-CN-YunjianNeural">云健</option>
-              <option value="zh-CN-YunyangNeural">云扬</option>
-              <option value="zh-CN-YunfengNeural">云枫</option>
-              <option value="zh-CN-XiaoxiaoNeural">晓晓</option>
-              <option value="zh-CN-XiaoyiNeural">晓依</option>
-              <option value="zh-CN-XiaochenNeural">晓辰</option>
-            </select>
-            <select id="speedSelect" style="max-width:90px;">
-              <option value="0.75">0.75x</option>
-              <option value="0.80">0.80x</option>
-              <option value="0.85" selected>0.85x</option>
-              <option value="0.90">0.90x</option>
-              <option value="1.00">1.00x</option>
-            </select>
-            <button id="generateVoiceBtn" class="primary">生成</button>
+          <div class="generate-section">
+            <span class="section-label">生成音色</span>
+            <div class="generate-row">
+              <select id="voiceSelect">
+                <option value="zh-CN-YunzeNeural">云泽</option>
+                <option value="zh-CN-YunxiNeural">云希</option>
+                <option value="zh-CN-YunjianNeural">云健</option>
+                <option value="zh-CN-YunyangNeural">云扬</option>
+                <option value="zh-CN-YunfengNeural">云枫</option>
+                <option value="zh-CN-XiaoxiaoNeural">晓晓</option>
+                <option value="zh-CN-XiaoyiNeural">晓依</option>
+                <option value="zh-CN-XiaochenNeural">晓辰</option>
+              </select>
+              <select id="speedSelect" style="max-width:90px;">
+                <option value="0.75">0.75x</option>
+                <option value="0.80">0.80x</option>
+                <option value="0.85" selected>0.85x</option>
+                <option value="0.90">0.90x</option>
+                <option value="1.00">1.00x</option>
+              </select>
+              <button id="generateVoiceBtn" class="primary">生成</button>
+            </div>
           </div>
         </div>
 
@@ -1028,11 +1363,30 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    $('bgmVolSlider').oninput = () => {
-      const v = parseInt($('bgmVolSlider').value);
-      $('bgmVolValue').textContent = v + '%';
-      $('bgmVolInput').value = v;
-    }
+    // Volume buttons and input sync
+    const bgmVolInput = $('bgmVolInput');
+    const volBtns = document.querySelectorAll('.vol-btn');
+
+    volBtns.forEach(btn => {
+      btn.onclick = () => {
+        const vol = parseInt(btn.dataset.vol);
+        volBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        bgmVolInput.value = vol;
+      };
+    });
+
+    bgmVolInput.oninput = () => {
+      const val = parseInt(bgmVolInput.value) || 0;
+      volBtns.forEach(b => {
+        if (parseInt(b.dataset.vol) === val) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
+    };
+
     let activeJobId = null;
 
     const AZURE_VOICES = [
@@ -1572,11 +1926,21 @@
       }
     }
 
-    $('shuffleTopicsBtn').onclick = () => {
-      const list = filteredTopicRecommendations();
-      if (!list.length) return;
-      topicOffset = (topicOffset + 6) % list.length;
-      renderTopicRecommendations();
+    $('shuffleTopicsBtn').onclick = async () => {
+      const btn = $('shuffleTopicsBtn');
+      btn.disabled = true;
+      btn.style.animation = 'spin 0.6s linear infinite';
+      try {
+        topicRecommendations = await api('/api/topic-recommendations/refresh', { method: 'POST' });
+        topicRecommendations.sort((a, b) => Number(a.evergreen === true) - Number(b.evergreen === true));
+        topicOffset = 0;
+        renderTopicRecommendations();
+      } catch (err) {
+        $('topicRecommendations').innerHTML = `<div class="topic-empty">刷新失败：${escapeHtml(err.message)}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.style.animation = '';
+      }
     };
 
     async function loadJob(jobId) {

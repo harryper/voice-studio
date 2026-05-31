@@ -669,6 +669,22 @@ def topic_recommendations():
     except (OSError, json.JSONDecodeError) as exc:
         return jsonify({'error': f'推荐主题读取失败：{exc}'}), 500
 
+@app.route('/api/topic-recommendations/refresh', methods=['POST'])
+def refresh_topic_recommendations():
+    try:
+        script = os.path.join(os.path.dirname(__file__), 'scripts', 'refresh_topics.py')
+        result = subprocess.run(
+            ['python3', script],
+            capture_output=True, text=True, timeout=30
+        )
+        if result.returncode != 0:
+            return jsonify({'error': result.stderr.strip()}), 500
+        return jsonify(load_topic_recommendations())
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': '刷新超时'}), 500
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
 def safe_name(value, fallback='voice', max_len=80):
     """Return a readable object-key fragment while preserving Chinese titles."""
     value = (value or '').strip()
