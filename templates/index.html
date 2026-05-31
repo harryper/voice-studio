@@ -118,12 +118,12 @@
       display: grid;
       grid-template-columns: 300px minmax(0, 1fr) 280px;
       gap: 20px;
-      align-items: start;
+      align-items: stretch;
     }
 
     .jobs-panel {
-      position: sticky;
-      top: 24px;
+      display: flex;
+      flex-direction: column;
     }
 
     /* ─── Panel ─── */
@@ -496,7 +496,7 @@
       display: grid;
       gap: 8px;
       margin-top: 14px;
-      max-height: 280px;
+      flex: 1;
       overflow-y: auto;
     }
 
@@ -897,9 +897,9 @@
     }
     .topic-rec-card {
       border: 1px solid var(--border-light);
-      background: var(--surface);
-      border-radius: var(--radius-md);
-      padding: 12px 14px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
       text-align: left;
       cursor: pointer;
       transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -933,13 +933,13 @@
     }
     .topic-rec-title {
       font-size: 13px;
-      font-weight: 600;
-      line-height: 1.5;
+      font-weight: 500;
+      line-height: 1.4;
       color: var(--text);
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       gap: 6px;
-      margin-bottom: 6px;
+      margin: 0;
     }
 
     .topic-rec-title::before {
@@ -1093,14 +1093,8 @@
     /* ─── Topic Recommendations Enhanced ─── */
     .topic-recs {
       display: grid;
-      gap: 10px;
-      margin-top: 10px;
-      padding: 16px;
-      background: linear-gradient(135deg, rgba(0,113,227,0.02) 0%, rgba(0,119,237,0.04) 100%);
-      border-radius: var(--radius-md);
-      border: 1px solid rgba(0,113,227,0.08);
-      max-height: 400px;
-      overflow-y: auto;
+      gap: 8px;
+      margin-top: 8px;
     }
 
     .topic-recs::-webkit-scrollbar {
@@ -1896,19 +1890,8 @@
         card.className = 'topic-rec-card';
         card.innerHTML = `
           <div class="topic-rec-title">${escapeHtml(item.title)}</div>
-          <div class="topic-rec-angle">${escapeHtml(item.angle || '点击填入主题，可再手动微调。')}</div>
-          <div class="topic-rec-meta">
-            <span class="topic-badge">${escapeHtml(item.category || '推荐')}</span>
-            <div class="topic-rec-actions">
-              <button type="button" data-action="use">填入</button>
-            </div>
-          </div>
         `;
         card.onclick = () => useTopicRecommendation(item);
-        card.querySelector('[data-action="use"]').onclick = (event) => {
-          event.stopPropagation();
-          useTopicRecommendation(item);
-        };
         wrap.appendChild(card);
       });
     }
