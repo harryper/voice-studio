@@ -78,6 +78,8 @@ def build_prompt(job):
         f"9. 将文稿写入 skills/voice-studio/runs/{job_id}/script.txt\n"
         f"10. 更新 skills/voice-studio/jobs/voice/{job_id}.json：status=\"ready\", script=<全文>, edited_script=null, error=null\n"
         f"11. job_id={job_id}\n\n"
+        "关键执行纪律：不要把全文写在 thinking / analysis / 最终回复里；必须使用可用的文件写入或编辑工具落盘。"
+        "最终回复只允许一句话说明已写入文件。\n"
         "写完后按 reference-style.md 的自检清单自查一遍；如果开头像散文、缺少反常识钩子，或全文低于 3300 中文字，必须先重写再保存。\n"
         "只做以上步骤。不要生成音频，不要发布，不要给用户发消息。"
     )
@@ -95,6 +97,8 @@ def run_agent(job):
         f"agent:main:voice-studio-writer-{job['id']}",
         "--message",
         prompt,
+        "--thinking",
+        "off",
         "--json",
         "--timeout",
         "900",
@@ -146,7 +150,19 @@ def process_one(job):
         print(f"[voice-writer] {job['id']} timed out", file=sys.stderr)
         return False
 
-    updated = load_job(job_path(job["id"]))
+    try:
+        updated = load_job(job_path(job["id"]))
+    except (OSError, json.JSONDecodeError) as exc:
+        updated = dict(job)
+        print(f"[voice-writer] {job['id']} job json unreadable after agent run: {exc}", file=sys.stderr)
+        if result.returncode == 0 and finalize_from_script_file(updated):
+            print(f"[voice-writer] {job['id']} ready from script file after json repair")
+            return True
+        updated["status"] = "error"
+        updated["error"] = f"job json unreadable after agent run: {exc}"
+        save_job(updated)
+        return False
+
     if updated.get("status") == "ready" and (updated.get("script") or "").strip():
         if len(updated["script"]) < MIN_SCRIPT_CHARS:
             updated["status"] = "error"
