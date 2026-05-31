@@ -13,6 +13,7 @@ from flask import Flask, request, jsonify, render_template, send_from_directory,
 
 # ── 配置加载 ──────────────────────────────────────────────
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
+TOPIC_RECOMMENDATIONS_PATH = os.path.join(os.path.dirname(__file__), 'topic_recommendations.json')
 
 DEFAULT_CONF = {
     'password': '',
@@ -138,6 +139,31 @@ def load_job(job_id, mode=None):
         return None
     with open(p, encoding='utf-8') as f:
         return json.load(f)
+
+def load_topic_recommendations():
+    if not os.path.exists(TOPIC_RECOMMENDATIONS_PATH):
+        return []
+    with open(TOPIC_RECOMMENDATIONS_PATH, encoding='utf-8') as f:
+        data = json.load(f)
+    if not isinstance(data, list):
+        return []
+    topics = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        title = (item.get('title') or '').strip()
+        if not title:
+            continue
+        topics.append({
+            'title': title,
+            'category': (item.get('category') or '其他').strip(),
+            'angle': (item.get('angle') or '').strip(),
+            'source': (item.get('source') or '').strip(),
+            'source_url': (item.get('source_url') or '').strip(),
+            'updated_at': (item.get('updated_at') or '').strip(),
+            'evergreen': bool(item.get('evergreen', False)),
+        })
+    return topics
 
 def job_response(job):
     """Return a UI-friendly copy with legacy voice fields normalized."""
@@ -636,6 +662,13 @@ def list_jobs_by_mode(mode):
     jobs.sort(key=lambda x: x['created_at'], reverse=True)
     return jsonify([job_response(job) for job in jobs])
 
+@app.route('/api/topic-recommendations', methods=['GET'])
+def topic_recommendations():
+    try:
+        return jsonify(load_topic_recommendations())
+    except (OSError, json.JSONDecodeError) as exc:
+        return jsonify({'error': f'推荐主题读取失败：{exc}'}), 500
+
 def safe_name(value, fallback='voice', max_len=80):
     """Return a readable object-key fragment while preserving Chinese titles."""
     value = (value or '').strip()
@@ -802,7 +835,7 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm
         run_cmd([
             'python3', str(SKILL_DIR / 'scripts' / 'mix_with_bgm.py'),
             '--voice', str(voice_path), '--bgm', str(bgm_path),
-            '--out', str(mixed_path), '--bgm-volume', str(bgm_volume if bgm_volume is not None else 0.03),
+            '--out', str(mixed_path), '--bgm-volume', str(bgm_volume if bgm_volume is not None else 0.06),
         ])
         final_source = mixed_path
         final_artifact = 'mixed-final'

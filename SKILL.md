@@ -63,7 +63,9 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 
 **Model:** `speech-2.8-hd`
 
-**Voice:** `Chinese (Mandarin)_Gentleman` (备用; 男声，沉稳克制)
+**Voice:** `Chinese_deep_voiced_male_vv1` (Deep Voice; 低沉男声)
+
+`Chinese (Mandarin)_Gentleman` 已下线，不要再作为默认或 fallback 参数使用。
 
 - Speed: `0.85` (慢速；适合助眠节奏)
 
@@ -75,8 +77,7 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 
 - **TTS (primary):** Azure `zh-CN-YunzeNeural` via `scripts/azure_tts.py`
 - **TTS (fallback):** MiniMax `speech-2.8-hd` via `scripts/minimax_tts.py`
-- **BGM:** `skills/voice-studio/assets/bgm_default.mp3` (默认混入成品；除非用户明确要 voice-only)
-- **BGM:** `skills/voice-studio/assets/bgm_default.mp3` (默认混入成品；除非用户明确要 voice-only)
+- **BGM:** `skills/voice-studio/assets/bgm_default.mp3` (默认以 6% 音量混入成品；除非用户明确要 voice-only)
 - **OSS upload:** `scripts/upload_to_oss.py` → R2 bucket `openclaw`, 30-day pre-signed URL
 
 ## Web job script workflow
@@ -144,26 +145,26 @@ If Azure fails, fall back to MiniMax single-call:
 python3 skills/voice-studio/scripts/minimax_tts.py \
   --text <script.md> \
   --out <voice.mp3> \
-  --voice "Chinese (Mandarin)_Gentleman" \
+  --voice "Chinese_deep_voiced_male_vv1" \
   --speed 0.85 \
   --retries 1
 ```
 
 ## Web BGM mixing implementation
 
-After Web voice generation, the Web TTS action mixes with **default BGM** by default. Keep the voice track natural and intact; loop the BGM for the full voice duration, lower it to 3%, and layer it underneath.
+After Web voice generation, the Web TTS action mixes with **default BGM** by default. Keep the voice track natural and intact; loop the BGM for the full voice duration, lower it to 6%, and layer it underneath.
 
 ```bash
 python3 skills/voice-studio/scripts/mix_with_bgm.py \
   --voice <voice.mp3> \
   --bgm skills/voice-studio/assets/bgm_default.mp3 \
   --out <final-mixed.mp3> \
-  --bgm-volume 0.03
+  --bgm-volume 0.06
 ```
 
 Rules:
 - Main deliverable is the **mixed** MP3 unless the user explicitly asks for voice-only.
-- Default BGM volume is **3%** (`0.03`). Keep it as a subtle atmosphere bed, not audible background music.
+- Default BGM volume is **6%** (`0.06`). Keep it as a subtle atmosphere bed, not dominant background music.
 - BGM must loop for the full narration duration; do not pad the tail with silence.
 - Do **not** use loudnorm/overall normalization by default; preserve the raw voice sound and compensate only for `amix` level behavior in the script.
 - If BGM asset is missing or mixing fails, publish voice-only and note it clearly.

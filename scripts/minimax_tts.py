@@ -8,7 +8,7 @@ from pathlib import Path
 
 API_KEY_FILE = os.path.expanduser("~/.openclaw/workspace/skills/voice-studio/scripts/minimax_api_key.txt")
 DEFAULT_MODEL = "speech-2.8-hd"
-DEFAULT_VOICE = "Chinese (Mandarin)_Gentle_Youth"
+DEFAULT_VOICE = "Chinese_deep_voiced_male_vv1"
 DEFAULT_SPEED = 0.85
 TTS_URL = "https://api.minimaxi.com/v1/t2a_v2"
 

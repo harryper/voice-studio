@@ -34,7 +34,7 @@ def main():
     ap.add_argument("--bgm", default=DEFAULT_BGM)
     ap.add_argument("--out", required=True)
     ap.add_argument("--bgm-volume", type=float, default=0.06,
-                    help="BGM volume as linear multiplier (default 0.03, i.e. 3%%)")
+                    help="BGM volume as linear multiplier (default 0.06, i.e. 6%%)")
     args = ap.parse_args()
 
     ff = ffmpeg_exe()

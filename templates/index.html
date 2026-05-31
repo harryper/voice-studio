@@ -81,7 +81,7 @@
 
     /* ─── Layout ─── */
     .app-wrap {
-      max-width: 1100px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 40px 24px;
     }
@@ -113,9 +113,14 @@
     /* ─── Grid ─── */
     .app-grid {
       display: grid;
-      grid-template-columns: 340px 1fr;
+      grid-template-columns: 300px minmax(0, 1fr) 280px;
       gap: 20px;
       align-items: start;
+    }
+
+    .jobs-panel {
+      position: sticky;
+      top: 24px;
     }
 
     /* ─── Panel ─── */
@@ -612,6 +617,11 @@
     }
 
     /* ─── Responsive ─── */
+    @media (max-width: 1120px) {
+      .app-grid { grid-template-columns: 300px minmax(0, 1fr); }
+      .jobs-panel { position: static; grid-column: 1 / -1; }
+    }
+
     @media (max-width: 860px) {
       .app-wrap { padding: 20px 16px; }
       .app-grid { grid-template-columns: 1fr; }
@@ -693,6 +703,127 @@
     }
     .ver-badge.mixed { background: rgba(0,113,227,0.1); color: var(--accent); }
 
+    .topic-recs {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .topic-rec-toolbar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      margin: 8px 0 6px;
+    }
+    .topic-rec-filters {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .topic-filter {
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+    .topic-filter.active {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+    .topic-rec-card {
+      border: 1px solid var(--border-light);
+      background: var(--surface-2);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, box-shadow .15s;
+    }
+    .topic-rec-card:hover {
+      border-color: var(--accent);
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+    .topic-rec-title {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--text);
+    }
+    .topic-rec-angle {
+      display: none;
+      margin-top: 4px;
+      color: var(--text-2);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .topic-rec-meta {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+    .topic-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 20px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: var(--surface-3);
+      color: var(--text-3);
+      font-size: 10px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .topic-rec-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .topic-rec-actions button {
+      min-height: 24px;
+      padding: 0 8px;
+      font-size: 11px;
+      border-radius: 7px;
+    }
+    .topic-empty {
+      color: var(--text-3);
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 10px 0 2px;
+    }
+    .direct-script-details {
+      border-top: 1px solid var(--border-light);
+      border-bottom: 1px solid var(--border-light);
+      padding: 10px 0;
+      margin-top: 14px;
+    }
+    .direct-script-details summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-3);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .direct-script-details summary::-webkit-details-marker { display: none; }
+    .direct-script-details summary::after {
+      content: "+";
+      color: var(--text-3);
+      font-size: 16px;
+      line-height: 1;
+    }
+    .direct-script-details[open] summary::after { content: "-"; }
+
   </style>
 </head>
 <body>
@@ -737,11 +868,20 @@
           <input id="themeInput" placeholder="例：宇宙的边界、黑洞、海底火山">
           <button id="createThemeBtn" class="primary full" style="margin-top: 10px;">创作文稿</button>
 
-          <div class="sep"></div>
+          <span class="section-label">热门主题推荐</span>
+          <div class="topic-rec-toolbar">
+            <div id="topicFilters" class="topic-rec-filters"></div>
+            <button id="shuffleTopicsBtn" class="small" type="button">换一批</button>
+          </div>
+          <div id="topicRecommendations" class="topic-recs">
+            <div class="topic-empty">推荐主题加载中...</div>
+          </div>
 
-          <span class="section-label">直接文稿</span>
-          <textarea id="directScript" placeholder="把完整文稿粘贴到这里" style="min-height: 120px;"></textarea>
-          <button id="createScriptBtn" class="primary full" style="margin-top: 10px;">载入文稿</button>
+          <details class="direct-script-details">
+            <summary>直接文稿</summary>
+            <textarea id="directScript" placeholder="把完整文稿粘贴到这里" style="min-height: 100px; margin-top: 10px;"></textarea>
+            <button id="createScriptBtn" class="primary full" style="margin-top: 10px;">载入文稿</button>
+          </details>
           <p class="note">声音模块只处理文稿、TTS、BGM 和音色版本。</p>
         </div>
 
@@ -758,25 +898,6 @@
           <p class="note">音乐模块只处理歌词、风格标签和歌曲生成。</p>
         </div>
 
-        <div class="sep"></div>
-
-        <!-- Voice jobs -->
-        <div id="voiceJobsBlock">
-          <div class="job-header-new">
-            <span class="label">🎤 声音任务</span>
-            <span id="voiceJobCount" class="pill">0</span>
-          </div>
-          <div id="voiceJobList" class="job-list"></div>
-        </div>
-
-        <!-- Music jobs -->
-        <div id="musicJobsBlock" class="hidden">
-          <div class="job-header-new">
-            <span class="label">🎵 音乐任务</span>
-            <span id="musicJobCount" class="pill">0</span>
-          </div>
-          <div id="musicJobList" class="job-list"></div>
-        </div>
       </aside>
 
       <!-- ─── Right Main ─── -->
@@ -881,6 +1002,27 @@
 
       </section>
 
+      <!-- ─── Jobs ─── -->
+      <aside class="panel jobs-panel">
+        <!-- Voice jobs -->
+        <div id="voiceJobsBlock">
+          <div class="job-header-new">
+            <span class="label">🎤 声音任务</span>
+            <span id="voiceJobCount" class="pill">0</span>
+          </div>
+          <div id="voiceJobList" class="job-list"></div>
+        </div>
+
+        <!-- Music jobs -->
+        <div id="musicJobsBlock" class="hidden">
+          <div class="job-header-new">
+            <span class="label">🎵 音乐任务</span>
+            <span id="musicJobCount" class="pill">0</span>
+          </div>
+          <div id="musicJobList" class="job-list"></div>
+        </div>
+      </aside>
+
     </div>
   </main>
 
@@ -920,6 +1062,9 @@
     let pollTimer = null;
     let editorDirty = false;
     let editorJobId = null;
+    let topicRecommendations = [];
+    let topicCategory = '全部';
+    let topicOffset = 0;
 
     async function api(url, options = {}) {
       const res = await fetch(url, {
@@ -990,6 +1135,18 @@
       return String(value || '').replace(/[&<>"']/g, ch => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
       }[ch]));
+    }
+
+    function normalizeTheme(value) {
+      return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    function duplicateThemeJob(theme) {
+      const normalized = normalizeTheme(theme);
+      if (!normalized) return null;
+      return lastJobs.find(job =>
+        job.mode === 'theme' && normalizeTheme(job.theme) === normalized
+      ) || null;
     }
 
     function safeDownloadName(value, fallback = 'voice-script') {
@@ -1335,6 +1492,93 @@
       }
     }
 
+    function filteredTopicRecommendations() {
+      const list = topicCategory === '全部'
+        ? topicRecommendations
+        : topicRecommendations.filter(item => item.category === topicCategory);
+      return list;
+    }
+
+    function renderTopicFilters() {
+      const wrap = $('topicFilters');
+      if (!wrap) return;
+      const categories = ['全部', ...new Set(topicRecommendations.map(item => item.category || '其他'))];
+      wrap.innerHTML = '';
+      categories.forEach(category => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'topic-filter' + (category === topicCategory ? ' active' : '');
+        btn.textContent = category;
+        btn.onclick = () => {
+          topicCategory = category;
+          topicOffset = 0;
+          renderTopicRecommendations();
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
+    function renderTopicRecommendations() {
+      const wrap = $('topicRecommendations');
+      if (!wrap) return;
+      renderTopicFilters();
+      const list = filteredTopicRecommendations();
+      if (!list.length) {
+        wrap.innerHTML = '<div class="topic-empty">暂无可用推荐主题。</div>';
+        return;
+      }
+      const pageSize = 3;
+      if (topicOffset >= list.length) topicOffset = 0;
+      const visible = [];
+      for (let i = 0; i < Math.min(pageSize, list.length); i += 1) {
+        visible.push(list[(topicOffset + i) % list.length]);
+      }
+      wrap.innerHTML = '';
+      visible.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'topic-rec-card';
+        card.innerHTML = `
+          <div class="topic-rec-title">${escapeHtml(item.title)}</div>
+          <div class="topic-rec-angle">${escapeHtml(item.angle || '点击填入主题，可再手动微调。')}</div>
+          <div class="topic-rec-meta">
+            <span class="topic-badge">${escapeHtml(item.category || '推荐')}</span>
+            <div class="topic-rec-actions">
+              <button type="button" data-action="use">填入</button>
+            </div>
+          </div>
+        `;
+        card.onclick = () => useTopicRecommendation(item);
+        card.querySelector('[data-action="use"]').onclick = (event) => {
+          event.stopPropagation();
+          useTopicRecommendation(item);
+        };
+        wrap.appendChild(card);
+      });
+    }
+
+    function useTopicRecommendation(item) {
+      $('themeInput').value = item.title || '';
+      showActionFeedback('已填入推荐主题，可直接创作或继续微调。', 'ok');
+      $('themeInput').focus();
+    }
+
+    async function loadTopicRecommendations() {
+      try {
+        topicRecommendations = await api('/api/topic-recommendations');
+        topicRecommendations.sort((a, b) => Number(a.evergreen === true) - Number(b.evergreen === true));
+        renderTopicRecommendations();
+      } catch (err) {
+        $('topicRecommendations').innerHTML = `<div class="topic-empty">推荐主题加载失败：${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    $('shuffleTopicsBtn').onclick = () => {
+      const list = filteredTopicRecommendations();
+      if (!list.length) return;
+      topicOffset = (topicOffset + 6) % list.length;
+      renderTopicRecommendations();
+    };
+
     async function loadJob(jobId) {
       if (editorDirty) {
         const ok = confirm('当前编辑内容还没有保存，切换任务会离开当前内容。继续切换吗？');
@@ -1383,6 +1627,8 @@
         await api('/api/login', { method: 'POST', body: JSON.stringify({ password: $('password').value }) });
         showApp(true);
         await refreshJobs();
+        await loadBgmSelect($('bgmSelect'));
+        await loadTopicRecommendations();
       } catch (err) {
         $('loginError').textContent = err.message;
       }
@@ -1526,14 +1772,40 @@
       }
     };
 
-    $('createThemeBtn').onclick = async () => {
+    async function createThemeFromValue(rawTheme) {
+      const theme = String(rawTheme || '').trim();
+      if (!theme) {
+        showActionFeedback('请输入主题', 'error');
+        return;
+      }
+      if (!lastJobs.length) {
+        await refreshJobs().catch(() => {});
+      }
+      const duplicate = duplicateThemeJob(theme);
+      if (duplicate) {
+        const status = statusLabel(duplicate.status);
+        const ok = confirm(`这个主题已经创作过：\n\n${duplicate.theme}\n任务：${duplicate.id} · ${status}\n\n仍然继续创建一个新的文稿任务吗？`);
+        if (!ok) {
+          await loadJob(duplicate.id).catch(() => {});
+          showActionFeedback('已取消重复创作，并切到已有任务。', 'ok');
+          return;
+        }
+      }
       const job = await api('/api/jobs', {
         method: 'POST',
-        body: JSON.stringify({ mode: 'theme', theme: $('themeInput').value, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
+        body: JSON.stringify({ mode: 'theme', theme, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
       });
       await setMode('voice', { selectJob: false, force: true });
       renderJob(job.job);
       refreshJobs();
+    }
+
+    $('createThemeBtn').onclick = async () => {
+      try {
+        await createThemeFromValue($('themeInput').value);
+      } catch (err) {
+        showActionFeedback('创建失败：' + err.message, 'error');
+      }
     };
 
     $('createScriptBtn').onclick = async () => {
@@ -1718,6 +1990,7 @@
       if (r.authenticated) {
         await refreshJobs();
         await loadBgmSelect($('bgmSelect'));
+        await loadTopicRecommendations();
           }
     }).catch(() => showApp(false));
     pollTimer = setInterval(pollActive, 5000);

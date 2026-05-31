@@ -1,0 +1,200 @@
+[
+  {
+    "title": "恒星这么多，为什么宇宙还是这么暗？",
+    "category": "宇宙",
+    "angle": "从奥伯斯佯谬讲到宇宙年龄、光速和黑暗的来源。",
+    "source": "经典问题：Olbers' paradox",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "先有黑洞，还是先有星系？",
+    "category": "黑洞",
+    "angle": "从早期宇宙的超大质量黑洞讲到星系形成顺序的谜题。",
+    "source": "NASA Webb",
+    "source_url": "https://science.nasa.gov/missions/webb/nasas-webb-reveals-black-hole-that-formed-before-its-galaxy/",
+    "updated_at": "2026-05-31",
+    "evergreen": false
+  },
+  {
+    "title": "宇宙一直在膨胀，那它到底在往哪里撑？",
+    "category": "宇宙",
+    "angle": "把宇宙膨胀从气球误解，讲成空间本身变大的安静恐怖。",
+    "source": "NASA / ESA cosmology explainers",
+    "source_url": "https://science.nasa.gov/universe/overview/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "黑洞真的是黑的吗？",
+    "category": "黑洞",
+    "angle": "从事件视界、吸积盘和霍金辐射讲到最亮的黑暗。",
+    "source": "NASA black hole basics",
+    "source_url": "https://science.nasa.gov/universe/black-holes/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "如果掉进黑洞，你最后会看见什么？",
+    "category": "黑洞",
+    "angle": "用第一视角讲时间变慢、光线弯曲和不可返回的边界。",
+    "source": "NASA black hole basics",
+    "source_url": "https://science.nasa.gov/universe/black-holes/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "宇宙中 95% 的东西都看不见，它们真的存在吗？",
+    "category": "暗物质",
+    "angle": "从暗物质和暗能量讲到我们只看见宇宙极小的一层皮。",
+    "source": "NASA dark matter and dark energy",
+    "source_url": "https://science.nasa.gov/universe/dark-matter-dark-energy/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "时间为什么只能往前走？",
+    "category": "时间",
+    "angle": "从熵增和时间箭头讲到一杯水为什么不会自己回到杯子里。",
+    "source": "经典问题：arrow of time",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "接近光速飞行，真的能去未来吗？",
+    "category": "时间",
+    "angle": "把相对论时间膨胀讲成一次安静但无法回头的远行。",
+    "source": "NASA spacetime explainers",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "外星人如果存在，为什么宇宙这么安静？",
+    "category": "生命",
+    "angle": "从费米悖论讲到沉默宇宙、距离、时间差和文明窗口。",
+    "source": "经典问题：Fermi paradox",
+    "source_url": "https://science.nasa.gov/exoplanets/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "地球上的水，最早是从哪里来的？",
+    "category": "生命",
+    "angle": "从彗星、小行星和早期地球讲到一杯水里的宇宙旧事。",
+    "source": "NASA solar system science",
+    "source_url": "https://science.nasa.gov/solar-system/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "真空真的是什么都没有吗？",
+    "category": "量子",
+    "angle": "从量子涨落讲到看似空无的地方其实一直在轻微沸腾。",
+    "source": "经典问题：quantum vacuum",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "宇宙有没有边界？如果有，边界外面是什么？",
+    "category": "宇宙",
+    "angle": "把边界、可观测宇宙和空间弯曲讲成一场没有墙的远行。",
+    "source": "NASA universe overview",
+    "source_url": "https://science.nasa.gov/universe/overview/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "星系之间那些巨大的空洞，里面真的什么都没有吗？",
+    "category": "宇宙",
+    "angle": "从宇宙网和巨洞讲到星系不是均匀撒开，而是长在一张暗网里。",
+    "source": "NASA universe structure",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "宇宙最终会怎么死？",
+    "category": "宇宙",
+    "angle": "从热寂、大撕裂和真空衰变讲到几种安静但彻底的结局。",
+    "source": "经典问题：fate of the universe",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "为什么我们看见的星光，很多其实来自过去？",
+    "category": "时间",
+    "angle": "从光速有限讲到夜空像一座正在同时播放不同年代的博物馆。",
+    "source": "NASA light travel time explainers",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "太阳有一天会吞掉地球吗？",
+    "category": "太阳系",
+    "angle": "从恒星演化讲到太阳变老后，地球会面对怎样的缓慢结局。",
+    "source": "NASA Sun and stars",
+    "source_url": "https://science.nasa.gov/sun/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "为什么月亮一直用同一面对着我们？",
+    "category": "太阳系",
+    "angle": "从潮汐锁定讲到月球像被地球轻轻拴住的一只旧钟。",
+    "source": "NASA Moon",
+    "source_url": "https://science.nasa.gov/moon/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "地球磁场如果消失，天空会发生什么？",
+    "category": "地球",
+    "angle": "从磁层、太阳风和极光讲到一层看不见的盾牌。",
+    "source": "NASA Earth science",
+    "source_url": "https://science.nasa.gov/earth/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "深海没有阳光，生命靠什么活下去？",
+    "category": "生命",
+    "angle": "从热液喷口讲到不靠太阳的生命系统，以及地外生命的想象。",
+    "source": "NASA astrobiology",
+    "source_url": "https://science.nasa.gov/astrobiology/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "一颗星星死后，为什么可能变成钻石一样的尸体？",
+    "category": "恒星",
+    "angle": "从白矮星和碳结晶讲到恒星死亡后的冷光。",
+    "source": "NASA stars",
+    "source_url": "https://science.nasa.gov/universe/stars/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "为什么宇宙没有一个真正的中心？",
+    "category": "宇宙",
+    "angle": "拆掉大爆炸像炸弹的误解，讲成每个地方都在远离每个地方。",
+    "source": "NASA universe overview",
+    "source_url": "https://science.nasa.gov/universe/overview/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  },
+  {
+    "title": "如果宇宙有无数星球，为什么生命好像这么稀少？",
+    "category": "生命",
+    "angle": "从宜居带、稀有地球假说和时间窗口讲到生命的脆弱概率。",
+    "source": "NASA exoplanets",
+    "source_url": "https://science.nasa.gov/exoplanets/",
+    "updated_at": "2026-05-31",
+    "evergreen": true
+  }
+]
