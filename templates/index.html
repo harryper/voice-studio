@@ -1348,45 +1348,9 @@
       margin: 0;
     }
 
-    /* ─── Music Bottom Row: Title + Count + Create ─── */
+    /* ─── Music Bottom Row ─── */
     .music-bottom-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 8px;
-      align-items: stretch;
       margin-top: 12px;
-    }
-
-    .music-stepper {
-      display: flex;
-      align-items: center;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      height: 42px;
-    }
-
-    .music-stepper button {
-      width: 32px;
-      height: 100%;
-      border: none;
-      background: transparent;
-      color: var(--text-2);
-      font-size: 16px;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    .music-stepper button:hover { background: var(--surface-3); color: var(--text); }
-    .music-stepper button:disabled { opacity: .35; cursor: not-allowed; }
-
-    .music-stepper .stepper-val {
-      min-width: 30px;
-      text-align: center;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
     }
 
     /* ─── Music Progress (replaces old musicMeta) ─── */
@@ -1758,15 +1722,9 @@
             </div>
           </div>
 
-          <!-- 底部一行：标题 + 数量 + 创作按钮 -->
+          <!-- 底部：创作按钮 -->
           <div class="music-bottom-row">
-            <input id="musicTitleInput" placeholder="歌曲名称（可选）" style="margin: 0;">
-            <div class="music-stepper" title="数量 stepper（多版本生成即将支持）">
-              <button type="button" id="musicCountMinus" aria-label="减少">−</button>
-              <span class="stepper-val" id="musicCountVal">1</span>
-              <button type="button" id="musicCountPlus" aria-label="增加">+</button>
-            </div>
-            <button id="createMusicBtn" class="primary" style="margin: 0; white-space: nowrap;">创作 1 首</button>
+            <button id="createMusicBtn" class="primary full" style="margin: 0;">开始创作</button>
           </div>
 
           <p class="note">音乐模块生成歌词 + 歌曲。参考音乐上传后存档到 R2，但当前 music-2.6 模型不消费。</p>
@@ -1976,13 +1934,6 @@
 
     function setMusicCount(n) {
       musicCount = Math.max(1, Math.min(4, n));
-      $('musicCountVal').textContent = musicCount;
-      $('musicCountMinus').disabled = musicCount <= 1;
-      $('musicCountPlus').disabled = musicCount >= 4;
-      const btn = $('createMusicBtn');
-      btn.textContent = musicCount > 1
-        ? `创作 ${musicCount} 首（即将支持）`
-        : '创作 1 首';
     }
 
     function initMusicUI() {
@@ -2000,9 +1951,6 @@
         });
       });
 
-      // Stepper
-      $('musicCountMinus').addEventListener('click', () => setMusicCount(musicCount - 1));
-      $('musicCountPlus').addEventListener('click', () => setMusicCount(musicCount + 1));
       setMusicCount(1);
 
       // Reference audio upload
@@ -2425,8 +2373,6 @@
           $('musicStyleInput').value = job.style_description || '';
           $('musicStyleInput').dispatchEvent(new Event('input'));
         }
-        // Sync left-side title box
-        if (job.title) $('musicTitleInput').value = job.title;
         // Sync instrumental checkbox
         $('instrumentalCheck').checked = !!job.is_instrumental;
 
@@ -2908,7 +2854,7 @@
           body: JSON.stringify({
             mode: 'music',
             theme: theme,
-            title: $('musicTitleInput').value.trim(),
+            title: '',
             is_instrumental: isInstrumental,
             style_description: styleText,
           })
