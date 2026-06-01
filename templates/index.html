@@ -1353,27 +1353,77 @@
       margin-top: 12px;
     }
 
+    /* ─── Music Create Row (toggle + 创作按钮 同排) ─── */
+    .music-create-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .music-create-row .toggle-wrap {
+      flex: 1;
+      min-width: 0;
+      font-size: 12px;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: 4px;
+    }
+
+    .music-create-row .toggle-wrap input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .music-create-row button.primary {
+      flex-shrink: 0;
+      min-width: 130px;
+      margin: 0;
+      white-space: nowrap;
+    }
+
     /* ─── Music Progress (replaces old musicMeta) ─── */
     .music-progress {
-      margin-top: 12px;
+      margin-top: 4px;
+      margin-bottom: 14px;
       padding: 14px 16px;
       background: var(--surface-2);
       border: 1px solid var(--border-light);
       border-radius: var(--radius-md);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .music-progress::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, var(--accent-music), var(--accent-music-hover));
     }
 
     .music-progress .row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--text-2);
+      align-items: baseline;
       margin-bottom: 8px;
     }
 
     .music-progress .row .stage {
+      font-size: 14px;
       font-weight: 600;
       color: var(--accent-music);
+      letter-spacing: -0.01em;
+    }
+
+    .music-progress .row .eta {
+      font-size: 11px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
     }
 
     .music-progress .bar {
@@ -1387,7 +1437,7 @@
       height: 100%;
       background: linear-gradient(90deg, var(--accent-music), var(--accent-music-hover));
       border-radius: 999px;
-      transition: width .35s ease;
+      transition: width .4s ease;
     }
 
     .music-progress .meta-row {
@@ -1654,6 +1704,15 @@
             <input id="musicThemeInput" placeholder="例：一首关于雨夜的蓝调">
           </div>
 
+          <!-- 顶部一行：纯音乐 toggle + 开始创作 按钮 -->
+          <div class="music-create-row">
+            <label class="toggle-wrap">
+              <input type="checkbox" id="instrumentalCheck">
+              <span>纯音乐（无人声）</span>
+            </label>
+            <button id="createMusicBtn" class="primary">开始创作</button>
+          </div>
+
           <!-- 段 1：参考音乐 -->
           <div class="music-section">
             <div class="music-section-title">
@@ -1674,27 +1733,10 @@
             </div>
           </div>
 
-          <!-- 段 2：歌词 -->
+          <!-- 段 2：风格 / 氛围 -->
           <div class="music-section">
             <div class="music-section-title">
-              <span>② 歌词</span>
-              <span class="opt" id="musicLyricsHint">留空可点下方生成</span>
-            </div>
-            <textarea id="musicLyricsInput" class="music-lyrics-textarea"
-              placeholder="可直接粘贴完整歌词，或留空后由 AI 根据主题生成。&#10;支持标签：&#10;[Intro]  [Verse]  [Pre-Chorus]  [Chorus]  [Bridge]  [Outro]"></textarea>
-            <div class="music-counter" id="musicLyricsCounter">0 / 3,500 字符</div>
-            <div class="music-toggle-row">
-              <label>
-                <input type="checkbox" id="instrumentalCheck">
-                <span>纯音乐（无人声，模型只接收 prompt）</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- 段 3：风格 -->
-          <div class="music-section">
-            <div class="music-section-title">
-              <span>③ 风格 / 氛围</span>
+              <span>② 风格 / 氛围</span>
               <span class="opt">点 tag 即填入</span>
             </div>
             <textarea id="musicStyleInput" class="music-style-textarea"
@@ -1722,12 +1764,7 @@
             </div>
           </div>
 
-          <!-- 底部：创作按钮 -->
-          <div class="music-bottom-row">
-            <button id="createMusicBtn" class="primary full" style="margin: 0;">开始创作</button>
-          </div>
-
-          <p class="note">音乐模块生成歌词 + 歌曲。参考音乐上传后存档到 R2，但当前 music-2.6 模型不消费。</p>
+          <p class="note">点「开始创作」后会自动生成歌词 → 生成歌曲。参考音乐上传后存档到 R2，但当前 music-2.6 模型不消费。</p>
         </div>
 
       </aside>
@@ -1740,24 +1777,24 @@
           <span id="jobId" class="pill">-</span>
         </div>
 
-        <span class="section-label" id="editorLabel">文稿预览 / 编辑</span>
-        <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
-
         <div id="musicMeta" class="hidden">
           <div class="music-progress">
             <div class="row">
-              <span>歌曲标题：<strong id="songTitle">-</strong></span>
-              <span class="stage" id="musicStageLabel">待生成</span>
+              <span class="stage" id="musicStageLabel">第 1 / 2 步 · 待生成</span>
+              <span class="eta" id="musicEtaMeta">~ 5-15 秒</span>
             </div>
             <div class="bar"><div class="fill" id="musicProgressFill" style="width: 0%;"></div></div>
             <div class="meta-row">
+              <div><span class="k">歌曲标题</span><span id="songTitle">-</span></div>
               <div><span class="k">风格标签</span><span id="styleTags">-</span></div>
               <div><span class="k">参考音乐</span><span id="musicRefMeta">未上传</span></div>
               <div><span class="k">纯音乐</span><span id="musicInstrMeta">否</span></div>
-              <div><span class="k">预计时长</span><span id="musicEtaMeta">~ 30-90 秒</span></div>
             </div>
           </div>
         </div>
+
+        <span class="section-label" id="editorLabel">文稿预览 / 编辑</span>
+        <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
 
         <p id="actionFeedback" class="action-feedback"></p>
         <p id="errorBox" class="error"></p>
@@ -1905,8 +1942,7 @@
     $('mixBgmCheck').onchange = toggleBgmVolGroup;
     toggleBgmVolGroup();
 
-    // ── Music UI bindings (char counters / tags / stepper / upload / tabs) ──
-    const MUSIC_LYRICS_MAX = 3500;
+    // ── Music UI bindings (char counter / tags / upload / tabs) ──
     const MUSIC_STYLE_MAX = 2000;
 
     function bindCharCounter(textareaId, counterId, max) {
@@ -1937,7 +1973,6 @@
     }
 
     function initMusicUI() {
-      bindCharCounter('musicLyricsInput', 'musicLyricsCounter', MUSIC_LYRICS_MAX);
       bindCharCounter('musicStyleInput', 'musicStyleCounter', MUSIC_STYLE_MAX);
 
       // Tag cloud → append to style textarea
@@ -2335,28 +2370,30 @@
         $('musicRefMeta').textContent = job.reference_audio_name
           ? ('✓ ' + job.reference_audio_name)
           : '未上传';
-        // Stage + progress bar
+        // Stage + progress bar (2-step process: 歌词 → 歌曲)
         const stageMap = {
-          pending: { label: '待生成', pct: 5 },
-          generating_lyrics: { label: '生成歌词中…', pct: 30 },
-          lyrics_ready: { label: '歌词待生成歌曲', pct: 55 },
-          generating: { label: '生成歌曲中…', pct: 80 },
-          done: { label: '已完成', pct: 100 },
-          error: { label: '出错', pct: 100 },
+          pending:           { label: '第 1 / 2 步 · 待生成歌词', pct: 5 },
+          generating_lyrics: { label: '第 1 / 2 步 · 歌词生成中…', pct: 30 },
+          lyrics_ready:      { label: '第 1 / 2 步 · 歌词就绪', pct: 55 },
+          generating:        { label: '第 2 / 2 步 · 歌曲生成中…', pct: 80 },
+          done:              { label: '✓ 全部完成', pct: 100 },
+          error:             { label: '出错', pct: 100 },
         };
         const stage = stageMap[job.status] || { label: statusLabel(job.status), pct: 0 };
         $('musicStageLabel').textContent = stage.label;
         $('musicProgressFill').style.width = stage.pct + '%';
-        // Hide ETA when done
-        if (job.status === 'done' || job.status === 'error') {
+        // ETA / final duration
+        if (job.status === 'done') {
           const dur = job.audio_duration_ms ? Math.round(job.audio_duration_ms / 1000) : null;
           $('musicEtaMeta').textContent = dur
-            ? `${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}`
+            ? `时长 ${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}`
             : '—';
+        } else if (job.status === 'error') {
+          $('musicEtaMeta').textContent = '—';
         } else if (job.status === 'generating') {
-          $('musicEtaMeta').textContent = '~ 30-90 秒';
+          $('musicEtaMeta').textContent = '预计 ~ 30-90 秒';
         } else {
-          $('musicEtaMeta').textContent = '~ 5-15 秒';
+          $('musicEtaMeta').textContent = '预计 ~ 5-15 秒';
         }
         // Sync left-side reference audio display
         if (job.reference_audio_url) {
@@ -2841,13 +2878,11 @@
     $('createMusicBtn').onclick = async () => {
       const theme = $('musicThemeInput').value.trim();
       if (!theme) { showActionFeedback('请输入主题/风格描述', 'error'); return; }
-      const lyricsText = $('musicLyricsInput').value.trim();
       const styleText = $('musicStyleInput').value.trim();
       const isInstrumental = $('instrumentalCheck').checked;
-      const hasUserLyrics = !!lyricsText;
       $('createMusicBtn').disabled = true;
       const originalLabel = $('createMusicBtn').textContent;
-      $('createMusicBtn').textContent = '创建中...';
+      $('createMusicBtn').textContent = '创作中...';
       try {
         const resp = await api('/api/jobs', {
           method: 'POST',
@@ -2862,25 +2897,22 @@
         await setMode('music', { selectJob: false, force: true });
         renderJob(resp.job);
         await refreshJobs();
-
-        if (hasUserLyrics) {
-          // Skip lyrics generation; save user-typed lyrics directly
-          showActionFeedback('已载入你提供的歌词');
-          const job = await api('/api/jobs/' + resp.job_id, {
-            method: 'PATCH',
-            body: JSON.stringify({ edited_lyrics: lyricsText, status: 'lyrics_ready' }),
-          });
+        showActionFeedback('正在生成歌词…');
+        try {
+          const job = await api('/api/jobs/' + resp.job_id + '/generate-lyrics', { method: 'POST' });
           renderJob(job);
-          showActionFeedback('歌词已就绪，可直接点「生成歌曲」', 'ok');
-        } else {
-          showActionFeedback('正在生成歌词...');
+          showActionFeedback('歌词就绪，开始生成歌曲…', 'ok');
+          // Auto-chain to generate music
           try {
-            const job = await api('/api/jobs/' + resp.job_id + '/generate-lyrics', { method: 'POST' });
-            renderJob(job);
-            showActionFeedback('歌词已生成，请确认后生成歌曲', 'ok');
+            const final = await api('/api/jobs/' + resp.job_id + '/generate-music', { method: 'POST' });
+            renderJob(final);
+            renderMusicJobList();
+            showActionFeedback('歌曲已生成，右侧可播放', 'ok');
           } catch (err) {
-            showActionFeedback('歌词生成失败：' + err.message, 'error');
+            showActionFeedback('歌曲生成失败：' + err.message, 'error');
           }
+        } catch (err) {
+          showActionFeedback('歌词生成失败：' + err.message, 'error');
         }
       } catch (err) {
         showActionFeedback('创建失败：' + err.message, 'error');
