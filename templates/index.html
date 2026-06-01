@@ -2706,6 +2706,10 @@
     }
 
     async function refreshJobs() {
+      const jobs = await api('/api/jobs');
+      lastJobs = jobs;
+      const activeExists = jobs.some(job => job.id === activeJobId);
+      if (activeJobId && !activeExists && !editorDirty) activeJobId = null;
 
       // Voice jobs (theme + script)
       const voiceList = $('voiceJobList');
