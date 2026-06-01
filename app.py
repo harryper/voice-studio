@@ -351,13 +351,18 @@ def create_job():
             'theme': theme,
             'title': data.get('title') or '',
             'style_tags': '',
+            'style_description': (data.get('style_description') or '').strip(),
+            'reference_audio_url': (data.get('reference_audio_url') or '').strip() or None,
+            'reference_audio_name': (data.get('reference_audio_name') or '').strip() or None,
             'lyrics': None,
             'edited_lyrics': None,
             'status': 'pending',   # pending → lyrics_ready → generating → done
             'audio_url': None,
             'audio_path': None,
+            'audio_duration_ms': None,
             'error': None,
             'is_instrumental': data.get('is_instrumental', False),
+            'is_starred': False,
             'created_at': datetime.now().isoformat(),
         }
     else:
@@ -389,7 +394,15 @@ def update_job(job_id):
         job['edited_script'] = data['edited_script']
 
     # 主 session 更新状态
-    for key in ('status', 'script', 'edited_script', 'edited_lyrics', 'voice', 'bgm', 'bgm_asset', 'audio_url', 'final_url', 'error'):
+    for key in (
+        'status', 'script', 'edited_script', 'edited_lyrics',
+        'style_description', 'style_tags', 'title',
+        'reference_audio_url', 'reference_audio_name',
+        'is_starred', 'is_instrumental',
+        'voice', 'bgm', 'bgm_asset',
+        'audio_url', 'final_url', 'audio_path', 'audio_duration_ms',
+        'error',
+    ):
         if key in data:
             job[key] = data[key]
 
@@ -463,6 +476,12 @@ def generate_lyrics_api(job_id):
     if not theme:
         return jsonify({'error': '主题为空'}), 400
 
+    # Compose prompt: theme + (optional) user style description
+    style_desc = (job.get('style_description') or '').strip()
+    full_prompt = theme
+    if style_desc:
+        full_prompt = f"{theme}\n\n风格描述：{style_desc}"
+
     try:
         job['status'] = 'generating_lyrics'
         job['error'] = None
@@ -470,8 +489,8 @@ def generate_lyrics_api(job_id):
 
         result = subprocess.run(
             ['python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
-             'lyrics', '--prompt', theme],
-            text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=120,
+             'lyrics', '--prompt', full_prompt],
+            text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=180,
         )
         if result.returncode != 0:
             raise RuntimeError(result.stderr or result.stdout or '歌词生成失败')
@@ -508,6 +527,8 @@ def generate_music_api(job_id):
     prompt = job.get('theme', '')
     if job.get('style_tags'):
         prompt = prompt + ', ' + job['style_tags']
+    if job.get('style_description'):
+        prompt = prompt + '\n\n' + job['style_description']
 
     try:
         job['status'] = 'generating'
@@ -538,6 +559,14 @@ def generate_music_api(job_id):
         result = subprocess.run(cmd, text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=600)
         if result.returncode != 0:
             raise RuntimeError(result.stderr or result.stdout or '音乐生成失败')
+
+        # Try to capture duration / size from the script's last JSON line
+        try:
+            music_meta = json.loads(result.stdout.strip().splitlines()[-1])
+            if isinstance(music_meta, dict) and music_meta.get('duration_ms'):
+                job['audio_duration_ms'] = int(music_meta['duration_ms'])
+        except (ValueError, IndexError):
+            pass
 
         # Upload to R2 with readable names.
         theme_slug = job_name_fragment(job, fallback='music')
@@ -618,6 +647,91 @@ def retry_music_api(job_id):
     save_job(job)
 
     return generate_music_api(job_id)
+
+
+# ── Music: 参考音乐上传 / 收藏 ────────────────────────────────
+ALLOWED_REFERENCE_AUDIO_EXTS = {'.mp3', '.wav', '.m4a', '.ogg', '.flac'}
+MAX_REFERENCE_AUDIO_BYTES = 25 * 1024 * 1024  # 25 MB
+
+@app.route('/api/jobs/<job_id>/reference-audio', methods=['POST'])
+def upload_reference_audio_api(job_id):
+    """Upload a reference audio file for a music job. Stored on R2; URL is
+    persisted to job.json so a future reference-aware model can pick it up.
+    The current music-2.6 model does not consume it, but the asset is kept."""
+    job = load_job(job_id)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
+    if job.get('mode') != 'music':
+        return jsonify({'error': '非音乐任务'}), 400
+
+    if 'file' not in request.files:
+        return jsonify({'error': '没有上传文件'}), 400
+    f = request.files['file']
+    if not f or not f.filename:
+        return jsonify({'error': '文件为空'}), 400
+
+    ext = os.path.splitext(f.filename)[1].lower()
+    if ext not in ALLOWED_REFERENCE_AUDIO_EXTS:
+        return jsonify({'error': f'不支持的格式 {ext}（仅 {", ".join(sorted(ALLOWED_REFERENCE_AUDIO_EXTS))}）'}), 400
+
+    # Save to a temp file under runs/<job_id>/reference.<ext>
+    run_dir = RUNS_DIR / job_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    tmp_path = run_dir / f'reference{ext}'
+    f.save(tmp_path)
+    if tmp_path.stat().st_size > MAX_REFERENCE_AUDIO_BYTES:
+        tmp_path.unlink(missing_ok=True)
+        return jsonify({'error': f'参考音频超过 {MAX_REFERENCE_AUDIO_BYTES // (1024*1024)} MB 上限'}), 400
+
+    # Upload to R2
+    ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+    try:
+        result = subprocess.run(
+            ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+             '--file', str(tmp_path), '--theme', 'music',
+             '--name', oss_object_name(job, 'reference', ext.lstrip('.'), ts=ts)],
+            text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': '上传超时'}), 500
+    if result.returncode != 0:
+        return jsonify({'error': (result.stderr or result.stdout or '上传失败').strip()}), 500
+
+    audio_url = result.stdout.strip().splitlines()[-1].strip()
+    job['reference_audio_url'] = audio_url
+    job['reference_audio_name'] = f.filename
+    save_job(job)
+    return jsonify(job_response(job))
+
+
+@app.route('/api/jobs/<job_id>/reference-audio', methods=['DELETE'])
+def delete_reference_audio_api(job_id):
+    """Clear the reference audio from job.json (does not touch R2 object)."""
+    job = load_job(job_id)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
+    if job.get('mode') != 'music':
+        return jsonify({'error': '非音乐任务'}), 400
+    job['reference_audio_url'] = None
+    job['reference_audio_name'] = None
+    save_job(job)
+    return jsonify(job_response(job))
+
+
+@app.route('/api/jobs/<job_id>/star', methods=['POST'])
+def star_job_api(job_id):
+    """Toggle is_starred on a job (any mode supported, but UI only shows star
+    on music tracks for now)."""
+    job = load_job(job_id)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
+    data = request.get_json(silent=True) or {}
+    new_value = data.get('is_starred')
+    if new_value is None:
+        new_value = not job.get('is_starred', False)
+    job['is_starred'] = bool(new_value)
+    save_job(job)
+    return jsonify(job_response(job))
 
 
 @app.route('/api/jobs', methods=['GET'])

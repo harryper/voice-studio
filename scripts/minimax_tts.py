@@ -8,7 +8,10 @@ from pathlib import Path
 
 API_KEY_FILE = os.path.expanduser("~/.openclaw/workspace/skills/voice-studio/scripts/minimax_api_key.txt")
 DEFAULT_MODEL = "speech-2.8-hd"
-DEFAULT_VOICE = "Chinese_deep_voiced_male_vv1"
+# 2026-06-01: 默认音色切换为 Microsoft Azure zh-CN-YunzeNeural 的克隆版。
+# voice_id 来源: 使用云泽 4 分钟样本调 https://api.minimaxi.com/v1/voice_clone 克隆得到。
+# 注意: 使用云泽合成音频做克隆存在 Azure 神经声音 ToS 风险,仅限内部/授权场景使用。
+DEFAULT_VOICE = "azure_yunze_clone"
 DEFAULT_SPEED = 0.85
 TTS_URL = "https://api.minimaxi.com/v1/t2a_v2"
 

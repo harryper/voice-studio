@@ -63,15 +63,23 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 
 **Model:** `speech-2.8-hd`
 
-**Voice:** `Chinese_deep_voiced_male_vv1` (Deep Voice; 低沉男声)
+**Default Voice (2026-06-01 启用):** `azure_yunze_clone` — 由 Microsoft Azure `zh-CN-YunzeNeural` 4 分钟合成样本调 `/v1/voice_clone` 克隆得到。复用云泽音色，但走 MiniMax 路径，省下 Azure 额度。
+
+**Other voices (可选):**
+- `Chinese_deep_voiced_male_vv1` — Deep Voice（低沉男声，原默认）
+- `Chinese (Mandarin)_Gentle_Senior` — 温婉柔和
 
 `Chinese (Mandarin)_Gentleman` 已下线，不要再作为默认或 fallback 参数使用。
 
 - Speed: `0.85` (慢速；适合助眠节奏)
 
-**MiniMax limits:** 每日额度上限 11000 字；超出后会失败
+**MiniMax limits:**
+- 走 Token Plan 订阅（当前主用): 受 5 小时滚动 + 周窗口配额限制。平台统一按 3.5 元/万字符 (speech-2.8-hd) 折算 credits。够跑 ~18亿 M3 等价 token/月 额度。
+- 走普通 API Key: 每日 11000 字上限（不适用，現用 key 是 sk-cp-  Token Plan 专用 key）
 
-**When to fall back:** Azure 不可用、配额耗尽、或用户明确指定 MiniMax 时
+**合规注意:** `azure_yunze_clone` 音色来自 Azure 神经声音合成样本，与 Microsoft 神经声音 ToS 边界需使用者自行评估。适用于内部使用、研发测试、已获微软授权的场景；公开商用前请确认合规。
+
+**When to fall back / switch:** Azure 不可用、配额耗尽、Token Plan 额度够但想避免 Azure 流量、或用户明确指定 MiniMax 时
 
 ## Canonical assets
 

@@ -1132,6 +1132,487 @@
       border-color: var(--accent-music-hover);
     }
 
+    /* ─── Music Section Card ─── */
+    .music-section {
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-top: 12px;
+    }
+
+    .music-section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+      margin: 0 0 8px;
+    }
+
+    .music-section-title .opt {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-3);
+      background: var(--surface-3);
+      padding: 1px 7px;
+      border-radius: 999px;
+    }
+
+    /* ─── Music Upload Zone (Reference Audio) ─── */
+    .music-upload-zone {
+      position: relative;
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .15s;
+      color: var(--text-3);
+    }
+
+    .music-upload-zone:hover,
+    .music-upload-zone.dragover {
+      border-color: var(--accent-music);
+      background: var(--accent-music-light);
+      color: var(--accent-music);
+    }
+
+    .music-upload-zone .upload-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-music);
+      color: white;
+      margin-bottom: 6px;
+      font-size: 18px;
+    }
+
+    .music-upload-zone .upload-tip {
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .music-upload-zone .upload-hint {
+      font-size: 11px;
+      color: var(--text-3);
+      margin: 4px 0 0;
+    }
+
+    .music-upload-zone .upload-future {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--text-3);
+      background: var(--surface-3);
+      padding: 1px 7px;
+      border-radius: 999px;
+    }
+
+    .music-upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .music-uploaded-file {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      background: var(--surface);
+      font-size: 12px;
+    }
+
+    .music-uploaded-file .file-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .music-uploaded-file button {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .music-uploaded-file button:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+
+    /* ─── Music Char Counter ─── */
+    .music-counter {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 4px;
+    }
+
+    .music-counter.warn { color: var(--warn); }
+    .music-counter.over { color: var(--danger); }
+
+    .music-lyrics-textarea {
+      min-height: 140px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .music-style-textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    /* ─── Music Tag Cloud ─── */
+    .music-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .music-tag {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-2);
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 999px;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: all .12s;
+      font-family: inherit;
+    }
+
+    .music-tag::before {
+      content: '+ ';
+      color: var(--accent-music);
+    }
+
+    .music-tag:hover {
+      color: var(--accent-music);
+      border-color: var(--accent-music);
+      background: var(--accent-music-light);
+    }
+
+    .music-tag.selected {
+      color: white;
+      background: var(--accent-music);
+      border-color: var(--accent-music);
+    }
+
+    .music-tag.selected::before {
+      color: white;
+    }
+
+    /* ─── Music Instrumental Toggle (inline) ─── */
+    .music-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding: 6px 0 0;
+    }
+
+    .music-toggle-row label {
+      font-size: 12px;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .music-toggle-row input[type="checkbox"] {
+      width: auto;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* ─── Music Bottom Row: Title + Count + Create ─── */
+    .music-bottom-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: stretch;
+      margin-top: 12px;
+    }
+
+    .music-stepper {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      height: 42px;
+    }
+
+    .music-stepper button {
+      width: 32px;
+      height: 100%;
+      border: none;
+      background: transparent;
+      color: var(--text-2);
+      font-size: 16px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .music-stepper button:hover { background: var(--surface-3); color: var(--text); }
+    .music-stepper button:disabled { opacity: .35; cursor: not-allowed; }
+
+    .music-stepper .stepper-val {
+      min-width: 30px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ─── Music Progress (replaces old musicMeta) ─── */
+    .music-progress {
+      margin-top: 12px;
+      padding: 14px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+    }
+
+    .music-progress .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-2);
+      margin-bottom: 8px;
+    }
+
+    .music-progress .row .stage {
+      font-weight: 600;
+      color: var(--accent-music);
+    }
+
+    .music-progress .bar {
+      height: 6px;
+      background: var(--surface-3);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .music-progress .bar .fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-music), var(--accent-music-hover));
+      border-radius: 999px;
+      transition: width .35s ease;
+    }
+
+    .music-progress .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .music-progress .meta-row .k {
+      color: var(--text-3);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      margin-right: 4px;
+    }
+
+    /* ─── Music Track Card (right side) ─── */
+    .music-track {
+      position: relative;
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all .15s;
+      font-family: inherit;
+      text-align: left;
+    }
+
+    .music-track:hover {
+      background: var(--surface-3);
+      border-color: var(--accent-music);
+    }
+
+    .music-track.active {
+      background: var(--accent-music-light);
+      border-color: var(--accent-music);
+    }
+
+    .music-track .thumb {
+      position: relative;
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent-music), #d896ff);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .music-track .thumb .duration {
+      position: absolute;
+      bottom: 2px;
+      left: 4px;
+      padding: 1px 5px;
+      background: rgba(0,0,0,.62);
+      color: white;
+      font-size: 9px;
+      font-weight: 500;
+      border-radius: 3px;
+      letter-spacing: 0.02em;
+    }
+
+    .music-track .info {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .music-track .title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .music-track .meta {
+      font-size: 11px;
+      color: var(--text-3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .music-track .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--accent-music-light);
+      color: var(--accent-music);
+    }
+
+    .music-track .badge.done { background: rgba(48,209,88,.12); color: var(--success); }
+    .music-track .badge.working { background: rgba(255,149,0,.14); color: var(--warn); }
+    .music-track .badge.error { background: var(--danger-light); color: var(--danger); }
+    .music-track .badge.instr { background: var(--accent-music-light); color: var(--accent-music); }
+
+    .music-track .actions {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+
+    .music-track:hover .actions,
+    .music-track.active .actions {
+      opacity: 1;
+    }
+
+    .music-track .actions button {
+      width: 26px;
+      height: 26px;
+      border: none;
+      background: rgba(255,255,255,.85);
+      color: var(--text-2);
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      padding: 0;
+    }
+
+    .music-track .actions button:hover { color: var(--accent-music); }
+    .music-track .actions button.starred { color: #ffb800; }
+    .music-track .actions button.danger:hover { color: var(--danger); }
+
+    /* ─── Music Tabs (works / favorites) ─── */
+    .music-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-3);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      margin-bottom: 10px;
+    }
+
+    .music-tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text-2);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .12s;
+    }
+
+    .music-tab-btn:hover { color: var(--text); }
+    .music-tab-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .music-empty {
+      padding: 30px 10px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-3);
+      background: var(--surface-2);
+      border: 1px dashed var(--border-light);
+      border-radius: var(--radius-md);
+    }
+
     #musicBox .check-row input[type="checkbox"]:checked {
       background: var(--accent-music);
       border-color: var(--accent-music);
@@ -1207,14 +1688,88 @@
           <div class="feature-card">
             <span class="section-label">音乐创作</span>
             <input id="musicThemeInput" placeholder="例：一首关于雨夜的蓝调">
-            <input id="musicTitleInput" placeholder="歌曲标题（可选）" style="margin-top: 8px;">
-            <div class="check-row">
-              <input type="checkbox" id="instrumentalCheck">
-              <label for="instrumentalCheck">纯音乐（无人声）</label>
-            </div>
-            <button id="createMusicBtn" class="primary full" style="margin-top: 14px;">生成歌词</button>
           </div>
-          <p class="note">音乐模块只处理歌词、风格标签和歌曲生成。</p>
+
+          <!-- 段 1：参考音乐 -->
+          <div class="music-section">
+            <div class="music-section-title">
+              <span>① 参考音乐</span>
+              <span class="opt">可选</span>
+            </div>
+            <div id="musicUploadZone" class="music-upload-zone" tabindex="0" role="button" aria-label="上传参考音乐">
+              <div class="upload-icon">♪</div>
+              <p class="upload-tip">点击或拖拽上传参考音乐</p>
+              <p class="upload-hint">支持 mp3 / wav / m4a / ogg / flac，≤ 25 MB</p>
+              <span class="upload-future">上传后仅存档留档</span>
+              <input type="file" id="musicRefInput" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*">
+            </div>
+            <div id="musicUploadedFile" class="music-uploaded-file hidden">
+              <span>🎵</span>
+              <span class="file-name">-</span>
+              <button type="button" id="musicRefRemove" title="移除参考音乐">移除</button>
+            </div>
+          </div>
+
+          <!-- 段 2：歌词 -->
+          <div class="music-section">
+            <div class="music-section-title">
+              <span>② 歌词</span>
+              <span class="opt" id="musicLyricsHint">留空可点下方生成</span>
+            </div>
+            <textarea id="musicLyricsInput" class="music-lyrics-textarea"
+              placeholder="可直接粘贴完整歌词，或留空后由 AI 根据主题生成。&#10;支持标签：&#10;[Intro]  [Verse]  [Pre-Chorus]  [Chorus]  [Bridge]  [Outro]"></textarea>
+            <div class="music-counter" id="musicLyricsCounter">0 / 3,500 字符</div>
+            <div class="music-toggle-row">
+              <label>
+                <input type="checkbox" id="instrumentalCheck">
+                <span>纯音乐（无人声，模型只接收 prompt）</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 段 3：风格 -->
+          <div class="music-section">
+            <div class="music-section-title">
+              <span>③ 风格 / 氛围</span>
+              <span class="opt">点 tag 即填入</span>
+            </div>
+            <textarea id="musicStyleInput" class="music-style-textarea"
+              placeholder="例如：冷调合成器、Lo-fi 鼓组、女声哼唱、深夜独白感、120 BPM，留空也能生成。"></textarea>
+            <div class="music-counter" id="musicStyleCounter">0 / 2,000 字符</div>
+            <div class="music-tags" id="musicTagCloud">
+              <button type="button" class="music-tag" data-tag="古风">古风</button>
+              <button type="button" class="music-tag" data-tag="中国风">中国风</button>
+              <button type="button" class="music-tag" data-tag="电子">电子</button>
+              <button type="button" class="music-tag" data-tag="赛博朋克">赛博朋克</button>
+              <button type="button" class="music-tag" data-tag="蓝调">蓝调</button>
+              <button type="button" class="music-tag" data-tag="爵士">爵士</button>
+              <button type="button" class="music-tag" data-tag="摇滚">摇滚</button>
+              <button type="button" class="music-tag" data-tag="金属">金属</button>
+              <button type="button" class="music-tag" data-tag="民谣">民谣</button>
+              <button type="button" class="music-tag" data-tag="治愈">治愈</button>
+              <button type="button" class="music-tag" data-tag="燃">燃</button>
+              <button type="button" class="music-tag" data-tag="史诗">史诗</button>
+              <button type="button" class="music-tag" data-tag="电影感">电影感</button>
+              <button type="button" class="music-tag" data-tag="夜晚">夜晚</button>
+              <button type="button" class="music-tag" data-tag="雨">雨</button>
+              <button type="button" class="music-tag" data-tag="渴望">渴望</button>
+              <button type="button" class="music-tag" data-tag="孤独">孤独</button>
+              <button type="button" class="music-tag" data-tag="怀旧">怀旧</button>
+            </div>
+          </div>
+
+          <!-- 底部一行：标题 + 数量 + 创作按钮 -->
+          <div class="music-bottom-row">
+            <input id="musicTitleInput" placeholder="歌曲名称（可选）" style="margin: 0;">
+            <div class="music-stepper" title="数量 stepper（多版本生成即将支持）">
+              <button type="button" id="musicCountMinus" aria-label="减少">−</button>
+              <span class="stepper-val" id="musicCountVal">1</span>
+              <button type="button" id="musicCountPlus" aria-label="增加">+</button>
+            </div>
+            <button id="createMusicBtn" class="primary" style="margin: 0; white-space: nowrap;">创作 1 首</button>
+          </div>
+
+          <p class="note">音乐模块生成歌词 + 歌曲。参考音乐上传后存档到 R2，但当前 music-2.6 模型不消费。</p>
         </div>
 
       </aside>
@@ -1231,10 +1786,17 @@
         <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
 
         <div id="musicMeta" class="hidden">
-          <div style="margin-top:12px; padding:12px 14px; background:var(--surface-2); border-radius:var(--radius-md); border:1px solid var(--border-light);">
-            <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
-              <div><span class="section-label" style="margin-bottom:2px;">歌曲标题</span><span id="songTitle" style="font-size:14px; font-weight:500;">-</span></div>
-              <div><span class="section-label" style="margin-bottom:2px;">风格标签</span><span id="styleTags" style="font-size:13px; color:var(--text-2);">-</span></div>
+          <div class="music-progress">
+            <div class="row">
+              <span>歌曲标题：<strong id="songTitle">-</strong></span>
+              <span class="stage" id="musicStageLabel">待生成</span>
+            </div>
+            <div class="bar"><div class="fill" id="musicProgressFill" style="width: 0%;"></div></div>
+            <div class="meta-row">
+              <div><span class="k">风格标签</span><span id="styleTags">-</span></div>
+              <div><span class="k">参考音乐</span><span id="musicRefMeta">未上传</span></div>
+              <div><span class="k">纯音乐</span><span id="musicInstrMeta">否</span></div>
+              <div><span class="k">预计时长</span><span id="musicEtaMeta">~ 30-90 秒</span></div>
             </div>
           </div>
         </div>
@@ -1335,8 +1897,12 @@
         <!-- Music jobs -->
         <div id="musicJobsBlock" class="hidden">
           <div class="job-header-new">
-            <span class="label">🎵 音乐任务</span>
+            <span class="label">🎵 音乐作品</span>
             <span id="musicJobCount" class="pill">0</span>
+          </div>
+          <div class="music-tabs">
+            <button type="button" class="music-tab-btn active" data-tab="works">作品</button>
+            <button type="button" class="music-tab-btn" data-tab="favorites">收藏</button>
           </div>
           <div id="musicJobList" class="job-list"></div>
         </div>
@@ -1381,6 +1947,166 @@
     $('mixBgmCheck').onchange = toggleBgmVolGroup;
     toggleBgmVolGroup();
 
+    // ── Music UI bindings (char counters / tags / stepper / upload / tabs) ──
+    const MUSIC_LYRICS_MAX = 3500;
+    const MUSIC_STYLE_MAX = 2000;
+
+    function bindCharCounter(textareaId, counterId, max) {
+      const ta = $(textareaId);
+      const ct = $(counterId);
+      if (!ta || !ct) return;
+      const update = () => {
+        const len = ta.value.length;
+        ct.textContent = `${len.toLocaleString()} / ${max.toLocaleString()} 字符`;
+        ct.classList.toggle('warn', len > max * 0.85 && len <= max);
+        ct.classList.toggle('over', len > max);
+      };
+      ta.addEventListener('input', update);
+      update();
+    }
+
+    function appendToTextarea(textareaId, text) {
+      const ta = $(textareaId);
+      if (!ta) return;
+      const cur = ta.value.trim();
+      ta.value = cur ? `${cur}, ${text}` : text;
+      ta.dispatchEvent(new Event('input'));
+      ta.focus();
+    }
+
+    function setMusicCount(n) {
+      musicCount = Math.max(1, Math.min(4, n));
+      $('musicCountVal').textContent = musicCount;
+      $('musicCountMinus').disabled = musicCount <= 1;
+      $('musicCountPlus').disabled = musicCount >= 4;
+      const btn = $('createMusicBtn');
+      btn.textContent = musicCount > 1
+        ? `创作 ${musicCount} 首（即将支持）`
+        : '创作 1 首';
+    }
+
+    function initMusicUI() {
+      bindCharCounter('musicLyricsInput', 'musicLyricsCounter', MUSIC_LYRICS_MAX);
+      bindCharCounter('musicStyleInput', 'musicStyleCounter', MUSIC_STYLE_MAX);
+
+      // Tag cloud → append to style textarea
+      document.querySelectorAll('#musicTagCloud .music-tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+          const t = tag.dataset.tag;
+          tag.classList.toggle('selected');
+          if (tag.classList.contains('selected')) {
+            appendToTextarea('musicStyleInput', t);
+          }
+        });
+      });
+
+      // Stepper
+      $('musicCountMinus').addEventListener('click', () => setMusicCount(musicCount - 1));
+      $('musicCountPlus').addEventListener('click', () => setMusicCount(musicCount + 1));
+      setMusicCount(1);
+
+      // Reference audio upload
+      const uploadZone = $('musicUploadZone');
+      const refInput = $('musicRefInput');
+      const refFile = $('musicUploadedFile');
+      const refFileName = refFile.querySelector('.file-name');
+
+      const showUploaded = (name) => {
+        refFileName.textContent = name;
+        refFile.classList.remove('hidden');
+        uploadZone.classList.add('hidden');
+      };
+      const showZone = () => {
+        refFile.classList.add('hidden');
+        uploadZone.classList.remove('hidden');
+      };
+
+      uploadZone.addEventListener('click', (e) => {
+        // The hidden <input> handles the click via its absolute positioning,
+        // so don't double-open the file dialog.
+        if (e.target !== refInput) return;
+      });
+      ['dragenter', 'dragover'].forEach(ev =>
+        uploadZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          uploadZone.classList.add('dragover');
+        }));
+      ['dragleave', 'drop'].forEach(ev =>
+        uploadZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          uploadZone.classList.remove('dragover');
+        }));
+      uploadZone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) handleRefFile(file);
+      });
+      refInput.addEventListener('change', () => {
+        if (refInput.files && refInput.files[0]) handleRefFile(refInput.files[0]);
+      });
+
+      $('musicRefRemove').addEventListener('click', () => removeRefAudio());
+
+      // Tabs
+      document.querySelectorAll('.music-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          musicTab = btn.dataset.tab;
+          document.querySelectorAll('.music-tab-btn').forEach(b =>
+            b.classList.toggle('active', b === btn));
+          renderMusicJobList();
+        });
+      });
+    }
+
+    async function handleRefFile(file) {
+      const name = file.name || 'audio';
+      if (!activeJobId) {
+        showActionFeedback('请先创建任务后再上传参考音乐', 'error');
+        return;
+      }
+      if (file.size > 25 * 1024 * 1024) {
+        showActionFeedback('参考音频超过 25 MB 上限', 'error');
+        return;
+      }
+      showActionFeedback('正在上传参考音乐到 R2...');
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`/api/jobs/${activeJobId}/reference-audio`, {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || '上传失败');
+        renderJob(data);
+        const refName = data.reference_audio_name || name;
+        const refNameEl = $('musicUploadedFile').querySelector('.file-name');
+        refNameEl.textContent = refName;
+        $('musicUploadedFile').classList.remove('hidden');
+        $('musicUploadZone').classList.add('hidden');
+        showActionFeedback('参考音乐已上传（已存档，music-2.6 不消费）', 'ok');
+      } catch (err) {
+        showActionFeedback('上传失败：' + err.message, 'error');
+      }
+    }
+
+    async function removeRefAudio() {
+      if (!activeJobId) {
+        $('musicUploadedFile').classList.add('hidden');
+        $('musicUploadZone').classList.remove('hidden');
+        return;
+      }
+      try {
+        const job = await api(`/api/jobs/${activeJobId}/reference-audio`, { method: 'DELETE' });
+        renderJob(job);
+        $('musicUploadedFile').classList.add('hidden');
+        $('musicUploadZone').classList.remove('hidden');
+        showActionFeedback('参考音乐已移除', 'ok');
+      } catch (err) {
+        showActionFeedback('移除失败：' + err.message, 'error');
+      }
+    }
+
     let activeJobId = null;
 
     const AZURE_VOICES = [
@@ -1394,6 +2120,7 @@
       { value: 'zh-CN-XiaochenNeural', label: '晓辰' },
     ];
     const MINIMAX_VOICES = [
+      { value: 'azure_yunze_clone', label: '☁️ 云泽克隆版（Azure 复刻，默认推荐）' },
       { value: 'Chinese_deep_voiced_male_vv1', label: 'Deep Voice（低沉男声）' },
       { value: 'Chinese (Mandarin)_Gentle_Senior', label: '温婉柔和' },
     ];
@@ -1411,6 +2138,8 @@
     let editorDirty = false;
     let editorJobId = null;
     let topicRecommendations = [];
+    let musicTab = 'works';
+    let musicCount = 1;
     let topicCategory = '全部';
     let topicOffset = 0;
 
@@ -1458,6 +2187,14 @@
       document.querySelectorAll('.voice-only').forEach(el => {
         el.classList.toggle('hidden', isMusicMode);
       });
+      if (isMusicMode) {
+        // Re-render the music list with the current tab + bind once-only UI
+        renderMusicJobList();
+        if (!window.__musicUiInited) {
+          initMusicUI();
+          window.__musicUiInited = true;
+        }
+      }
       if (options.selectJob !== false) {
         await selectFirstJobForMode(mode);
       }
@@ -1643,9 +2380,55 @@
           editorJobId = job.id;
         }
 
-        // Music metadata
+        // Music metadata + progress
         $('songTitle').textContent = job.title || '-';
         $('styleTags').textContent = job.style_tags || '-';
+        $('musicInstrMeta').textContent = job.is_instrumental ? '是' : '否';
+        $('musicRefMeta').textContent = job.reference_audio_name
+          ? ('✓ ' + job.reference_audio_name)
+          : '未上传';
+        // Stage + progress bar
+        const stageMap = {
+          pending: { label: '待生成', pct: 5 },
+          generating_lyrics: { label: '生成歌词中…', pct: 30 },
+          lyrics_ready: { label: '歌词待生成歌曲', pct: 55 },
+          generating: { label: '生成歌曲中…', pct: 80 },
+          done: { label: '已完成', pct: 100 },
+          error: { label: '出错', pct: 100 },
+        };
+        const stage = stageMap[job.status] || { label: statusLabel(job.status), pct: 0 };
+        $('musicStageLabel').textContent = stage.label;
+        $('musicProgressFill').style.width = stage.pct + '%';
+        // Hide ETA when done
+        if (job.status === 'done' || job.status === 'error') {
+          const dur = job.audio_duration_ms ? Math.round(job.audio_duration_ms / 1000) : null;
+          $('musicEtaMeta').textContent = dur
+            ? `${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}`
+            : '—';
+        } else if (job.status === 'generating') {
+          $('musicEtaMeta').textContent = '~ 30-90 秒';
+        } else {
+          $('musicEtaMeta').textContent = '~ 5-15 秒';
+        }
+        // Sync left-side reference audio display
+        if (job.reference_audio_url) {
+          const refName = $('musicUploadedFile').querySelector('.file-name');
+          refName.textContent = job.reference_audio_name || '参考音乐';
+          $('musicUploadedFile').classList.remove('hidden');
+          $('musicUploadZone').classList.add('hidden');
+        } else {
+          $('musicUploadedFile').classList.add('hidden');
+          $('musicUploadZone').classList.remove('hidden');
+        }
+        // Sync left-side style description box if empty
+        if ($('musicStyleInput').value !== (job.style_description || '')) {
+          $('musicStyleInput').value = job.style_description || '';
+          $('musicStyleInput').dispatchEvent(new Event('input'));
+        }
+        // Sync left-side title box
+        if (job.title) $('musicTitleInput').value = job.title;
+        // Sync instrumental checkbox
+        $('instrumentalCheck').checked = !!job.is_instrumental;
 
         // Music action buttons
         const hasLyrics = lyrics.trim().length > 0;
@@ -1792,11 +2575,137 @@
       $('generateVoiceBtn').disabled = !hasScript;
     }
 
+    function renderMusicJobList() {
+      const list = $('musicJobList');
+      if (!list) return;
+      list.innerHTML = '';
+      const musicJobs = lastJobs.filter(j => j.mode === 'music');
+      const filtered = musicTab === 'favorites' ? musicJobs.filter(j => j.is_starred) : musicJobs;
+      if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'music-empty';
+        empty.textContent = musicTab === 'favorites' ? '还没有收藏的作品' : '还没有音乐作品';
+        list.appendChild(empty);
+        return;
+      }
+      filtered.forEach(job => list.appendChild(buildTrackCard(job)));
+    }
+
+    function buildTrackCard(job) {
+      const card = document.createElement('button');
+      card.className = 'music-track' + (job.id === activeJobId ? ' active' : '');
+      card.dataset.jobId = job.id;
+      const titleText = (job.title || job.theme || '音乐作品').trim();
+      const initial = titleText.charAt(0) || '♪';
+      const status = job.status || 'pending';
+      let badge = '';
+      if (status === 'done') badge = '<span class="badge done">已生成</span>';
+      else if (status === 'error') badge = '<span class="badge error">出错</span>';
+      else if (['pending', 'generating_lyrics', 'generating'].includes(status)) badge = '<span class="badge working">生成中</span>';
+      else if (status === 'lyrics_ready') badge = '<span class="badge">歌词待生成</span>';
+      if (job.is_instrumental) badge = '<span class="badge instr">纯音乐</span>' + (badge ? ' ' + badge : '');
+      const durationMs = job.audio_duration_ms;
+      let durationLabel = '';
+      if (durationMs && durationMs > 0) {
+        const totalSec = Math.round(durationMs / 1000);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        durationLabel = `${m}:${String(s).padStart(2, '0')}`;
+      } else if (status === 'done') {
+        durationLabel = '—:—';
+      }
+      const starred = job.is_starred ? '★' : '☆';
+      card.innerHTML = `
+        <div class="thumb">${escapeHtml(initial)}${durationLabel ? `<span class="duration">${escapeHtml(durationLabel)}</span>` : ''}</div>
+        <div class="info">
+          <div class="title">${escapeHtml(titleText)}</div>
+          <div class="meta">${badge}<span>${escapeHtml(statusLabel(status))}</span></div>
+        </div>
+        <div class="actions">
+          <button type="button" data-action="star" title="收藏">${starred}</button>
+          <button type="button" data-action="play" title="播放">▶</button>
+          <button type="button" data-action="regen" title="重新生成">↻</button>
+        </div>
+      `;
+      card.addEventListener('click', (e) => {
+        const act = e.target.closest('[data-action]');
+        if (act) {
+          e.stopPropagation();
+          const a = act.dataset.action;
+          if (a === 'star') return toggleStar(job);
+          if (a === 'play') return playTrack(job);
+          if (a === 'regen') return regenTrack(job);
+        }
+        loadJob(job.id);
+      });
+      return card;
+    }
+
+    async function toggleStar(job) {
+      try {
+        const newValue = !job.is_starred;
+        const data = await api('/api/jobs/' + job.id + '/star', {
+          method: 'POST',
+          body: JSON.stringify({ is_starred: newValue }),
+        });
+        const idx = lastJobs.findIndex(j => j.id === job.id);
+        if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+        renderMusicJobList();
+        if (activeJobId === job.id) renderJob(lastJobs[idx]);
+      } catch (err) {
+        showActionFeedback('收藏失败：' + err.message, 'error');
+      }
+    }
+
+    function playTrack(job) {
+      if (!job.audio_url) {
+        showActionFeedback('该作品还没有可播放的音频', 'error');
+        return;
+      }
+      const audio = $('audio');
+      audio.src = job.audio_url;
+      $('audioBox').classList.remove('hidden');
+      audio.play().catch(() => {});
+      if (activeJobId !== job.id) loadJob(job.id);
+    }
+
+    async function regenTrack(job) {
+      if (job.status === 'generating' || job.status === 'generating_lyrics') return;
+      showActionFeedback('正在重新生成歌曲...');
+      try {
+        const data = await api('/api/jobs/' + job.id + '/retry-music', { method: 'POST' });
+        const idx = lastJobs.findIndex(j => j.id === job.id);
+        if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+        if (activeJobId === job.id) renderJob(data);
+        renderMusicJobList();
+        // light polling to follow progress
+        pollJobUntilDone(job.id, ['generating'], ['done', 'error']);
+      } catch (err) {
+        showActionFeedback('重新生成失败：' + err.message, 'error');
+      }
+    }
+
+    async function pollJobUntilDone(jobId, watchStates, terminalStates, maxMs = 180000) {
+      const start = Date.now();
+      while (Date.now() - start < maxMs) {
+        await new Promise(r => setTimeout(r, 2500));
+        try {
+          const j = await api('/api/jobs/' + jobId);
+          const idx = lastJobs.findIndex(x => x.id === jobId);
+          if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...j };
+          if (activeJobId === jobId) renderJob(j);
+          renderMusicJobList();
+          if (terminalStates.includes(j.status)) {
+            showActionFeedback(j.status === 'done' ? '生成完成' : ('生成失败：' + (j.error || '')),
+              j.status === 'done' ? 'ok' : 'error');
+            return;
+          }
+        } catch (e) { /* keep polling */ }
+      }
+      showActionFeedback('生成超时未完成，请检查列表', 'error');
+    }
+
     async function refreshJobs() {
-      const jobs = await api('/api/jobs');
-      lastJobs = jobs;
-      const activeExists = jobs.some(job => job.id === activeJobId);
-      if (activeJobId && !activeExists && !editorDirty) activeJobId = null;
 
       // Voice jobs (theme + script)
       const voiceList = $('voiceJobList');
@@ -1815,22 +2724,10 @@
         });
       }
 
-      // Music jobs
-      const musicList = $('musicJobList');
-      if (musicList) {
-        musicList.innerHTML = '';
-        const musicJobs = jobs.filter(j => j.mode === 'music');
-        $('musicJobCount').textContent = musicJobs.length;
-        musicJobs.forEach(job => {
-          const btn = document.createElement('button');
-          btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
-          btn.dataset.jobId = job.id;
-          const jobLabel = job.title || job.theme || '音乐创作';
-          btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
-          btn.onclick = () => loadJob(job.id);
-          musicList.appendChild(btn);
-        });
-      }
+      // Music jobs (rendered as track cards via renderMusicJobList)
+      const musicJobs = jobs.filter(j => j.mode === 'music');
+      $('musicJobCount').textContent = musicJobs.length;
+      renderMusicJobList();
 
       const activeJob = jobs.find(job => job.id === activeJobId);
       if (activeJob && jobGroup(activeJob) !== mode && !editorDirty) {
@@ -1976,6 +2873,8 @@
       try {
         await api('/api/login', { method: 'POST', body: JSON.stringify({ password: $('password').value }) });
         showApp(true);
+        initMusicUI();
+        window.__musicUiInited = true;
         await refreshJobs();
         await loadBgmSelect($('bgmSelect'));
         await loadTopicRecommendations();
@@ -1992,7 +2891,12 @@
     $('createMusicBtn').onclick = async () => {
       const theme = $('musicThemeInput').value.trim();
       if (!theme) { showActionFeedback('请输入主题/风格描述', 'error'); return; }
+      const lyricsText = $('musicLyricsInput').value.trim();
+      const styleText = $('musicStyleInput').value.trim();
+      const isInstrumental = $('instrumentalCheck').checked;
+      const hasUserLyrics = !!lyricsText;
       $('createMusicBtn').disabled = true;
+      const originalLabel = $('createMusicBtn').textContent;
       $('createMusicBtn').textContent = '创建中...';
       try {
         const resp = await api('/api/jobs', {
@@ -2001,26 +2905,38 @@
             mode: 'music',
             theme: theme,
             title: $('musicTitleInput').value.trim(),
-            is_instrumental: $('instrumentalCheck').checked,
+            is_instrumental: isInstrumental,
+            style_description: styleText,
           })
         });
         await setMode('music', { selectJob: false, force: true });
         renderJob(resp.job);
         await refreshJobs();
-        // Auto-generate lyrics
-        showActionFeedback('正在生成歌词...');
-        try {
-          const job = await api('/api/jobs/' + resp.job_id + '/generate-lyrics', { method: 'POST' });
+
+        if (hasUserLyrics) {
+          // Skip lyrics generation; save user-typed lyrics directly
+          showActionFeedback('已载入你提供的歌词');
+          const job = await api('/api/jobs/' + resp.job_id, {
+            method: 'PATCH',
+            body: JSON.stringify({ edited_lyrics: lyricsText, status: 'lyrics_ready' }),
+          });
           renderJob(job);
-          showActionFeedback('歌词已生成，请确认后生成歌曲', 'ok');
-        } catch (err) {
-          showActionFeedback('歌词生成失败：' + err.message, 'error');
+          showActionFeedback('歌词已就绪，可直接点「生成歌曲」', 'ok');
+        } else {
+          showActionFeedback('正在生成歌词...');
+          try {
+            const job = await api('/api/jobs/' + resp.job_id + '/generate-lyrics', { method: 'POST' });
+            renderJob(job);
+            showActionFeedback('歌词已生成，请确认后生成歌曲', 'ok');
+          } catch (err) {
+            showActionFeedback('歌词生成失败：' + err.message, 'error');
+          }
         }
       } catch (err) {
         showActionFeedback('创建失败：' + err.message, 'error');
       } finally {
         $('createMusicBtn').disabled = false;
-        $('createMusicBtn').textContent = '生成歌词';
+        $('createMusicBtn').textContent = originalLabel;
       }
     };
 
