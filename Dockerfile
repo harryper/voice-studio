@@ -1,6 +1,11 @@
 FROM python:3.11-slim
 
-ENV PYTHONUNBUFFERED=1
+# Container runs on UTC by default; force Asia/Shanghai so that
+# `datetime.now()` and child-process timestamps (subprocess.run, etc.)
+# match the host's wall-clock time used everywhere else.
+ENV PYTHONUNBUFFERED=1 \
+    TZ=Asia/Shanghai
+
 WORKDIR /app
 
 RUN apt-get update \

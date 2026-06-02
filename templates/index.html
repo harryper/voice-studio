@@ -1774,7 +1774,6 @@
         <div class="job-header">
           <span id="jobTitle" class="title">还没有任务</span>
           <span id="jobStatus" class="pill">声音</span>
-          <span id="jobId" class="pill">-</span>
         </div>
 
         <div id="musicMeta" class="hidden">
@@ -2295,7 +2294,6 @@
       activeJobId = null;
       editorJobId = null;
       editorDirty = false;
-      $('jobId').textContent = '-';
       const isMusicMode = mode === 'music';
       $('jobTitle').textContent = isMusicMode ? '还没有音乐任务' : '还没有声音任务';
       $('jobStatus').textContent = isMusicMode ? '音乐' : '声音';
@@ -2333,10 +2331,14 @@
       document.querySelectorAll('#voiceJobList .job, #musicJobList .job').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.jobId === job.id);
       });
-      $('jobId').textContent = job.id;
       $('jobTitle').textContent = job.theme || (job.mode === 'music' ? '音乐创作' : '直接输入文稿');
       $('jobStatus').textContent = statusLabel(job.status);
-      $('jobStatus').className = 'pill ' + (job.status === 'error' ? 'error' : ['ready', 'done', 'lyrics_ready'].includes(job.status) ? 'ready' : '');
+      const statusCls = job.status === 'error'
+        ? 'pill error'
+        : ['ready', 'done', 'lyrics_ready'].includes(job.status)
+          ? 'pill ready'
+          : 'pill';
+      $('jobStatus').className = statusCls;
 
       const isMusic = job.mode === 'music';
 
@@ -2602,7 +2604,7 @@
         <div class="thumb">${escapeHtml(initial)}${durationLabel ? `<span class="duration">${escapeHtml(durationLabel)}</span>` : ''}</div>
         <div class="info">
           <div class="title">${escapeHtml(titleText)}</div>
-          <div class="meta">${badge}<span>${escapeHtml(statusLabel(status))}</span></div>
+          <div class="meta">${badge}</div>
         </div>
         <div class="actions">
           <button type="button" data-action="star" title="收藏">${starred}</button>
@@ -2679,8 +2681,11 @@
           if (activeJobId === jobId) renderJob(j);
           renderMusicJobList();
           if (terminalStates.includes(j.status)) {
-            showActionFeedback(j.status === 'done' ? '生成完成' : ('生成失败：' + (j.error || '')),
-              j.status === 'done' ? 'ok' : 'error');
+            const ok = j.status !== 'error';
+            const msg = ok
+              ? (j.status === 'lyrics_ready' ? '歌词已重新生成' : '生成完成')
+              : ('生成失败：' + (j.error || ''));
+            showActionFeedback(msg, ok ? 'ok' : 'error');
             return;
           }
         } catch (e) { /* keep polling */ }
@@ -2953,12 +2958,17 @@
       try {
         const job = await api('/api/jobs/' + activeJobId + '/retry-lyrics', { method: 'POST' });
         renderJob(job);
-        showActionFeedback('歌词已重新生成', 'ok');
+        // Backend now returns immediately with status='generating_lyrics';
+        // poll until the lyrics are ready (or fail) so the right-side pill
+        // visibly transitions from "已完成" -> "生成歌词中" -> "歌词待确认".
+        await pollJobUntilDone(activeJobId, ['pending', 'generating_lyrics'], ['lyrics_ready', 'error'], 200000);
+        if (btn.isConnected) btn.textContent = '重新生成歌词';
       } catch (err) {
         showActionFeedback('重新生成失败：' + err.message, 'error');
       } finally {
-        btn.disabled = false;
-        btn.textContent = '重新生成歌词';
+        if (btn.isConnected) {
+          btn.disabled = false;
+        }
       }
     };
 
@@ -2981,12 +2991,14 @@
       try {
         const job = await api('/api/jobs/' + activeJobId + '/generate-music', { method: 'POST' });
         renderJob(job);
-        showActionFeedback('歌曲生成完成', 'ok');
+        await pollJobUntilDone(activeJobId, ['generating'], ['done', 'error'], 600000);
+        if (btn.isConnected) btn.textContent = '生成歌曲';
       } catch (err) {
         showActionFeedback('生成失败：' + err.message, 'error');
       } finally {
-        btn.disabled = false;
-        btn.textContent = '生成歌曲';
+        if (btn.isConnected) {
+          btn.disabled = false;
+        }
       }
     };
 
@@ -2999,12 +3011,14 @@
       try {
         const job = await api('/api/jobs/' + activeJobId + '/retry-music', { method: 'POST' });
         renderJob(job);
-        showActionFeedback('歌曲已重新生成', 'ok');
+        await pollJobUntilDone(activeJobId, ['generating'], ['done', 'error'], 600000);
+        if (btn.isConnected) btn.textContent = '重新生成歌曲';
       } catch (err) {
         showActionFeedback('重新生成失败：' + err.message, 'error');
       } finally {
-        btn.disabled = false;
-        btn.textContent = '重新生成歌曲';
+        if (btn.isConnected) {
+          btn.disabled = false;
+        }
       }
     };
 

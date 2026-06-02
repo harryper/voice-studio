@@ -4,10 +4,22 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import time
 import uuid
 from datetime import datetime
 from pathlib import Path
+
+# Force Asia/Shanghai so datetime.now() / isoformat() write local wall-clock
+# time into job.json `updated_at` (and any other persisted timestamps).
+# The base image is python:3.11-slim on UTC, but the host is CST and
+# every consumer of these timestamps assumes local time.
+os.environ.setdefault('TZ', 'Asia/Shanghai')
+try:
+    time.tzset()
+except Exception:
+    # tzset() can fail on platforms without proper zoneinfo; fall back silently.
+    pass
 from urllib.parse import urlparse, unquote
 from flask import Flask, request, jsonify, render_template, send_from_directory, session
 
@@ -463,9 +475,41 @@ def archive_job_api(job_id):
 
 # ── Music Endpoints ───────────────────────────────────────
 
+def _run_lyrics_generation(job_id, full_prompt):
+    """Background worker: run the lyrics sub-process and persist the result."""
+    try:
+        result = subprocess.run(
+            ['python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
+             'lyrics', '--prompt', full_prompt],
+            text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=180,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr or result.stdout or '歌词生成失败')
+
+        lyrics_data = json.loads(result.stdout)
+        job = load_job(job_id)
+        job['lyrics'] = lyrics_data.get('lyrics', '')
+        job['edited_lyrics'] = None
+        job['title'] = lyrics_data.get('song_title', '') or job.get('title', '')
+        job['style_tags'] = lyrics_data.get('style_tags', '')
+        job['status'] = 'lyrics_ready'
+        job['error'] = None
+        save_job(job)
+    except Exception as exc:
+        job = load_job(job_id)
+        job['status'] = 'error'
+        job['error'] = str(exc)
+        save_job(job)
+
+
 @app.route('/api/jobs/<job_id>/generate-lyrics', methods=['POST'])
 def generate_lyrics_api(job_id):
-    """Step 1: Generate lyrics from theme using MiniMax Lyrics API."""
+    """Step 1: Generate lyrics from theme using MiniMax Lyrics API.
+
+    Returns immediately with status='generating_lyrics'; the sub-process runs
+    in a background thread. The frontend should poll /api/jobs/<id> to follow
+    progress and pick up the final status.
+    """
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
@@ -476,38 +520,22 @@ def generate_lyrics_api(job_id):
     if not theme:
         return jsonify({'error': '主题为空'}), 400
 
-    # Compose prompt: theme + (optional) user style description
     style_desc = (job.get('style_description') or '').strip()
     full_prompt = theme
     if style_desc:
         full_prompt = f"{theme}\n\n风格描述：{style_desc}"
 
-    try:
-        job['status'] = 'generating_lyrics'
-        job['error'] = None
-        save_job(job)
+    job['status'] = 'generating_lyrics'
+    job['error'] = None
+    save_job(job)
 
-        result = subprocess.run(
-            ['python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
-             'lyrics', '--prompt', full_prompt],
-            text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=180,
-        )
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr or result.stdout or '歌词生成失败')
+    threading.Thread(
+        target=_run_lyrics_generation,
+        args=(job_id, full_prompt),
+        daemon=True,
+    ).start()
 
-        lyrics_data = json.loads(result.stdout)
-        job['lyrics'] = lyrics_data.get('lyrics', '')
-        job['edited_lyrics'] = None
-        job['title'] = lyrics_data.get('song_title', '') or job.get('title', '')
-        job['style_tags'] = lyrics_data.get('style_tags', '')
-        job['status'] = 'lyrics_ready'
-        save_job(job)
-        return jsonify(job_response(job))
-    except Exception as exc:
-        job['status'] = 'error'
-        job['error'] = str(exc)
-        save_job(job)
-        return jsonify(job_response(job)), 500
+    return jsonify(job_response(job))
 
 
 @app.route('/api/jobs/<job_id>/generate-music', methods=['POST'])
@@ -530,115 +558,138 @@ def generate_music_api(job_id):
     if job.get('style_description'):
         prompt = prompt + '\n\n' + job['style_description']
 
-    try:
-        job['status'] = 'generating'
-        job['error'] = None
-        save_job(job)
+    run_dir = RUNS_DIR / job['id']
+    run_dir.mkdir(parents=True, exist_ok=True)
+    output_path = run_dir / 'music.mp3'
 
-        run_dir = RUNS_DIR / job['id']
-        run_dir.mkdir(parents=True, exist_ok=True)
-        output_path = run_dir / 'music.mp3'
+    lyrics_path = None
 
-        lyrics_path = None
+    # Build CLI args
+    cmd = [
+        'python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
+        'music',
+        '--prompt', prompt,
+        '-o', str(output_path),
+        '--model', 'music-2.6',
+    ]
+    if is_instrumental:
+        cmd.append('--instrumental')
+    else:
+        lyrics_path = run_dir / 'lyrics.txt'
+        lyrics_path.write_text(lyrics_text, encoding='utf-8')
+        cmd.extend(['--lyrics-file', str(lyrics_path)])
 
-        # Build CLI args
-        cmd = [
-            'python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
-            'music',
-            '--prompt', prompt,
-            '-o', str(output_path),
-            '--model', 'music-2.6',
-        ]
-        if is_instrumental:
-            cmd.append('--instrumental')
-        else:
-            lyrics_path = run_dir / 'lyrics.txt'
-            lyrics_path.write_text(lyrics_text, encoding='utf-8')
-            cmd.extend(['--lyrics-file', str(lyrics_path)])
+    job['status'] = 'generating'
+    job['error'] = None
+    save_job(job)
 
-        result = subprocess.run(cmd, text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=600)
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr or result.stdout or '音乐生成失败')
-
-        # Try to capture duration / size from the script's last JSON line
+    def _run_music_generation():
         try:
-            music_meta = json.loads(result.stdout.strip().splitlines()[-1])
-            if isinstance(music_meta, dict) and music_meta.get('duration_ms'):
-                job['audio_duration_ms'] = int(music_meta['duration_ms'])
-        except (ValueError, IndexError):
-            pass
+            result = subprocess.run(cmd, text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=600)
+            if result.returncode != 0:
+                raise RuntimeError(result.stderr or result.stdout or '音乐生成失败')
 
-        # Upload to R2 with readable names.
-        theme_slug = job_name_fragment(job, fallback='music')
-        ts = datetime.now().strftime('%Y%m%d-%H%M%S')
-        upload_result = subprocess.run(
-            ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
-             '--file', str(output_path), '--theme', 'music',
-             '--name', oss_object_name(job, 'song', 'mp3', ts=ts)],
-            text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
-        )
-        if upload_result.returncode == 0:
-            audio_url = upload_result.stdout.strip().splitlines()[-1].strip()
-        else:
-            audio_url = None
+            # Try to capture duration / size from the script's last JSON line
+            try:
+                music_meta = json.loads(result.stdout.strip().splitlines()[-1])
+                if isinstance(music_meta, dict) and music_meta.get('duration_ms'):
+                    job['audio_duration_ms'] = int(music_meta['duration_ms'])
+            except (ValueError, IndexError):
+                pass
 
-        lyrics_url = None
-        if lyrics_text:
-            if lyrics_path is None:
-                lyrics_path = run_dir / 'lyrics.txt'
-                lyrics_path.write_text(lyrics_text, encoding='utf-8')
-            lyrics_upload = subprocess.run(
+            # Upload to R2 with readable names.
+            ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+            upload_result = subprocess.run(
                 ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
-                 '--file', str(lyrics_path), '--theme', 'music',
-                 '--name', oss_object_name(job, 'lyrics', 'txt', ts=ts)],
+                 '--file', str(output_path), '--theme', 'music',
+                 '--name', oss_object_name(job, 'song', 'mp3', ts=ts)],
                 text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
             )
-            if lyrics_upload.returncode == 0:
-                lyrics_url = lyrics_upload.stdout.strip().splitlines()[-1].strip()
+            if upload_result.returncode == 0:
+                audio_url = upload_result.stdout.strip().splitlines()[-1].strip()
+            else:
+                audio_url = None
 
-        job['audio_path'] = str(output_path)
-        job['audio_url'] = audio_url
-        if lyrics_url:
-            job['lyrics_url'] = lyrics_url
-        job['status'] = 'done'
-        save_job(job)
-        return jsonify(job_response(job))
-    except Exception as exc:
-        job['status'] = 'error'
-        job['error'] = str(exc)
-        save_job(job)
-        return jsonify(job_response(job)), 500
+            lyrics_url = None
+            if lyrics_text:
+                effective_lyrics_path = lyrics_path if lyrics_path is not None else (run_dir / 'lyrics.txt')
+                if not effective_lyrics_path.exists():
+                    effective_lyrics_path.write_text(lyrics_text, encoding='utf-8')
+                lyrics_upload = subprocess.run(
+                    ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+                     '--file', str(effective_lyrics_path), '--theme', 'music',
+                     '--name', oss_object_name(job, 'lyrics', 'txt', ts=ts)],
+                    text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
+                )
+                if lyrics_upload.returncode == 0:
+                    lyrics_url = lyrics_upload.stdout.strip().splitlines()[-1].strip()
+
+            job['audio_path'] = str(output_path)
+            job['audio_url'] = audio_url
+            if lyrics_url:
+                job['lyrics_url'] = lyrics_url
+            job['status'] = 'done'
+            job['error'] = None
+            save_job(job)
+        except Exception as exc:
+            job['status'] = 'error'
+            job['error'] = str(exc)
+            save_job(job)
+
+    threading.Thread(target=_run_music_generation, daemon=True).start()
+
+    return jsonify(job_response(job))
 
 
 @app.route('/api/jobs/<job_id>/retry-lyrics', methods=['POST'])
 def retry_lyrics_api(job_id):
-    """Regenerate lyrics for a music job."""
+    """Regenerate lyrics for a music job (async, returns immediately)."""
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
     if job.get('mode') != 'music':
         return jsonify({'error': '非音乐任务'}), 400
+
+    theme = job.get('theme', '')
+    if not theme:
+        return jsonify({'error': '主题为空'}), 400
 
     job['lyrics'] = None
     job['edited_lyrics'] = None
     job['style_tags'] = ''
     job['audio_url'] = None
     job['audio_path'] = None
-    job['status'] = 'pending'
+    job['status'] = 'generating_lyrics'
     job['error'] = None
     save_job(job)
 
-    return generate_lyrics_api(job_id)
+    style_desc = (job.get('style_description') or '').strip()
+    full_prompt = theme
+    if style_desc:
+        full_prompt = f"{theme}\n\n风格描述：{style_desc}"
+
+    threading.Thread(
+        target=_run_lyrics_generation,
+        args=(job_id, full_prompt),
+        daemon=True,
+    ).start()
+
+    return jsonify(job_response(job))
 
 
 @app.route('/api/jobs/<job_id>/retry-music', methods=['POST'])
 def retry_music_api(job_id):
-    """Regenerate music from existing lyrics."""
+    """Regenerate music from existing lyrics (async, returns immediately)."""
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
     if job.get('mode') != 'music':
         return jsonify({'error': '非音乐任务'}), 400
+
+    lyrics_text = (job.get('edited_lyrics') or job.get('lyrics') or '').strip()
+    is_instrumental = job.get('is_instrumental', False)
+    if not lyrics_text and not is_instrumental:
+        return jsonify({'error': '歌词为空，请先生成或编辑歌词'}), 400
 
     job['audio_url'] = None
     job['audio_path'] = None
