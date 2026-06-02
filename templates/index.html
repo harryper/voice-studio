@@ -526,6 +526,19 @@
       font-weight: 500;
     }
 
+    .job .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--accent-music-light);
+      color: var(--accent-music);
+    }
+    .job .badge.done { background: rgba(48,209,88,.12); color: var(--success); }
+    .job .badge.working { background: rgba(255,149,0,.14); color: var(--warn); }
+    .job .badge.error { background: var(--danger-light); color: var(--danger); }
+
     .job-meta {
       color: var(--text-3);
       font-size: 11px;
@@ -1552,6 +1565,46 @@
     .music-track .badge.error { background: var(--danger-light); color: var(--danger); }
     .music-track .badge.instr { background: var(--accent-music-light); color: var(--accent-music); }
 
+    /* ─── Music meta (right panel) ─── */
+    .meta-input {
+      font: inherit;
+      font-size: 13px;
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text);
+      min-width: 0;
+      max-width: 220px;
+    }
+    .meta-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .style-editor {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .style-editor-head {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .style-editor-head .opt {
+      color: var(--text-3);
+      font-size: 11px;
+    }
+    .style-editor-foot {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
     .music-track .actions {
       position: absolute;
       right: 8px;
@@ -1783,11 +1836,16 @@
               <span class="eta" id="musicEtaMeta">~ 5-15 秒</span>
             </div>
             <div class="bar"><div class="fill" id="musicProgressFill" style="width: 0%;"></div></div>
-            <div class="meta-row">
-              <div><span class="k">歌曲标题</span><span id="songTitle">-</span></div>
-              <div><span class="k">风格标签</span><span id="styleTags">-</span></div>
-              <div><span class="k">参考音乐</span><span id="musicRefMeta">未上传</span></div>
-              <div><span class="k">纯音乐</span><span id="musicInstrMeta">否</span></div>
+            <div class="style-editor">
+              <div class="style-editor-head">
+                <span class="k">风格描述</span>
+                <span class="opt">重新生成歌曲时会拼入 prompt</span>
+              </div>
+              <textarea id="styleDescriptionEditor" class="music-style-textarea"
+                placeholder="例如：冷调合成器、Lo-fi 鼓组、女声哼唱、深夜独白感、120 BPM"></textarea>
+              <div class="style-editor-foot">
+                <button id="saveStyleBtn" class="small" type="button">保存风格描述</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1964,7 +2022,8 @@
       const cur = ta.value.trim();
       ta.value = cur ? `${cur}, ${text}` : text;
       ta.dispatchEvent(new Event('input'));
-      ta.focus();
+      // 不调 ta.focus()：focus 转移会触发浏览器重置 textarea 高度，
+      // 导致“点一下 textarea 突然收缩”的品品现象。保留用户原本焦点状态。
     }
 
     function setMusicCount(n) {
@@ -1974,8 +2033,10 @@
     function initMusicUI() {
       bindCharCounter('musicStyleInput', 'musicStyleCounter', MUSIC_STYLE_MAX);
 
-      // Tag cloud → append to style textarea
+      // Tag cloud → append to style textarea (左侧创建面板专用).
+      // 右侧编辑面板不重复 tag cloud，左侧这套够用。
       document.querySelectorAll('#musicTagCloud .music-tag').forEach(tag => {
+        tag.addEventListener('mousedown', (e) => e.preventDefault());  // 阻止 button 抢焦点
         tag.addEventListener('click', () => {
           const t = tag.dataset.tag;
           tag.classList.toggle('selected');
@@ -1984,6 +2045,34 @@
           }
         });
       });
+
+      // 右侧 styleDescriptionEditor 字符计数。
+      bindCharCounter('styleDescriptionEditor', null, MUSIC_STYLE_MAX);
+
+      // 保存风格描述 → PATCH job.style_description。
+      $('saveStyleBtn').onclick = async () => {
+        if (!activeJobId) return;
+        const btn = $('saveStyleBtn');
+        const orig = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '保存中...';
+        try {
+          const data = await api('/api/jobs/' + activeJobId, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              style_description: $('styleDescriptionEditor').value,
+            }),
+          });
+          const idx = lastJobs.findIndex(j => j.id === activeJobId);
+          if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+          showActionFeedback('风格描述已保存，重新生成歌曲时会用新值', 'ok');
+        } catch (err) {
+          showActionFeedback('保存失败：' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = orig;
+        }
+      };
 
       setMusicCount(1);
 
@@ -2366,12 +2455,13 @@
         }
 
         // Music metadata + progress
-        $('songTitle').textContent = job.title || '-';
-        $('styleTags').textContent = job.style_tags || '-';
-        $('musicInstrMeta').textContent = job.is_instrumental ? '是' : '否';
-        $('musicRefMeta').textContent = job.reference_audio_name
-          ? ('✓ ' + job.reference_audio_name)
-          : '未上传';
+        // 中间主区域已不再显示歌曲标题 / 参考音乐 / 纯音乐这几行
+        // （jobTitle 标题够明显，参考音乐 + 纯音乐状态在左侧创建面板里）。
+        // 风格描述：只在用户不在编辑时覆盖，避免轮询状态打掉输入。
+        const styleDescEl = $('styleDescriptionEditor');
+        if (styleDescEl && document.activeElement !== styleDescEl) {
+          styleDescEl.value = job.style_description || '';
+        }
         // Stage + progress bar (2-step process: 歌词 → 歌曲)
         const stageMap = {
           pending:           { label: '第 1 / 2 步 · 待生成歌词', pct: 5 },
@@ -2407,13 +2497,9 @@
           $('musicUploadedFile').classList.add('hidden');
           $('musicUploadZone').classList.remove('hidden');
         }
-        // Sync left-side style description box if empty
-        if ($('musicStyleInput').value !== (job.style_description || '')) {
-          $('musicStyleInput').value = job.style_description || '';
-          $('musicStyleInput').dispatchEvent(new Event('input'));
-        }
-        // Sync instrumental checkbox
-        $('instrumentalCheck').checked = !!job.is_instrumental;
+        // 左侧"新建面板"的输入框（musicThemeInput / musicStyleInput /
+        // instrumentalCheck / 参考音乐上传）不再被 active job 覆盖。
+        // 左 = 新建 / 中 = 修改 / 右 = 成品，职责分清。
 
         // Music action buttons
         const hasLyrics = lyrics.trim().length > 0;
@@ -2710,7 +2796,13 @@
           btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
           btn.dataset.jobId = job.id;
           const jobLabel = job.theme || '直接文稿';
-          btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id} · ${statusLabel(job.status)}</span>`;
+          let badge = '';
+          const vStatus = job.status || 'pending';
+          if (vStatus === 'done') badge = '<span class="badge done">已完成</span>';
+          else if (vStatus === 'error') badge = '<span class="badge error">出错</span>';
+          else if (['pending', 'writing', 'tts', 'mixing'].includes(vStatus)) badge = '<span class="badge working">生成中</span>';
+          else if (vStatus === 'ready') badge = '<span class="badge">待确认</span>';
+          btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id}</span> ${badge}`;
           btn.onclick = () => loadJob(job.id);
           voiceList.appendChild(btn);
         });

@@ -1,5 +1,23 @@
 [
   {
+    "title": "中子星有多重？",
+    "category": "恒星",
+    "angle": "从一勺中子星物质重达10亿吨讲到极端密度的世界。",
+    "source": "NASA Neutron Stars",
+    "source_url": "https://science.nasa.gov/universe/",
+    "evergreen": false,
+    "updated_at": "2026-06-03"
+  },
+  {
+    "title": "如果太阳突然消失，地球会怎样？",
+    "category": "太阳系",
+    "angle": "从引力波速度讲到8分钟后的黑暗和轨道混乱。",
+    "source": "NASA Solar System",
+    "source_url": "https://science.nasa.gov/solar-system/",
+    "evergreen": false,
+    "updated_at": "2026-06-03"
+  },
+  {
     "title": "宇宙有边界吗？",
     "category": "宇宙",
     "angle": "从可观测宇宙讲到视界之外的未知领域。",
@@ -248,15 +266,6 @@
     "angle": "拆掉大爆炸像炸弹的误解，讲成每个地方都在远离每个地方。",
     "source": "NASA universe overview",
     "source_url": "https://science.nasa.gov/universe/overview/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "如果宇宙有无数星球，为什么生命好像这么稀少？",
-    "category": "生命",
-    "angle": "从宜居带、稀有地球假说和时间窗口讲到生命的脆弱概率。",
-    "source": "NASA exoplanets",
-    "source_url": "https://science.nasa.gov/exoplanets/",
     "updated_at": "2026-05-31",
     "evergreen": true
   }
