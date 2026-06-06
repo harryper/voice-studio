@@ -159,7 +159,7 @@
     /* ─── Tabs ─── */
     .tabs {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       background: var(--surface-3);
       border-radius: var(--radius-md);
       padding: 4px;
@@ -1689,6 +1689,66 @@
       background: linear-gradient(135deg, rgba(191,90,242,0.1) 0%, rgba(201,111,255,0.05) 100%);
     }
 
+    /* ─── Cover Module (翻唱) ─── */
+    --accent-cover: #ff7a45;
+    --accent-cover-hover: #ff8c5a;
+    --accent-cover-light: rgba(255,122,69,0.08);
+    #coverBox .section-label::before {
+      background: linear-gradient(135deg, var(--accent-cover), var(--accent-cover-hover));
+    }
+    #coverBox input:focus,
+    #coverBox textarea:focus,
+    #coverBox select:focus {
+      border-color: var(--accent-cover);
+      box-shadow: 0 0 0 4px var(--accent-cover-light);
+    }
+    #coverBox button.primary {
+      background: var(--accent-cover);
+      border-color: var(--accent-cover);
+    }
+    #coverBox button.primary:hover {
+      background: var(--accent-cover-hover);
+      border-color: var(--accent-cover-hover);
+    }
+    .cover-mode-row {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0 4px;
+    }
+    .cover-mode-pill {
+      flex: 1;
+      border: 1px solid var(--border-light);
+      background: var(--surface-2);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center;
+      transition: all .12s;
+      font-family: inherit;
+      color: var(--text-2);
+    }
+    .cover-mode-pill:hover { color: var(--text); }
+    .cover-mode-pill.active {
+      border-color: var(--accent-cover);
+      background: var(--accent-cover-light);
+      color: var(--accent-cover);
+    }
+    .cover-mode-pill small {
+      display: block;
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+    .cover-mode-pill.active small { color: var(--accent-cover); }
+    #tabCover.active {
+      background: linear-gradient(135deg, rgba(255,122,69,0.1) 0%, rgba(255,140,90,0.05) 100%);
+    }
+    .cover-track .badge { background: var(--accent-cover-light); color: var(--accent-cover); }
+    .cover-track .badge.done { background: rgba(48,209,88,0.15); color: #30d158; }
+    .cover-track .badge.error { background: rgba(255,69,58,0.15); color: #ff453a; }
+    .cover-track .badge.working { background: rgba(255,159,10,0.18); color: #ff9f0a; }
+
 </style>
 </head>
 <body>
@@ -1721,8 +1781,9 @@
       <!-- ─── Left Sidebar ─── -->
       <aside class="panel">
         <div class="tabs">
-          <button id="tabVoice" class="tab active">🎤 声音创作</button>
-          <button id="tabMusic" class="tab">🎵 音乐创作</button>
+          <button id="tabVoice" class="tab active">🎙️ 声音</button>
+          <button id="tabMusic" class="tab">🎵 音乐</button>
+          <button id="tabCover" class="tab">🎤 翻唱</button>
         </div>
 
         <!-- Voice Module -->
@@ -1736,10 +1797,13 @@
           <span class="section-label" style="margin-top: 8px;">热门主题推荐</span>
           <div class="topic-rec-toolbar">
             <div id="topicFilters" class="topic-rec-filters"></div>
-            <button id="shuffleTopicsBtn" class="small" type="button"></button>
+            <button id="shuffleTopicsBtn" class="small" type="button" title="更新题库" aria-label="更新题库"></button>
           </div>
           <div id="topicRecommendations" class="topic-recs">
-            <div class="topic-empty">推荐主题加载中...</div>
+            <div class="topic-empty">
+              推荐主题加载中...
+              <button type="button" class="small" id="topicInlineRetryBtn" style="margin-left:8px;">重试</button>
+            </div>
           </div>
 
           <details class="direct-script-details">
@@ -1820,6 +1884,57 @@
           <p class="note">点「开始创作」后会自动生成歌词 → 生成歌曲。参考音乐上传后存档到 R2，但当前 music-2.6 模型不消费。</p>
         </div>
 
+        <!-- Cover Module (翻唱) -->
+        <div id="coverBox" class="hidden">
+          <div class="feature-card">
+            <span class="section-label">翻唱创作</span>
+            <input id="coverTitleInput" placeholder="给翻唱起个名字（可选）">
+          </div>
+
+          <!-- 段 1：参考音乐（必传） -->
+          <div class="music-section">
+            <div class="music-section-title">
+              <span>① 参考音乐</span>
+              <span class="opt" style="color: var(--accent-cover);">必填</span>
+            </div>
+            <div id="coverUploadZone" class="music-upload-zone" tabindex="0" role="button" aria-label="上传参考音乐">
+              <div class="upload-icon">🎤</div>
+              <p class="upload-tip">点击或拖拽上传要翻唱的原曲</p>
+              <p class="upload-hint">mp3 / wav / m4a / ogg / flac · 6s~6min · ≤ 25 MB</p>
+              <span class="upload-future">上传后走 MiniMax Cover</span>
+              <input type="file" id="coverRefInput" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*">
+            </div>
+            <div id="coverUploadedFile" class="music-uploaded-file hidden">
+              <span>🎵</span>
+              <span class="file-name">-</span>
+              <button type="button" id="coverRefRemove" title="移除参考音乐">移除</button>
+            </div>
+          </div>
+
+          <!-- 段 2：翻唱模式 -->
+          <div class="music-section">
+            <div class="music-section-title">
+              <span>② 翻唱模式</span>
+            </div>
+            <div class="cover-mode-row">
+              <button type="button" class="cover-mode-pill active" data-mode="one_step">
+                One-Step
+                <small>保留原词，改风格/音色</small>
+              </button>
+              <button type="button" class="cover-mode-pill" data-mode="two_step">
+                Two-Step
+                <small>提取原词后改写</small>
+              </button>
+            </div>
+          </div>
+
+          <!-- 提示：目标风格在中间的编辑器填 -->
+          <p class="note" style="color:var(--accent-cover);">👇 创建后请在右侧「目标风格 / 音色」处填写，并点 tag 快速补充</p>
+
+          <button id="createCoverBtn" class="primary full" style="margin-top:10px;" disabled>创建翻唱任务</button>
+          <p class="note">One-Step：保留原曲歌词，只换风格/音色（最快）。Two-Step：先抽取结构化歌词，可改写后再生成（更灵活）。</p>
+        </div>
+
       </aside>
 
       <!-- ─── Right Main ─── -->
@@ -1850,6 +1965,59 @@
           </div>
         </div>
 
+        <!-- Cover job meta (翻唱) -->
+        <div id="coverMeta" class="hidden">
+          <div class="music-progress">
+            <div class="row">
+              <span class="stage" id="coverStageLabel">待生成</span>
+              <span class="eta" id="coverEtaMeta">~ 30-60 秒</span>
+            </div>
+            <div class="bar"><div class="fill" id="coverProgressFill" style="width: 0%;"></div></div>
+            <div class="style-editor">
+              <div class="style-editor-head">
+                <span class="k">目标风格 / 音色</span>
+                <span class="opt" style="color:var(--accent-cover);">当前任务 · 点击「保存目标风格」后生效</span>
+              </div>
+              <textarea id="coverPromptEditor" class="music-style-textarea"
+                placeholder="例如：古风、笛子、女声空灵、慢板"></textarea>
+              <div class="music-tags" id="coverTagCloud" style="margin-top:8px;">
+                <button type="button" class="music-tag" data-tag="古风">古风</button>
+                <button type="button" class="music-tag" data-tag="中国风">中国风</button>
+                <button type="button" class="music-tag" data-tag="电子">电子</button>
+                <button type="button" class="music-tag" data-tag="赛博朋克">赛博朋克</button>
+                <button type="button" class="music-tag" data-tag="蓝调">蓝调</button>
+                <button type="button" class="music-tag" data-tag="爵士">爵士</button>
+                <button type="button" class="music-tag" data-tag="摇滚">摇滚</button>
+                <button type="button" class="music-tag" data-tag="金属">金属</button>
+                <button type="button" class="music-tag" data-tag="民谣">民谣</button>
+                <button type="button" class="music-tag" data-tag="治愈">治愈</button>
+                <button type="button" class="music-tag" data-tag="燃">燃</button>
+                <button type="button" class="music-tag" data-tag="史诗">史诗</button>
+                <button type="button" class="music-tag" data-tag="电影感">电影感</button>
+                <button type="button" class="music-tag" data-tag="夜晚">夜晚</button>
+                <button type="button" class="music-tag" data-tag="雨">雨</button>
+                <button type="button" class="music-tag" data-tag="渴望">渴望</button>
+                <button type="button" class="music-tag" data-tag="孤独">孤独</button>
+                <button type="button" class="music-tag" data-tag="怀旧">怀旧</button>
+              </div>
+              <div class="style-editor-foot">
+                <button id="coverSavePromptBtn" class="small" type="button">保存目标风格</button>
+              </div>
+            </div>
+            <div class="style-editor" id="coverLyricsSection" style="display:none;">
+              <div class="style-editor-head">
+                <span class="k">改写后的歌词</span>
+                <span class="opt">Two-Step 模式可编辑</span>
+              </div>
+              <textarea id="coverLyricsEditor" class="music-style-textarea"
+                placeholder="提取原词后会出现在这里，你可以改写"></textarea>
+              <div class="style-editor-foot">
+                <button id="coverSaveLyricsBtn" class="small" type="button">保存改写</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <span class="section-label" id="editorLabel">文稿预览 / 编辑</span>
         <textarea id="scriptEditor" placeholder="主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。"></textarea>
 
@@ -1870,6 +2038,16 @@
           <button id="generateMusicBtn" class="primary">生成歌曲</button>
           <button id="retryMusicBtn" class="warn hidden">重新生成歌曲</button>
           <button id="deleteMusicBtn" class="danger">删除</button>
+        </div>
+
+        <!-- Cover job actions (翻唱) -->
+        <p id="coverLyricsWarning" class="error hidden" style="margin-top:8px;padding:8px 12px;border-left:3px solid #d33;background:rgba(221,51,51,0.08);"></p>
+        <div id="coverActions" class="action-row hidden" style="margin-top:12px;">
+          <button id="coverPreprocessBtn" class="primary">提取原词</button>
+          <button id="coverGenerateBtn" class="primary">生成翻唱</button>
+          <button id="coverRePreprocessBtn" class="warn hidden">重新提取</button>
+          <button id="coverRegenBtn" class="warn hidden">重新生成翻唱</button>
+          <button id="coverDeleteBtn" class="danger">删除</button>
         </div>
 
         <div id="audioBox" class="hidden">
@@ -1958,11 +2136,27 @@
           </div>
           <div id="musicJobList" class="job-list"></div>
         </div>
+
+        <!-- Cover jobs (翻唱) -->
+        <div id="coverJobsBlock" class="hidden">
+          <div class="job-header-new">
+            <span class="label">🎤 翻唱作品</span>
+            <span id="coverJobCount" class="pill">0</span>
+          </div>
+          <div class="music-tabs">
+            <button type="button" class="music-tab-btn active" data-cover-tab="works">作品</button>
+            <button type="button" class="music-tab-btn" data-cover-tab="favorites">收藏</button>
+          </div>
+          <div id="coverJobList" class="job-list"></div>
+        </div>
       </aside>
 
     </div>
   </main>
 
+  <script>
+    window.__INITIAL_TOPIC_RECOMMENDATIONS__ = {{ initial_topic_recommendations|tojson }};
+  </script>
   <script>
     const $ = (id) => document.getElementById(id);
     // Volume buttons and input sync
@@ -2200,6 +2394,7 @@
     const MODES = {
       voice: { key: 'voice', name: '声音', icon: '🎤' },
       music: { key: 'music', name: '音乐', icon: '🎵' },
+      cover: { key: 'cover', name: '翻唱', icon: '🎤' },
       // video: { key: 'video', name: '视频', icon: '🎬' }
     };
 
@@ -2208,20 +2403,33 @@
     let pollTimer = null;
     let editorDirty = false;
     let editorJobId = null;
-    let topicRecommendations = [];
+    let topicRecommendations = Array.isArray(window.__INITIAL_TOPIC_RECOMMENDATIONS__)
+      ? window.__INITIAL_TOPIC_RECOMMENDATIONS__
+      : [];
     let musicTab = 'works';
+    let coverTab = 'works';
     let musicCount = 1;
-    let topicCategory = '全部';
-    let topicOffset = 0;
+    let topicCategory = localStorage.getItem('voiceStudio.topicCategory') || '全部';
+    let topicOffset = Number(localStorage.getItem('voiceStudio.topicOffset') || 0);
 
     async function api(url, options = {}) {
-      const res = await fetch(url, {
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-        ...options,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || '请求失败');
+      let res;
+      try {
+        res = await fetch(url, {
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          ...options,
+        });
+      } catch (networkErr) {
+        // fetch 本身挂了（DNS / 断网 / CORS 拦截）
+        throw new Error(`网络错误 (${url}): ${networkErr.message}`);
+      }
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (!res.ok) {
+        const detail = data.error || data.message || (typeof data === 'string' ? data : '');
+        throw new Error(`HTTP ${res.status} ${url}${detail ? ': ' + detail : ''}`);
+      }
       return data;
     }
 
@@ -2231,7 +2439,10 @@
     }
 
     function jobGroup(job) {
-      return job && job.mode === 'music' ? 'music' : 'voice';
+      if (!job) return 'voice';
+      if (job.mode === 'music') return 'music';
+      if (job.mode === 'music_cover') return 'cover';
+      return 'voice';
     }
 
     function jobsForMode(next = mode) {
@@ -2246,24 +2457,40 @@
       }
       mode = next;
       const isMusicMode = mode === 'music';
-      $('tabVoice').classList.toggle('active', !isMusicMode);
+      const isCoverMode = mode === 'cover';
+      $('tabVoice').classList.toggle('active', mode === 'voice');
       $('tabMusic').classList.toggle('active', isMusicMode);
-      $('appSubtitle').textContent = isMusicMode
-        ? '输入主题自动生成歌词，确认后一键生成歌曲'
-        : '主题创作先预览，确认后再生成语音';
-      $('voiceBox').classList.toggle('hidden', isMusicMode);
+      $('tabCover').classList.toggle('active', isCoverMode);
+      $('appSubtitle').textContent = isCoverMode
+        ? '上传参考曲 + 目标风格 → 一步翻唱 / 改词翻唱'
+        : isMusicMode
+          ? '输入主题自动生成歌词，确认后一键生成歌曲'
+          : '主题创作先预览，确认后再生成语音';
+      $('voiceBox').classList.toggle('hidden', mode !== 'voice');
       $('musicBox').classList.toggle('hidden', !isMusicMode);
-      $('voiceJobsBlock').classList.toggle('hidden', isMusicMode);
+      $('coverBox').classList.toggle('hidden', !isCoverMode);
+      $('voiceJobsBlock').classList.toggle('hidden', mode !== 'voice');
       $('musicJobsBlock').classList.toggle('hidden', !isMusicMode);
+      $('coverJobsBlock').classList.toggle('hidden', !isCoverMode);
       document.querySelectorAll('.voice-only').forEach(el => {
-        el.classList.toggle('hidden', isMusicMode);
+        el.classList.toggle('hidden', isMusicMode || isCoverMode);
       });
       if (isMusicMode) {
-        // Re-render the music list with the current tab + bind once-only UI
         renderMusicJobList();
         if (!window.__musicUiInited) {
           initMusicUI();
           window.__musicUiInited = true;
+        }
+      }
+      if (mode === 'voice' && (!Array.isArray(topicRecommendations) || topicRecommendations.length === 0)) {
+        // 自愈：初次加载链断了时，切到 voice tab 自动重试
+        loadTopicRecommendations();
+      }
+      if (isCoverMode) {
+        renderCoverJobList();
+        if (!window.__coverUiInited) {
+          initCoverUI();
+          window.__coverUiInited = true;
         }
       }
       if (options.selectJob !== false) {
@@ -2384,23 +2611,29 @@
       editorJobId = null;
       editorDirty = false;
       const isMusicMode = mode === 'music';
-      $('jobTitle').textContent = isMusicMode ? '还没有音乐任务' : '还没有声音任务';
-      $('jobStatus').textContent = isMusicMode ? '音乐' : '声音';
+      const isCoverMode = mode === 'cover';
+      const titleText = isCoverMode ? '还没有翻唱任务' : isMusicMode ? '还没有音乐任务' : '还没有声音任务';
+      $('jobTitle').textContent = titleText;
+      $('jobStatus').textContent = isCoverMode ? '翻唱' : isMusicMode ? '音乐' : '声音';
       $('jobStatus').className = 'pill';
       $('scriptEditor').value = '';
       $('errorBox').textContent = '';
       $('audioBox').classList.add('hidden');
       $('musicMeta').classList.add('hidden');
-      $('voiceActions').classList.toggle('hidden', isMusicMode);
+      $('coverMeta').classList.add('hidden');
+      $('voiceActions').classList.toggle('hidden', isMusicMode || isCoverMode);
       $('musicActions').classList.toggle('hidden', !isMusicMode);
+      $('coverActions').classList.toggle('hidden', !isCoverMode);
       document.querySelectorAll('.voice-only').forEach(el => {
-        el.classList.toggle('hidden', isMusicMode);
+        el.classList.toggle('hidden', isMusicMode || isCoverMode);
       });
       $('voiceRunsBox').classList.add('hidden');
-      $('editorLabel').textContent = isMusicMode ? '歌词' : '文稿预览 / 编辑';
-      $('scriptEditor').placeholder = isMusicMode
-        ? '创建音乐任务后，歌词会显示在这里。'
-        : '主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。';
+      $('editorLabel').textContent = isCoverMode ? '目标风格' : isMusicMode ? '歌词' : '文稿预览 / 编辑';
+      $('scriptEditor').placeholder = isCoverMode
+        ? '创建翻唱任务后，目标风格/歌词会显示在这里。'
+        : isMusicMode
+          ? '创建音乐任务后，歌词会显示在这里。'
+          : '主题创作完成后，文稿会出现在这里。直接文稿模式下，这里会显示你粘贴的内容。';
       $('saveEditBtn').disabled = true;
       $('generateVoiceBtn').disabled = true;
       $('retryBtn').disabled = true;
@@ -2411,32 +2644,40 @@
       $('retryMusicBtn').classList.add('hidden');
       $('generateMusicBtn').classList.remove('hidden');
       $('deleteMusicBtn').disabled = true;
+      $('coverPreprocessBtn').disabled = true;
+      $('coverGenerateBtn').disabled = true;
+      $('coverRePreprocessBtn').classList.add('hidden');
+      $('coverRegenBtn').classList.add('hidden');
+      $('coverDeleteBtn').disabled = true;
       showActionFeedback(message, type);
     }
 
     function renderJob(job) {
       activeJobId = job.id;
       // Immediately sync left-panel active highlight — no waiting for refreshJobs
-      document.querySelectorAll('#voiceJobList .job, #musicJobList .job').forEach(btn => {
+      document.querySelectorAll('#voiceJobList .job, #musicJobList .job, #coverJobList .job').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.jobId === job.id);
       });
-      $('jobTitle').textContent = job.theme || (job.mode === 'music' ? '音乐创作' : '直接输入文稿');
+      const isMusic = job.mode === 'music';
+      const isCover = job.mode === 'music_cover';
+      const titleFallback = isCover ? '翻唱任务' : isMusic ? '音乐创作' : '直接输入文稿';
+      $('jobTitle').textContent = job.title || job.theme || titleFallback;
       $('jobStatus').textContent = statusLabel(job.status);
       const statusCls = job.status === 'error'
         ? 'pill error'
-        : ['ready', 'done', 'lyrics_ready'].includes(job.status)
+        : ['ready', 'done', 'lyrics_ready', 'preprocess_ready'].includes(job.status)
           ? 'pill ready'
           : 'pill';
       $('jobStatus').className = statusCls;
 
-      const isMusic = job.mode === 'music';
-
-      // Toggle between voice and music UI
-      $('voiceActions').classList.toggle('hidden', isMusic);
+      // Toggle between voice / music / cover UI
+      $('voiceActions').classList.toggle('hidden', isMusic || isCover);
       $('musicActions').classList.toggle('hidden', !isMusic);
+      $('coverActions').classList.toggle('hidden', !isCover);
       $('musicMeta').classList.toggle('hidden', !isMusic);
+      $('coverMeta').classList.toggle('hidden', !isCover);
       document.querySelectorAll('.voice-only').forEach(el => {
-        el.classList.toggle('hidden', isMusic);
+        el.classList.toggle('hidden', isMusic || isCover);
       });
       const normalizedRuns = voiceRunsForJob(job);
       $('voiceRunsBox').classList.toggle('hidden', isMusic || !normalizedRuns.length);
@@ -2515,6 +2756,125 @@
         $('generateMusicBtn').classList.toggle('hidden', isDone);
         $('retryMusicBtn').classList.toggle('hidden', !isDone);
         $('deleteMusicBtn').disabled = false;
+      } else if (isCover) {
+        // Cover mode: editor area shows the lyrics (read-only preview / editable in two_step)
+        $('editorLabel').textContent = job.cover_mode === 'two_step' ? '改写后的歌词' : '原曲歌词预览';
+        $('scriptEditor').placeholder = job.cover_mode === 'two_step'
+          ? '提取原词后，可在此改写。'
+          : 'One-Step 模式：保留原词，不显示原词。';
+        const coverLyrics = job.edited_lyrics || job.lyrics || '';
+        // Cover 模式下，主编辑器是否可写取决于状态（preprocess_ready / done 可编辑；pending / preprocessing 不可）
+        const coverEditable = ['preprocess_ready', 'done', 'error'].includes(job.status);
+        $('scriptEditor').readOnly = !coverEditable || job.cover_mode === 'one_step';
+        $('scriptEditor').value = coverLyrics;
+        editorDirty = false;
+        editorJobId = job.id;
+
+        // Cover meta: prompt editor + lyrics editor (in two_step)
+        const promptEl = $('coverPromptEditor');
+        if (promptEl && document.activeElement !== promptEl) {
+          promptEl.value = job.cover_prompt || '';
+        }
+
+        // Cover 歌词有效性判断：[Silence] / 空 / 太短 都视为"未识别到原词"
+        const isInvalidLyrics = (text) => {
+          if (!text) return true;
+          const t = String(text).trim().toLowerCase();
+          if (!t) return true;
+          if (t === '[silence]' || t === '[silence]\n' || t.startsWith('[silence]')) return true;
+          if (t.length < 20) return true;
+          return false;
+        };
+        const jobLyricsInvalid = isInvalidLyrics(job.edited_lyrics || job.lyrics || '');
+        const jobLyrics = jobLyricsInvalid ? '' : (job.edited_lyrics || job.lyrics || '');
+
+        const lyricsEl = $('coverLyricsEditor');
+        if (lyricsEl && document.activeElement !== lyricsEl) {
+          lyricsEl.value = jobLyrics;
+          lyricsEl.placeholder = jobLyricsInvalid
+            ? '⚠️ 未识别到原词（预处理返回 [Silence] / 空）。请手动粘贴原曲歌词后再保存生成。'
+            : '提取原词后会出现在这里，你可以改写';
+        }
+        const showLyricsSection = job.cover_mode === 'two_step';
+        $('coverLyricsSection').style.display = showLyricsSection ? '' : 'none';
+
+        // 主编辑器（scriptEditor）在 cover 模式下的歌词预览 / 编辑逻辑：
+        // - two_step + preprocess_ready/done: 可编辑
+        // - one_step: 仅预览
+        // 歌词无效时，主编辑器也不预填 [Silence]，留空并改 placeholder
+        const mainEditor = $('scriptEditor');
+        if (mainEditor) {
+          if (jobLyricsInvalid) {
+            mainEditor.value = '';
+            mainEditor.placeholder = job.cover_mode === 'two_step'
+              ? '⚠️ 未识别到原词。请在上方"改写后的歌词"框里手动粘贴原曲歌词，保存后再生成。'
+              : '⚠️ One-Step 模式下预处理未识别到原词。请改用 Two-Step 模式并手动粘贴原曲歌词。';
+          } else {
+            mainEditor.value = jobLyrics;
+          }
+        }
+
+        // Stage + progress
+        const stageMap = {
+          pending:           { label: job.cover_mode === 'two_step' ? '第 1 / 2 步 · 待提取原词' : '待生成翻唱', pct: 5 },
+          preprocessing:     { label: '第 1 / 2 步 · 提取原词中…', pct: 25 },
+          preprocess_ready:  { label: '第 1 / 2 步 · 原词就绪，可生成', pct: 55 },
+          generating:        { label: '第 2 / 2 步 · 生成翻唱中…', pct: 80 },
+          done:              { label: '✓ 翻唱完成', pct: 100 },
+          error:             { label: '出错', pct: 100 },
+        };
+        const stage = stageMap[job.status] || { label: statusLabel(job.status), pct: 0 };
+        $('coverStageLabel').textContent = stage.label;
+        $('coverProgressFill').style.width = stage.pct + '%';
+        if (job.status === 'done') {
+          const dur = job.audio_duration_ms ? Math.round(job.audio_duration_ms / 1000) : null;
+          $('coverEtaMeta').textContent = dur
+            ? `时长 ${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}`
+            : '—';
+        } else if (job.status === 'error') {
+          $('coverEtaMeta').textContent = '—';
+        } else if (job.status === 'generating') {
+          $('coverEtaMeta').textContent = '预计 ~ 30-90 秒';
+        } else {
+          $('coverEtaMeta').textContent = '预计 ~ 5-15 秒';
+        }
+
+        // Action buttons
+        const isBusy = ['preprocessing', 'generating'].includes(job.status);
+        $('coverPreprocessBtn').classList.toggle('hidden', job.cover_mode !== 'two_step' || job.status === 'preprocess_ready' || job.status === 'done');
+        $('coverGenerateBtn').classList.toggle('hidden', job.cover_mode === 'two_step' && job.status !== 'preprocess_ready' && job.status !== 'done');
+        $('coverRePreprocessBtn').classList.toggle('hidden', !(job.cover_mode === 'two_step' && (job.status === 'preprocess_ready' || job.status === 'done' || job.status === 'error')));
+        $('coverRegenBtn').classList.toggle('hidden', job.status !== 'done');
+        $('coverPreprocessBtn').disabled = isBusy || !job.reference_audio_url;
+        // 生成按钮在 two_step + 歌词无效时也要禁用，避免踩坑
+        const genBlocked = isBusy || !job.cover_prompt || (job.cover_mode === 'two_step' && job.status === 'preprocess_ready' && jobLyricsInvalid);
+        $('coverGenerateBtn').disabled = genBlocked;
+        $('coverRePreprocessBtn').disabled = isBusy;
+        $('coverRegenBtn').disabled = isBusy;
+        $('coverDeleteBtn').disabled = false;
+
+        // 歌词无效警告条
+        const warnEl = $('coverLyricsWarning');
+        if (warnEl) {
+          if (job.cover_mode === 'two_step' && (job.status === 'preprocess_ready' || job.status === 'error') && jobLyricsInvalid) {
+            warnEl.textContent = '⚠️ 未识别到原词（预处理返回 [Silence] / 空 / 太短）。请在上方"改写后的歌词"框里手动粘贴原曲歌词后保存，再点"重新生成翻唱"。';
+            warnEl.classList.remove('hidden');
+          } else {
+            warnEl.classList.add('hidden');
+            warnEl.textContent = '';
+          }
+        }
+
+        // 左侧参考音频显示同步
+        if (job.reference_audio_url) {
+          const refName = $('coverUploadedFile').querySelector('.file-name');
+          refName.textContent = job.reference_audio_name || '参考音乐';
+          $('coverUploadedFile').classList.remove('hidden');
+          $('coverUploadZone').classList.add('hidden');
+        } else {
+          $('coverUploadedFile').classList.add('hidden');
+          $('coverUploadZone').classList.remove('hidden');
+        }
       } else {
         // Voice mode
         $('editorLabel').textContent = '文稿预览 / 编辑';
@@ -2540,7 +2900,7 @@
         const audioEl = $('audio');
         const isPlaying = !audioEl.paused;
         let playUrl;
-        if (isMusic) {
+        if (isMusic || isCover) {
           playUrl = job.audio_url;
         } else {
           playUrl = $('mixBgmCheck').checked ? (finalUrl || voiceUrl) : (voiceUrl || finalUrl);
@@ -2554,6 +2914,10 @@
         linksEl.innerHTML = '';
         if (isMusic && job.audio_url) {
           const links = [`<a class="download-btn primary" href="${escapeHtml(job.audio_url)}" target="_blank" download>下载歌曲</a>`];
+          if (job.lyrics_url) links.push(`<a class="download-btn" href="${escapeHtml(job.lyrics_url)}" target="_blank" download>下载歌词</a>`);
+          linksEl.innerHTML = `<div class="download-actions">${links.join('')}</div>`;
+        } else if (isCover && job.audio_url) {
+          const links = [`<a class="download-btn primary" href="${escapeHtml(job.audio_url)}" target="_blank" download>下载翻唱</a>`];
           if (job.lyrics_url) links.push(`<a class="download-btn" href="${escapeHtml(job.lyrics_url)}" target="_blank" download>下载歌词</a>`);
           linksEl.innerHTML = `<div class="download-actions">${links.join('')}</div>`;
         } else if (!isMusic) {
@@ -2712,6 +3076,90 @@
       return card;
     }
 
+    function renderCoverJobList() {
+      const list = $('coverJobList');
+      if (!list) return;
+      list.innerHTML = '';
+      const coverJobs = lastJobs.filter(j => j.mode === 'music_cover');
+      const filtered = coverTab === 'favorites' ? coverJobs.filter(j => j.is_starred) : coverJobs;
+      if (filtered.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'music-empty';
+        empty.textContent = coverTab === 'favorites' ? '还没有收藏的翻唱' : '还没有翻唱作品';
+        list.appendChild(empty);
+        return;
+      }
+      filtered.forEach(job => list.appendChild(buildCoverTrackCard(job)));
+    }
+
+    function buildCoverTrackCard(job) {
+      const card = document.createElement('button');
+      card.className = 'music-track cover-track' + (job.id === activeJobId ? ' active' : '');
+      card.dataset.jobId = job.id;
+      const titleText = (job.title || job.reference_audio_name || '翻唱作品').trim();
+      const initial = titleText.charAt(0) || '♬';
+      const status = job.status || 'pending';
+      let badge = '';
+      if (status === 'done') badge = '<span class="badge done">已完成</span>';
+      else if (status === 'error') badge = '<span class="badge error">出错</span>';
+      else if (['pending', 'preprocessing', 'generating'].includes(status)) badge = '<span class="badge working">生成中</span>';
+      else if (status === 'preprocess_ready') badge = '<span class="badge">原词就绪</span>';
+      const modeBadge = job.cover_mode === 'two_step'
+        ? '<span class="badge">两步</span>'
+        : '<span class="badge">一步</span>';
+      badge = modeBadge + (badge ? ' ' + badge : '');
+      const durationMs = job.audio_duration_ms;
+      let durationLabel = '';
+      if (durationMs && durationMs > 0) {
+        const totalSec = Math.round(durationMs / 1000);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        durationLabel = `${m}:${String(s).padStart(2, '0')}`;
+      } else if (status === 'done') {
+        durationLabel = '—:—';
+      }
+      const starred = job.is_starred ? '★' : '☆';
+      card.innerHTML = `
+        <div class="thumb">${escapeHtml(initial)}${durationLabel ? `<span class="duration">${escapeHtml(durationLabel)}</span>` : ''}</div>
+        <div class="info">
+          <div class="title">${escapeHtml(titleText)}</div>
+          <div class="meta">${badge}</div>
+        </div>
+        <div class="actions">
+          <button type="button" data-action="star" title="收藏">${starred}</button>
+          <button type="button" data-action="play" title="播放">▶</button>
+          <button type="button" data-action="regen" title="重新生成">↻</button>
+        </div>
+      `;
+      card.addEventListener('click', (e) => {
+        const act = e.target.closest('[data-action]');
+        if (act) {
+          e.stopPropagation();
+          const a = act.dataset.action;
+          if (a === 'star') return toggleStar(job);
+          if (a === 'play') return playTrack(job);
+          if (a === 'regen') return regenCover(job);
+        }
+        loadJob(job.id);
+      });
+      return card;
+    }
+
+    async function regenCover(job) {
+      if (['generating', 'preprocessing'].includes(job.status)) return;
+      showActionFeedback('正在重新生成翻唱...');
+      try {
+        const data = await api('/api/jobs/' + job.id + '/cover-generate', { method: 'POST' });
+        const idx = lastJobs.findIndex(j => j.id === job.id);
+        if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+        if (activeJobId === job.id) renderJob(data);
+        renderCoverJobList();
+        pollJobUntilDone(job.id, ['preprocessing', 'generating'], ['done', 'error'], 300000);
+      } catch (err) {
+        showActionFeedback('重新生成失败：' + err.message, 'error');
+      }
+    }
+
     async function toggleStar(job) {
       try {
         const newValue = !job.is_starred;
@@ -2813,6 +3261,11 @@
       $('musicJobCount').textContent = musicJobs.length;
       renderMusicJobList();
 
+      // Cover jobs (翻唱)
+      const coverJobs = jobs.filter(j => j.mode === 'music_cover');
+      $('coverJobCount').textContent = coverJobs.length;
+      renderCoverJobList();
+
       const activeJob = jobs.find(job => job.id === activeJobId);
       if (activeJob && jobGroup(activeJob) !== mode && !editorDirty) {
         activeJobId = null;
@@ -2835,6 +3288,12 @@
       const wrap = $('topicFilters');
       if (!wrap) return;
       const categories = ['全部', ...new Set(topicRecommendations.map(item => item.category || '其他'))];
+      if (!categories.includes(topicCategory)) {
+        topicCategory = '全部';
+        topicOffset = 0;
+        localStorage.setItem('voiceStudio.topicCategory', topicCategory);
+        localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
+      }
       wrap.innerHTML = '';
       categories.forEach(category => {
         const btn = document.createElement('button');
@@ -2844,6 +3303,8 @@
         btn.onclick = () => {
           topicCategory = category;
           topicOffset = 0;
+          localStorage.setItem('voiceStudio.topicCategory', topicCategory);
+          localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
           renderTopicRecommendations();
         };
         wrap.appendChild(btn);
@@ -2860,7 +3321,10 @@
         return;
       }
       const pageSize = 3;
-      if (topicOffset >= list.length) topicOffset = 0;
+      if (topicOffset >= list.length) {
+        topicOffset = 0;
+        localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
+      }
       const visible = [];
       for (let i = 0; i < Math.min(pageSize, list.length); i += 1) {
         visible.push(list[(topicOffset + i) % list.length]);
@@ -2883,13 +3347,28 @@
       $('themeInput').focus();
     }
 
-    async function loadTopicRecommendations() {
+    async function loadTopicRecommendations(options = {}) {
+      const { silent = false } = options;
       try {
-        topicRecommendations = await api('/api/topic-recommendations');
+        const topics = await api('/api/topic-recommendations');
+        if (Array.isArray(topics) && topics.length) {
+          topicRecommendations = topics;
+        }
         topicRecommendations.sort((a, b) => Number(a.evergreen === true) - Number(b.evergreen === true));
         renderTopicRecommendations();
       } catch (err) {
-        $('topicRecommendations').innerHTML = `<div class="topic-empty">推荐主题加载失败：${escapeHtml(err.message)}</div>`;
+        console.warn('[voice-studio] topic recommendations load failed, keeping local cache:', err);
+        if (topicRecommendations.length) {
+          renderTopicRecommendations();
+          return;
+        }
+        if (silent) return;
+        const wrap = $('topicRecommendations');
+        wrap.innerHTML = `<div class="topic-empty">
+          推荐主题暂时加载失败，已不影响声音创作。
+          <button type="button" class="small" id="topicInlineRetryBtn" style="margin-left:8px;">重试</button>
+        </div>`;
+        $('topicInlineRetryBtn').onclick = () => loadTopicRecommendations();
       }
     }
 
@@ -2898,12 +3377,19 @@
       btn.disabled = true;
       btn.style.animation = 'spin 0.6s linear infinite';
       try {
-        topicRecommendations = await api('/api/topic-recommendations/refresh', { method: 'POST' });
-        topicRecommendations.sort((a, b) => Number(a.evergreen === true) - Number(b.evergreen === true));
-        topicOffset = 0;
-        renderTopicRecommendations();
+        const topics = await api('/api/topic-recommendations/refresh', { method: 'POST' });
+        if (Array.isArray(topics) && topics.length) {
+          topicRecommendations = topics;
+          topicRecommendations.sort((a, b) => Number(a.evergreen === true) - Number(b.evergreen === true));
+          topicOffset = 0;
+          localStorage.setItem('voiceStudio.topicCategory', topicCategory);
+          localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
+          renderTopicRecommendations();
+          showActionFeedback('题库已更新', 'ok');
+        }
       } catch (err) {
-        $('topicRecommendations').innerHTML = `<div class="topic-empty">刷新失败：${escapeHtml(err.message)}</div>`;
+        console.warn('[voice-studio] topic refresh failed:', err);
+        showActionFeedback('题库更新失败：' + err.message, 'error');
       } finally {
         btn.disabled = false;
         btn.style.animation = '';
@@ -2959,9 +3445,11 @@
         showApp(true);
         initMusicUI();
         window.__musicUiInited = true;
+        initCoverUI();
+        window.__coverUiInited = true;
         await refreshJobs();
         await loadBgmSelect($('bgmSelect'));
-        await loadTopicRecommendations();
+        renderTopicRecommendations();
       } catch (err) {
         $('loginError').textContent = err.message;
       }
@@ -2970,7 +3458,319 @@
     $('logoutBtn').onclick = async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); showApp(false); };
     $('tabVoice').onclick = () => setMode('voice');
     $('tabMusic').onclick = () => setMode('music');
+    $('tabCover').onclick = () => setMode('cover');
     $('scriptEditor').addEventListener('input', () => { editorDirty = true; });
+
+    // ─── Cover UI 初始化 (翻唱) ───────────────────────────
+    function initCoverUI() {
+
+      // Tag cloud → 填到 coverPromptEditor（中间 editor，与 textarea 物理上同区域）
+      document.querySelectorAll('#coverTagCloud .music-tag').forEach(tag => {
+        tag.addEventListener('mousedown', (e) => e.preventDefault());
+        tag.addEventListener('click', () => {
+          tag.classList.toggle('selected');
+          if (tag.classList.contains('selected')) {
+            appendToTextarea('coverPromptEditor', tag.dataset.tag);
+          }
+          updateCoverCreateBtn();
+        });
+      });
+
+      // Mode pill toggle
+      document.querySelectorAll('.cover-mode-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('.cover-mode-pill').forEach(p => p.classList.toggle('active', p === pill));
+          updateCoverCreateBtn();
+        });
+      });
+
+      // Form input changes (创建按钮仅依赖参考曲 + 标题，prompt 移到中间)
+      ['coverTitleInput'].forEach(id => {
+        $(id).addEventListener('input', updateCoverCreateBtn);
+      });
+      // 参考曲选择后也重算一次
+      $('coverRefInput').addEventListener('change', updateCoverCreateBtn);
+
+      // Reference audio upload
+      const uploadZone = $('coverUploadZone');
+      const refInput = $('coverRefInput');
+      const refFile = $('coverUploadedFile');
+      const refFileName = refFile.querySelector('.file-name');
+      const showUploaded = (name) => {
+        refFileName.textContent = name;
+        refFile.classList.remove('hidden');
+        uploadZone.classList.add('hidden');
+      };
+      const showZone = () => {
+        refFile.classList.add('hidden');
+        uploadZone.classList.remove('hidden');
+      };
+
+      ['dragenter', 'dragover'].forEach(ev =>
+        uploadZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          uploadZone.classList.add('dragover');
+        }));
+      ['dragleave', 'drop'].forEach(ev =>
+        uploadZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          uploadZone.classList.remove('dragover');
+        }));
+      uploadZone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) handleCoverRefFile(file);
+      });
+      refInput.addEventListener('change', () => {
+        if (refInput.files && refInput.files[0]) handleCoverRefFile(refInput.files[0]);
+      });
+      $('coverRefRemove').addEventListener('click', () => removeCoverRefAudio());
+
+      // Cover tab buttons
+      document.querySelectorAll('[data-cover-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          coverTab = btn.dataset.coverTab;
+          document.querySelectorAll('[data-cover-tab]').forEach(b =>
+            b.classList.toggle('active', b === btn));
+          renderCoverJobList();
+        });
+      });
+
+      // Save prompt editor (in right meta panel)
+      $('coverSavePromptBtn').onclick = async () => {
+        if (!activeJobId) return;
+        const btn = $('coverSavePromptBtn');
+        const orig = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '保存中...';
+        try {
+          const data = await api('/api/jobs/' + activeJobId, {
+            method: 'PATCH',
+            body: JSON.stringify({ cover_prompt: $('coverPromptEditor').value }),
+          });
+          const idx = lastJobs.findIndex(j => j.id === activeJobId);
+          if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+          showActionFeedback('目标风格已保存', 'ok');
+        } catch (err) {
+          showActionFeedback('保存失败：' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = orig;
+        }
+      };
+
+      // Save lyrics editor (only in two-step mode)
+      $('coverSaveLyricsBtn').onclick = async () => {
+        if (!activeJobId) return;
+        const btn = $('coverSaveLyricsBtn');
+        btn.disabled = true;
+        btn.textContent = '保存中...';
+        try {
+          const data = await api('/api/jobs/' + activeJobId, {
+            method: 'PATCH',
+            body: JSON.stringify({ edited_lyrics: $('coverLyricsEditor').value }),
+          });
+          const idx = lastJobs.findIndex(j => j.id === activeJobId);
+          if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+          showActionFeedback('改写后的歌词已保存', 'ok');
+        } catch (err) {
+          showActionFeedback('保存失败：' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '保存改写';
+        }
+      };
+
+      // Create cover job
+      $('createCoverBtn').onclick = async () => {
+        await createCoverJob();
+      };
+
+      // Action buttons (in right panel)
+      $('coverPreprocessBtn').onclick = async () => runCoverPreprocess();
+      $('coverGenerateBtn').onclick = async () => runCoverGenerate();
+      $('coverRePreprocessBtn').onclick = async () => runCoverPreprocess();
+      $('coverRegenBtn').onclick = async () => runCoverGenerate();
+      $('coverDeleteBtn').onclick = async () => deleteCoverJob();
+
+      updateCoverCreateBtn();
+    }
+
+    function updateCoverCreateBtn() {
+      // 创建按钮仅要求参考曲已选择；目标风格/音色在中间编辑器填
+      const refOk = $('coverRefInput').files && $('coverRefInput').files[0];
+      $('createCoverBtn').disabled = !refOk;
+    }
+
+    async function handleCoverRefFile(file) {
+      const name = file.name || 'audio';
+      if (file.size > 25 * 1024 * 1024) {
+        showActionFeedback('参考音频超过 25 MB 上限', 'error');
+        return;
+      }
+      // 暂存到左侧 form 状态；创建任务时一起 upload。
+      // 但 MiniMax Cover 需要公网 URL，所以必须先创建 job 再 upload。
+      // 这里改：先创建 job（此时还没参考音频 → 取消），改为检查是否已有 activeJobId。
+      if (!activeJobId) {
+        // 只缓存文件名 + 在 UI 上显示；创建任务时再上传。
+        const refName = $('coverUploadedFile').querySelector('.file-name');
+        refName.textContent = name + '（待创建后上传）';
+        $('coverUploadedFile').classList.remove('hidden');
+        $('coverUploadZone').classList.add('hidden');
+        updateCoverCreateBtn();
+        return;
+      }
+      showActionFeedback('正在上传参考曲到 R2...');
+      try {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`/api/jobs/${activeJobId}/reference-audio`, {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || '上传失败');
+        renderJob(data);
+        showActionFeedback('参考曲已上传到 R2', 'ok');
+      } catch (err) {
+        showActionFeedback('上传失败：' + err.message, 'error');
+      }
+    }
+
+    async function removeCoverRefAudio() {
+      if (!activeJobId) {
+        $('coverUploadedFile').classList.add('hidden');
+        $('coverUploadZone').classList.remove('hidden');
+        return;
+      }
+      try {
+        const job = await api(`/api/jobs/${activeJobId}/reference-audio`, { method: 'DELETE' });
+        renderJob(job);
+        showActionFeedback('参考曲已移除', 'ok');
+      } catch (err) {
+        showActionFeedback('移除失败：' + err.message, 'error');
+      }
+    }
+
+    async function createCoverJob() {
+      const title = $('coverTitleInput').value.trim();
+      const refFile = $('coverRefInput').files && $('coverRefInput').files[0];
+      if (!refFile) { showActionFeedback('请上传参考曲', 'error'); return; }
+      const mode = (document.querySelector('.cover-mode-pill.active') || {}).dataset?.mode || 'one_step';
+
+      const btn = $('createCoverBtn');
+      btn.disabled = true;
+      const orig = btn.textContent;
+      btn.textContent = '创建中...';
+      try {
+        // 1. 创建 job（cover_prompt 留空，在中间编辑器填）
+        const resp = await api('/api/jobs', {
+          method: 'POST',
+          body: JSON.stringify({
+            mode: 'music_cover',
+            title: title,
+            cover_prompt: '',
+            cover_mode: mode,
+          }),
+        });
+        const newId = resp.job_id;
+        // 2. 上传参考音频到 R2
+        const fd = new FormData();
+        fd.append('file', refFile);
+        const upRes = await fetch(`/api/jobs/${newId}/reference-audio`, {
+          method: 'POST', body: fd, credentials: 'same-origin',
+        });
+        const upData = await upRes.json().catch(() => ({}));
+        if (!upRes.ok) throw new Error(upData.error || '参考曲上传失败');
+        // 3. 切换到 cover 模式 + 选中任务，让中间编辑器可见
+        await setMode('cover', { selectJob: false, force: true });
+        const refreshed = await api('/api/jobs/' + newId);
+        renderJob(refreshed);
+        showActionFeedback('任务已创建 · 请在中间「目标风格 / 音色」处填写后保存，再点「生成翻唱」', 'ok');
+        // 4. 不再自动跑 generate / preprocess — prompt 为空会报错，不如让用户明确填好后手动发起
+        // 重置表单
+        $('coverTitleInput').value = '';
+        $('coverRefInput').value = '';
+        $('coverUploadedFile').classList.add('hidden');
+        $('coverUploadZone').classList.remove('hidden');
+        document.querySelectorAll('#coverTagCloud .music-tag.selected').forEach(t => t.classList.remove('selected'));
+      } catch (err) {
+        showActionFeedback('创建失败：' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+        updateCoverCreateBtn();
+      }
+    }
+
+    async function runCoverPreprocess(jobId) {
+      const targetId = jobId || activeJobId;
+      if (!targetId) return;
+      const btn = $('coverPreprocessBtn');
+      const reBtn = $('coverRePreprocessBtn');
+      if (btn) { btn.disabled = true; btn.textContent = '提取中...'; }
+      if (reBtn) { reBtn.disabled = true; }
+      showActionFeedback('正在提取原词...');
+      try {
+        const data = await api('/api/jobs/' + targetId + '/cover-preprocess', { method: 'POST' });
+        const idx = lastJobs.findIndex(j => j.id === targetId);
+        if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+        if (activeJobId === targetId) renderJob(data);
+        await pollJobUntilDone(targetId, ['pending', 'preprocessing'], ['preprocess_ready', 'done', 'error'], 180000);
+        showActionFeedback('原词提取完成', 'ok');
+      } catch (err) {
+        showActionFeedback('提取失败：' + err.message, 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '提取原词'; }
+        if (reBtn) { reBtn.disabled = false; }
+        if (activeJobId) renderJob(lastJobs.find(j => j.id === activeJobId) || {});
+      }
+    }
+
+    async function runCoverGenerate(jobId) {
+      const targetId = jobId || activeJobId;
+      if (!targetId) return;
+      const btn = $('coverGenerateBtn');
+      const regenBtn = $('coverRegenBtn');
+      if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+      if (regenBtn) { regenBtn.disabled = true; regenBtn.textContent = '重新生成中...'; }
+      showActionFeedback('正在生成翻唱...');
+      try {
+        const data = await api('/api/jobs/' + targetId + '/cover-generate', { method: 'POST' });
+        const idx = lastJobs.findIndex(j => j.id === targetId);
+        if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
+        if (activeJobId === targetId) renderJob(data);
+        await pollJobUntilDone(targetId, ['preprocess_ready', 'generating'], ['done', 'error'], 300000);
+        const final = lastJobs.find(j => j.id === targetId);
+        if (final && final.status === 'done') {
+          showActionFeedback('翻唱生成完成', 'ok');
+        } else if (final) {
+          showActionFeedback('生成失败：' + (final.error || ''), 'error');
+        }
+      } catch (err) {
+        showActionFeedback('生成失败：' + err.message, 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '生成翻唱'; }
+        if (regenBtn) { regenBtn.disabled = false; regenBtn.textContent = '重新生成翻唱'; }
+        if (activeJobId) renderJob(lastJobs.find(j => j.id === activeJobId) || {});
+      }
+    }
+
+    async function deleteCoverJob() {
+      if (!activeJobId) return;
+      if (!confirm('确定删除这个翻唱任务？已生成的音频仍会保留在 R2。')) return;
+      try {
+        await api('/api/jobs/' + activeJobId, { method: 'DELETE' });
+        showActionFeedback('已删除', 'ok');
+        activeJobId = null;
+        await refreshJobs();
+        const visible = jobsForMode('cover');
+        if (visible[0]) await loadJob(visible[0].id);
+        else clearActiveJob();
+      } catch (err) {
+        showActionFeedback('删除失败：' + err.message, 'error');
+      }
+    }
 
     $('createMusicBtn').onclick = async () => {
       const theme = $('musicThemeInput').value.trim();
@@ -3339,14 +4139,19 @@
 
     $('providerSelect').onchange = () => buildVoiceOptions($('providerSelect').value);
     buildVoiceOptions('azure');
+    // 初始推荐来自 HTML 内嵌 JSON：脚本加载完立刻渲染，不等登录检查/任务列表/BGM。
+    renderTopicRecommendations();
+    const _inlineRetry = $('topicInlineRetryBtn');
+    if (_inlineRetry) _inlineRetry.onclick = () => loadTopicRecommendations();
     api('/api/check-auth').then(async r => {
       showApp(r.authenticated);
       if (r.authenticated) {
         await refreshJobs();
         await loadBgmSelect($('bgmSelect'));
-        await loadTopicRecommendations();
-          }
+        renderTopicRecommendations();
+      }
     }).catch(() => showApp(false));
+
     pollTimer = setInterval(pollActive, 5000);
   </script>
 

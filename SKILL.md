@@ -190,6 +190,56 @@ python3 skills/voice-studio/scripts/upload_to_oss.py \
 
 Returns a pre-signed URL (e.g. `https://fd978dbd...r2.cloudflarestorage.com/openclaw/2026-05-22/cosmic-sleep/xxx.mp3?X-Amz-...&X-Amz-Expires=2592000`). Link is valid for 30 days.
 
+## Music Cover (翻唱) workflow (2026-06-05 新增)
+
+The voice-studio Web has a third tab **🎤 翻唱** that wraps MiniMax's `music-cover` model. Two modes are supported:
+
+- **One-Step** (default): upload reference audio + target style prompt → preserves the original lyrics, only transforms style/voice. Fastest path.
+- **Two-Step**: upload reference audio → call `music_cover_preprocess` to extract a `cover_feature_id` (24h valid) + structured `formatted_lyrics` → user can edit lyrics → call `music_generation` with `--cover-feature-id`. More flexible (full rewrite allowed).
+
+### Web job schema (`mode='music_cover'`)
+
+| Field | Notes |
+|---|---|
+| `reference_audio_url` | R2 URL of uploaded audio (6s-6min, ≤25MB to web) |
+| `reference_audio_name` | Original filename |
+| `cover_prompt` | Target style/voice description (e.g. "古风, 竹笛, 女声空灵, 慢板") |
+| `cover_mode` | `'one_step'` or `'two_step'` |
+| `cover_feature_id` | Set after `cover-preprocess` (two-step only) |
+| `formatted_lyrics` | Lyrics extracted by MiniMax (two-step only, editable) |
+| `lyrics` / `edited_lyrics` | Two-step lyrics (editable via coverLyricsEditor) |
+| `status` | `awaiting_reference` → `pending` → `preprocessing` → `preprocess_ready` → `generating` → `done` (or `error`) |
+
+### Endpoints (in addition to the music endpoints)
+
+- `POST /api/jobs/{id}/cover-preprocess` — two-step step 1, returns 202-ish (status flips async to `preprocess_ready`)
+- `POST /api/jobs/{id}/cover-generate` — final generation, async, polls via `/api/jobs/{id}` until `done`/`error`
+- `GET /api/jobs/cover` — list active cover jobs (works and favorites UI shared with music tab)
+
+### Storage
+
+Cover jobs live in `jobs/cover/` and archive to `archive/cover/`. They are independent from `voice` and `music` job dirs. Generated covers are uploaded to R2 with `--theme cover`.
+
+### Underlying CLI
+
+`scripts/minimax_music.py music` now has two new flags:
+
+```bash
+# one-step
+python3 scripts/minimax_music.py music \
+  --cover-url https://r2/.../ref.mp3 \
+  --prompt "古风, 竹笛, 女声空灵" \
+  -o cover.mp3
+
+# two-step
+python3 scripts/minimax_music.py preprocess --cover-url https://r2/.../ref.mp3 -o prep.json
+python3 scripts/minimax_music.py music \
+  --cover-feature-id $(jq -r .cover_feature_id prep.json) \
+  --lyrics-file new_lyrics.txt \
+  --prompt "爵士, 低沉男声" \
+  -o cover.mp3
+```
+
 ## Legacy video mode
 
 Only use this when explicitly requested. For Douyin links:

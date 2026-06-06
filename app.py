@@ -21,7 +21,7 @@ except Exception:
     # tzset() can fail on platforms without proper zoneinfo; fall back silently.
     pass
 from urllib.parse import urlparse, unquote
-from flask import Flask, request, jsonify, render_template, send_from_directory, session
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, make_response
 
 # ── 配置加载 ──────────────────────────────────────────────
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
@@ -82,6 +82,12 @@ MODE_CONFIG = {
         'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'music'),
         'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'music'),
     },
+    'cover': {
+        'name': '翻唱',
+        'icon': '🎤',
+        'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'cover'),
+        'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'cover'),
+    },
     # 未来添加 video：
     # 'video': {
     #     'name': '视频',
@@ -137,6 +143,9 @@ def job_path(job_id, mode=None):
             if os.path.exists(p):
                 return p
         return os.path.join(MODE_CONFIG['voice']['job_dir'], f'{job_id}.json')
+    # music_cover jobs store under MODE_CONFIG['cover'] (job['mode'] stays 'music_cover')
+    if mode == 'music_cover':
+        mode = 'cover'
     return os.path.join(job_dir(mode), f'{job_id}.json')
 
 def save_job(job):
@@ -211,6 +220,8 @@ def job_response(job):
 def archive_job(job):
     """完成后归档，保留记录"""
     mode = job.get('mode', 'voice')
+    if mode == 'music_cover':
+        mode = 'cover'
     dest_dir = job_archive_dir(mode)
     dest = os.path.join(dest_dir, f'{job["id"]}.json')
     with open(dest, 'w', encoding='utf-8') as f:
@@ -261,6 +272,8 @@ def cleanup_job_outputs(job):
 def delete_job(job):
     """Delete a job from the active UI and clean generated local outputs."""
     mode = job.get('mode', 'voice')
+    if mode == 'music_cover':
+        mode = 'cover'
     cleanup_job_outputs(job)
     source = Path(job_path(job['id'], mode))
     if not source.exists():
@@ -287,7 +300,11 @@ def logout():
 
 @app.before_request
 def check_auth():
-    public_endpoints = {'static', 'index', 'login', 'logout', 'api_check_auth', 'list_bgm'}
+    public_endpoints = {
+        'static', 'index', 'login', 'logout', 'api_check_auth', 'list_bgm',
+        # 主题推荐只是公开本地缓存，允许未登录读取，避免登录 cookie/代理抖动导致首屏报错
+        'topic_recommendations',
+    }
     if request.endpoint in public_endpoints:
         return
     if session.get('authenticated') is not True:
@@ -377,6 +394,32 @@ def create_job():
             'is_starred': False,
             'created_at': datetime.now().isoformat(),
         }
+    elif mode == 'music_cover':
+        cover_prompt = (data.get('cover_prompt') or '').strip()
+        if not cover_prompt:
+            return jsonify({'error': '目标风格/音色描述不能为空'}), 400
+        # 参考音频允许在创建后上传（job 创建 → 上传 → 生成）。
+        # 当有 reference_audio_url 时直接进 pending；没有时进 awaiting_reference，UI 上传后由前端 PATCH 切换。
+        reference_audio_url = (data.get('reference_audio_url') or '').strip() or None
+        job = {
+            'id': job_id,
+            'mode': 'music_cover',
+            'reference_audio_url': reference_audio_url,
+            'reference_audio_name': (data.get('reference_audio_name') or '').strip() or None,
+            'cover_prompt': cover_prompt,
+            'cover_mode': data.get('cover_mode') or 'one_step',   # 'one_step' | 'two_step'
+            'cover_feature_id': None,
+            'formatted_lyrics': None,
+            'lyrics': None,
+            'edited_lyrics': None,
+            'status': 'pending' if reference_audio_url else 'awaiting_reference',
+            'audio_url': None,
+            'audio_path': None,
+            'audio_duration_ms': None,
+            'error': None,
+            'is_starred': False,
+            'created_at': datetime.now().isoformat(),
+        }
     else:
         return jsonify({'error': 'mode 必须是 theme、script 或 music'}), 400
 
@@ -410,6 +453,7 @@ def update_job(job_id):
         'status', 'script', 'edited_script', 'edited_lyrics',
         'style_description', 'style_tags', 'title',
         'reference_audio_url', 'reference_audio_name',
+        'cover_prompt', 'cover_mode', 'cover_feature_id', 'formatted_lyrics',
         'is_starred', 'is_instrumental',
         'voice', 'bgm', 'bgm_asset',
         'audio_url', 'final_url', 'audio_path', 'audio_duration_ms',
@@ -700,20 +744,256 @@ def retry_music_api(job_id):
     return generate_music_api(job_id)
 
 
+# ── Music Cover Endpoints (翻唱) ──────────────────────────
+
+@app.route('/api/jobs/<job_id>/cover-preprocess', methods=['POST'])
+def cover_preprocess_api(job_id):
+    """Two-step cover step 1: extract feature id + structured lyrics from
+    the uploaded reference audio. Persists cover_feature_id + formatted_lyrics
+    on the job, then status flips to 'preprocess_ready' so the user can edit
+    lyrics before generating."""
+    job = load_job(job_id)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
+    if job.get('mode') != 'music_cover':
+        return jsonify({'error': '非翻唱任务'}), 400
+    if not job.get('reference_audio_url'):
+        return jsonify({'error': '缺少参考音频'}), 400
+
+    if job.get('status') == 'awaiting_reference':
+        job['status'] = 'pending'
+    job['status'] = 'preprocessing'
+    job['error'] = None
+    save_job(job)
+
+    def _run():
+        try:
+            result = subprocess.run(
+                ['python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
+                 'preprocess', '--cover-url', job['reference_audio_url']],
+                text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=120,
+            )
+            if result.returncode != 0:
+                raise RuntimeError((result.stderr or result.stdout or '预处理失败').strip()[-1000:])
+            data = json.loads(result.stdout)
+            j = load_job(job_id)
+            j['cover_feature_id'] = data.get('cover_feature_id')
+            j['formatted_lyrics'] = data.get('formatted_lyrics') or ''
+            j['lyrics'] = j['formatted_lyrics']
+            j['edited_lyrics'] = None
+            j['status'] = 'preprocess_ready'
+            j['error'] = None
+            save_job(j)
+        except Exception as exc:
+            j = load_job(job_id)
+            j['status'] = 'error'
+            j['error'] = str(exc)
+            save_job(j)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify(job_response(job))
+
+
+@app.route('/api/jobs/<job_id>/cover-generate', methods=['POST'])
+def cover_generate_api(job_id):
+    """Generate the cover track. Two paths share this endpoint:
+      - one_step:  --cover-url + --cover-prompt (lyrics preserved from reference)
+      - two_step:  --cover-feature-id + --lyrics (user may rewrite)
+    Both run async; the frontend polls /api/jobs/<id> for status."""
+    job = load_job(job_id)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
+    if job.get('mode') != 'music_cover':
+        return jsonify({'error': '非翻唱任务'}), 400
+    if not job.get('cover_prompt'):
+        return jsonify({'error': '目标风格/音色描述为空'}), 400
+    if not job.get('reference_audio_url'):
+        return jsonify({'error': '请先上传参考曲'}), 400
+
+    cover_mode = job.get('cover_mode') or 'one_step'
+    feature_id = job.get('cover_feature_id')
+    if cover_mode == 'two_step' and not feature_id:
+        return jsonify({'error': '两步模式需先调用 /cover-preprocess'}), 400
+
+    lyrics_text = (job.get('edited_lyrics') or job.get('lyrics') or '').strip()
+
+    # Two-Step mode requires usable lyrics. Reject invalid ones (empty / [Silence] / too short)
+    # so we surface a clear error before the MiniMax API returns "lyrics is too short".
+    if cover_mode == 'two_step':
+        invalid_markers = ('', '[silence]', '[silence]\n')
+        normalized = lyrics_text.strip().lower()
+        if normalized in invalid_markers or len(lyrics_text) < 20:
+            return jsonify({
+                'error': '歌词无效（空 / [Silence] / 太短）。请在「改写后的歌词」编辑器里手动粘贴原曲歌词后再生成。',
+                'code': 'lyrics_invalid',
+                'job_status': job.get('status'),
+            }), 400
+
+    run_dir = RUNS_DIR / job['id']
+    run_dir.mkdir(parents=True, exist_ok=True)
+    output_path = run_dir / 'cover.mp3'
+    lyrics_path = run_dir / 'cover_lyrics.txt'
+
+    model = 'music-cover-free' if os.environ.get('VOICE_STUDIO_COVER_USE_FREE') else 'music-cover'
+    cmd = [
+        'python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
+        'music',
+        '--prompt', job['cover_prompt'],
+        '-o', str(output_path),
+        '--model', model,
+    ]
+    if cover_mode == 'two_step':
+        cmd.extend(['--cover-feature-id', feature_id])
+        if lyrics_text:
+            lyrics_path.write_text(lyrics_text, encoding='utf-8')
+            cmd.extend(['--lyrics-file', str(lyrics_path)])
+    else:
+        cmd.extend(['--cover-url', job['reference_audio_url']])
+
+    job['status'] = 'generating'
+    job['error'] = None
+    save_job(job)
+
+    def _run():
+        try:
+            # 如果是 two_step 且 cover_feature_id 过期（>24h），MiniMax 会返回
+            # "invalid cover_feature_id"。在两-step 流程中遇到这个错误时，自动重跑 preprocess
+            # 并用新 ID + 用户已有的 edited_lyrics 重试一次。
+            nonlocal_feature_retry_used = False
+
+            def _try_cover_generate(local_cmd):
+                local_result = subprocess.run(
+                    local_cmd, text=True, capture_output=True,
+                    cwd=str(SKILL_DIR), timeout=600,
+                )
+                if local_result.returncode != 0:
+                    err = (local_result.stderr or local_result.stdout or '翻唱生成失败').strip()[-1200:]
+                    return local_result, err
+                return local_result, None
+
+            result, err = _try_cover_generate(cmd)
+
+            # 自动恢复：two_step + cover_feature_id 失效 + 未重试过 → 重跑 preprocess
+            if (err and cover_mode == 'two_step' and feature_id
+                    and 'invalid cover_feature_id' in err
+                    and not nonlocal_feature_retry_used):
+                nonlocal_feature_retry_used = True
+                j = load_job(job_id)
+                # 状态切换到 preprocessing 并保存，给用户一个反馈
+                j['status'] = 'preprocessing'
+                j['error'] = 'cover_feature_id 已过期（>24h），正在自动重新提取…'
+                save_job(j)
+                try:
+                    prep = subprocess.run(
+                        ['python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
+                         'preprocess', '--cover-url', job['reference_audio_url']],
+                        text=True, capture_output=True,
+                        cwd=str(SKILL_DIR), timeout=120,
+                    )
+                    if prep.returncode != 0:
+                        raise RuntimeError('重新提取失败：' + (prep.stderr or prep.stdout or '').strip()[-400:])
+                    prep_data = json.loads(prep.stdout)
+                    new_fid = prep_data.get('cover_feature_id')
+                    if not new_fid:
+                        raise RuntimeError('重新提取未返回 cover_feature_id')
+                    # 用新 ID 重置 job 字段；保留用户手动填的 edited_lyrics
+                    j['cover_feature_id'] = new_fid
+                    j['formatted_lyrics'] = prep_data.get('formatted_lyrics') or ''
+                    if not (j.get('edited_lyrics') or '').strip():
+                        # 用户没手动填过 → 同步用最新抽取的 lyrics
+                        j['lyrics'] = j['formatted_lyrics']
+                    j['error'] = None
+                    save_job(j)
+                    # 重置 feature_id 局部变量 + 重新拼装 cmd
+                    new_cmd = [
+                        'python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
+                        'music',
+                        '--prompt', job['cover_prompt'],
+                        '-o', str(output_path),
+                        '--model', model,
+                        '--cover-feature-id', new_fid,
+                    ]
+                    if lyrics_text:
+                        lyrics_path.write_text(lyrics_text, encoding='utf-8')
+                        new_cmd.extend(['--lyrics-file', str(lyrics_path)])
+                    j['status'] = 'generating'
+                    save_job(j)
+                    result, err = _try_cover_generate(new_cmd)
+                except Exception as recover_exc:
+                    raise RuntimeError(f'cover_feature_id 过期且自动重提取失败：{recover_exc}')
+
+            if err:
+                raise RuntimeError(err)
+
+            try:
+                music_meta = json.loads(result.stdout.strip().splitlines()[-1])
+                if isinstance(music_meta, dict) and music_meta.get('duration_ms'):
+                    job['audio_duration_ms'] = int(music_meta['duration_ms'])
+            except (ValueError, IndexError):
+                pass
+
+            ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+            upload = subprocess.run(
+                ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+                 '--file', str(output_path), '--theme', 'cover',
+                 '--name', oss_object_name(job, 'cover', 'mp3', ts=ts)],
+                text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
+            )
+            if upload.returncode == 0:
+                audio_url = upload.stdout.strip().splitlines()[-1].strip()
+            else:
+                audio_url = None
+
+            lyrics_url = None
+            if lyrics_text and cover_mode == 'two_step':
+                if not lyrics_path.exists():
+                    lyrics_path.write_text(lyrics_text, encoding='utf-8')
+                lyric_up = subprocess.run(
+                    ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
+                     '--file', str(lyrics_path), '--theme', 'cover',
+                     '--name', oss_object_name(job, 'lyrics', 'txt', ts=ts)],
+                    text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
+                )
+                if lyric_up.returncode == 0:
+                    lyrics_url = lyric_up.stdout.strip().splitlines()[-1].strip()
+
+            j = load_job(job_id)
+            j['audio_path'] = str(output_path)
+            j['audio_url'] = audio_url
+            if lyrics_url:
+                j['lyrics_url'] = lyrics_url
+            j['status'] = 'done'
+            j['error'] = None
+            save_job(j)
+        except Exception as exc:
+            j = load_job(job_id)
+            j['status'] = 'error'
+            j['error'] = str(exc)
+            save_job(j)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify(job_response(job))
+
+
+@app.route('/api/jobs/cover', methods=['GET'])
+def list_cover_jobs():
+    return list_jobs_by_mode('cover')
+
+
 # ── Music: 参考音乐上传 / 收藏 ────────────────────────────────
 ALLOWED_REFERENCE_AUDIO_EXTS = {'.mp3', '.wav', '.m4a', '.ogg', '.flac'}
 MAX_REFERENCE_AUDIO_BYTES = 25 * 1024 * 1024  # 25 MB
 
 @app.route('/api/jobs/<job_id>/reference-audio', methods=['POST'])
 def upload_reference_audio_api(job_id):
-    """Upload a reference audio file for a music job. Stored on R2; URL is
-    persisted to job.json so a future reference-aware model can pick it up.
-    The current music-2.6 model does not consume it, but the asset is kept."""
+    """Upload a reference audio file for a music / music_cover job. Stored on R2;
+    URL is persisted to job.json. For music_cover it is the actual reference input;
+    for music-2.6 jobs the URL is kept as a future-use asset."""
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
-    if job.get('mode') != 'music':
-        return jsonify({'error': '非音乐任务'}), 400
+    if job.get('mode') not in ('music', 'music_cover'):
+        return jsonify({'error': '非音乐/翻唱任务'}), 400
 
     if 'file' not in request.files:
         return jsonify({'error': '没有上传文件'}), 400
@@ -739,7 +1019,7 @@ def upload_reference_audio_api(job_id):
     try:
         result = subprocess.run(
             ['python3', str(SKILL_DIR / 'scripts' / 'upload_to_oss.py'),
-             '--file', str(tmp_path), '--theme', 'music',
+             '--file', str(tmp_path), '--theme', job.get('mode', 'music'),
              '--name', oss_object_name(job, 'reference', ext.lstrip('.'), ts=ts)],
             text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=60,
         )
@@ -751,6 +1031,9 @@ def upload_reference_audio_api(job_id):
     audio_url = result.stdout.strip().splitlines()[-1].strip()
     job['reference_audio_url'] = audio_url
     job['reference_audio_name'] = f.filename
+    # cover 任务：上传参考音频后从 awaiting_reference 回到 pending
+    if job.get('mode') == 'music_cover' and job.get('status') == 'awaiting_reference':
+        job['status'] = 'pending'
     save_job(job)
     return jsonify(job_response(job))
 
@@ -761,8 +1044,8 @@ def delete_reference_audio_api(job_id):
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
-    if job.get('mode') != 'music':
-        return jsonify({'error': '非音乐任务'}), 400
+    if job.get('mode') not in ('music', 'music_cover'):
+        return jsonify({'error': '非音乐/翻唱任务'}), 400
     job['reference_audio_url'] = None
     job['reference_audio_name'] = None
     save_job(job)
@@ -772,7 +1055,7 @@ def delete_reference_audio_api(job_id):
 @app.route('/api/jobs/<job_id>/star', methods=['POST'])
 def star_job_api(job_id):
     """Toggle is_starred on a job (any mode supported, but UI only shows star
-    on music tracks for now)."""
+    on music / cover tracks for now)."""
     job = load_job(job_id)
     if not job:
         return jsonify({'error': '任务不存在'}), 404
@@ -1178,7 +1461,15 @@ def upload_bgm():
 # ── 前端页面 ──────────────────────────────────────────────
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        initial_topics = load_topic_recommendations()
+    except Exception:
+        initial_topics = []
+    resp = make_response(render_template('index.html', initial_topic_recommendations=initial_topics))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)

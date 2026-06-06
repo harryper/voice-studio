@@ -18,6 +18,7 @@ from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 WORKSPACE_DIR = SKILL_DIR.parents[1]
+OPENCLAW_ROOT = WORKSPACE_DIR.parent
 JOBS_DIR = SKILL_DIR / "jobs" / "voice"
 RUNS_DIR = SKILL_DIR / "runs"
 LOCK_PATH = SKILL_DIR / ".writer.lock"
@@ -112,6 +113,99 @@ def run_agent(job):
     )
 
 
+def _session_jsonl_path(job_id):
+    """Resolve the session jsonl written by the openclaw agent CLI run.
+
+    The agent uses --session-key agent:main:voice-studio-writer-<job_id>;
+    the session id is recorded in agents/main/sessions/sessions.json.
+    """
+    sessions_index = OPENCLAW_ROOT / "agents" / "main" / "sessions" / "sessions.json"
+    if not sessions_index.exists():
+        return None
+    try:
+        with sessions_index.open(encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    needle = f"agent:main:voice-studio-writer-{job_id}"
+    info = data.get(needle) or {}
+    session_file = info.get("sessionFile")
+    if not session_file:
+        return None
+    return Path(session_file)
+
+
+def scrape_session_error(job_id, result):
+    """Pull the actual failure cause out of the openclaw session jsonl.
+
+    The CLI's stderr/stdout is mostly startup noise (Doctor warnings, plugin
+    auto-load notices). The real failure lives in the most recent assistant
+    message: either a stopReason="error" with errorMessage, or a short
+    no-tool-call "I already did it" hallucination. Build a single-line error
+    that names the actual cause instead of the noisy stderr.
+    """
+    fallback = ((result.stderr or result.stdout or "").strip() or "unknown error")[:800]
+    fallback_msg = f"openclaw agent failed on host: {fallback}"
+
+    session_file = _session_jsonl_path(job_id)
+    if not session_file or not session_file.exists():
+        return fallback_msg
+
+    last_assistant = None
+    last_texts = []
+    tool_call_count = 0
+    had_tool_error = False
+    try:
+        with session_file.open(encoding="utf-8") as f:
+            for line in f:
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                msg = rec.get("message") or {}
+                if msg.get("role") == "assistant":
+                    last_assistant = msg
+                    last_texts = [
+                        c.get("text", "") for c in msg.get("content", [])
+                        if c.get("type") == "text" and c.get("text")
+                    ]
+                    for c in msg.get("content", []):
+                        if c.get("type") == "toolCall":
+                            tool_call_count += 1
+                if msg.get("role") == "toolResult" and msg.get("isError"):
+                    had_tool_error = True
+    except OSError:
+        return fallback_msg
+
+    if not last_assistant:
+        return fallback_msg
+
+    err_msg = last_assistant.get("errorMessage")
+    if err_msg:
+        return f"openclaw agent failed: {err_msg}"
+
+    stop_reason = last_assistant.get("stopReason")
+    if stop_reason == "error" and not err_msg:
+        return f"openclaw agent failed: stopReason=error (no errorMessage); rc={result.returncode}"
+
+    last_text = " ".join(last_texts).strip()
+
+    if stop_reason == "stop" and tool_call_count == 0 and last_text:
+        preview = last_text[:160].replace("\n", " ")
+        return (
+            "openclaw agent returned without any tool call but reported done "
+            f"(model hallucination, last text: \"{preview}\")"
+        )
+
+    if not last_text and not had_tool_error:
+        return (
+            f"openclaw agent returned no assistant text and no tool calls; "
+            f"rc={result.returncode}; stderr={fallback[:200]}"
+        )
+
+    return fallback_msg
+
+
 def finalize_from_script_file(job):
     script_path = RUNS_DIR / job["id"] / "script.txt"
     if not script_path.exists():
@@ -177,11 +271,17 @@ def process_one(job):
         print(f"[voice-writer] {job['id']} ready from script file")
         return True
 
-    err = (result.stderr or result.stdout or "unknown error").strip()
+    # Agent ran but produced no usable script. Scrape the session jsonl to
+    # find the *real* error: the openclaw agent CLI prints startup noise
+    # (Doctor warnings, plugin allow-list) to stderr on every invocation,
+    # so a raw stderr scrape gives the wrong root cause (e.g. state-migrations
+    # warnings) when the actual failure is a model-side error or hallucination.
+    real_err = scrape_session_error(job["id"], result)
     updated["status"] = "error"
-    updated["error"] = f"openclaw agent failed on host: {err[:800]}"
+    updated["error"] = real_err
     save_job(updated)
-    print(f"[voice-writer] {job['id']} failed: {err[:300]}", file=sys.stderr)
+    tail = real_err.replace("\n", " ")[:300]
+    print(f"[voice-writer] {job['id']} failed: {tail}", file=sys.stderr)
     return False
 
 

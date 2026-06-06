@@ -1,5 +1,14 @@
 [
   {
+    "title": "如果时间倒流，宇宙会发生什么？",
+    "category": "时间",
+    "angle": "从热力学第二定律讲到熵增和时间箭头的不可逆。",
+    "source": "Thermodynamics",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-06"
+  },
+  {
     "title": "中子星有多重？",
     "category": "恒星",
     "angle": "从一勺中子星物质重达10亿吨讲到极端密度的世界。",
@@ -257,15 +266,6 @@
     "angle": "从白矮星和碳结晶讲到恒星死亡后的冷光。",
     "source": "NASA stars",
     "source_url": "https://science.nasa.gov/universe/stars/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "为什么宇宙没有一个真正的中心？",
-    "category": "宇宙",
-    "angle": "拆掉大爆炸像炸弹的误解，讲成每个地方都在远离每个地方。",
-    "source": "NASA universe overview",
-    "source_url": "https://science.nasa.gov/universe/overview/",
     "updated_at": "2026-05-31",
     "evergreen": true
   }
