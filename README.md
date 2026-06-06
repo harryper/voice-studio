@@ -29,11 +29,14 @@ chmod 600 scripts/azure_speech_key.txt
 echo "你的MiniMax密钥" > scripts/minimax_api_key.txt
 chmod 600 scripts/minimax_api_key.txt
 
-# 4. 启动
-docker compose up -d --build
+# 4. 安装依赖
+pip install -r requirements.txt
 
-# 5. 打开浏览器
-open http://<服务器IP>:9999/
+# 5. 启动
+python3 app.py
+
+# 6. 打开浏览器
+open http://127.0.0.1:9999/
 ```
 
 ---
@@ -137,11 +140,11 @@ voice-studio/
 
 **Q: 页面打不开**
 ```bash
-# 检查容器状态
-docker ps | grep voice
+# 检查进程是否在跑
+lsof -i:9999
 
-# 看日志
-docker logs voice-studio-web -f
+# 重启
+kill $(lsof -ti:9999); python3 app.py
 ```
 
 **Q: TTS 生成失败**
