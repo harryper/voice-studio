@@ -88,6 +88,14 @@ def build_prompt(job):
 
 def run_agent(job):
     prompt = build_prompt(job)
+    # Use a fresh session per attempt so the model can't see its prior
+    # "I already wrote it" reply and short-circuit on retry with 0 tool
+    # calls. The job id stays in the key for traceability, but we append a
+    # monotonic attempt counter that is bumped each time the writer picks
+    # the job up.
+    attempt = int(job.get('writer_attempt') or 0) + 1
+    job['writer_attempt'] = attempt
+    save_job(job)
     cmd = [
         str(NODE),
         str(OPENCLAW),
@@ -95,7 +103,7 @@ def run_agent(job):
         "--agent",
         "main",
         "--session-key",
-        f"agent:main:voice-studio-writer-{job['id']}",
+        f"agent:main:voice-studio-writer-{job['id']}-a{attempt}",
         "--message",
         prompt,
         "--thinking",
