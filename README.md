@@ -6,7 +6,21 @@
 
 ---
 
+## 部署方式选择
+
+> **如果机器是 Linux（含 WSL），用 Docker 跑；其它情况用 Flask 直接跑。**
+>
+> ```bash
+> [ "$(uname -s)" = "Linux" ] && echo "→ Docker" || echo "→ Flask 直接跑"
+> ```
+
+Docker 链路自动处理 ffmpeg、依赖、时区（`TZ=Asia/Shanghai`）和开机自启；Flask 链路更轻量，适合 macOS / Windows / 不想装 Docker 的 Linux。
+
+---
+
 ## 30 秒极速接入（新机器）
+
+### 路径 A：Docker（Linux 推荐）
 
 ```bash
 # 1. 克隆项目
@@ -21,6 +35,24 @@ cp config.example.json config.json
 export VOICE_STUDIO_PASSWORD=你的密码
 export VOICE_STUDIO_SECRET_KEY=你的密钥
 
+# 3. 启动（自动构建并后台运行，自带 ffmpeg / 时区 / 重启策略）
+docker compose up -d --build
+
+# 4. 打开浏览器
+open http://127.0.0.1:9999/
+```
+
+> 密钥文件（`scripts/azure_speech_key.txt`、`scripts/minimax_api_key.txt`）会通过 bind-mount 直接喂进容器，无需额外操作。
+
+### 路径 B：Flask 直接跑（macOS / Windows / 无 Docker 的 Linux）
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/harryper/voice-studio.git
+cd voice-studio
+
+# 2. 配置密钥（同上）
+
 # 3. Azure TTS 密钥
 echo "你的Azure密钥" > scripts/azure_speech_key.txt
 chmod 600 scripts/azure_speech_key.txt
@@ -29,7 +61,7 @@ chmod 600 scripts/azure_speech_key.txt
 echo "你的MiniMax密钥" > scripts/minimax_api_key.txt
 chmod 600 scripts/minimax_api_key.txt
 
-# 4. 安装依赖
+# 4. 安装依赖（需本机已装 ffmpeg + Python 3.11+）
 pip install -r requirements.txt
 
 # 5. 启动
@@ -140,10 +172,13 @@ voice-studio/
 
 **Q: 页面打不开**
 ```bash
-# 检查进程是否在跑
-lsof -i:9999
+# Docker 链路
+docker compose ps
+docker compose restart
+docker compose logs --tail=50
 
-# 重启
+# Flask 链路
+lsof -i:9999
 kill $(lsof -ti:9999); python3 app.py
 ```
 
