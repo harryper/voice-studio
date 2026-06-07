@@ -1337,6 +1337,32 @@
       color: white;
     }
 
+    .refresh-tags-btn {
+      flex-shrink: 0;
+      min-width: 28px; width: 28px; height: 28px;
+      padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      font-size: 13px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .refresh-tags-btn::before { content: '🔄'; filter: grayscale(0.2); }
+    .refresh-tags-btn:hover {
+      transform: rotate(90deg);
+      background: var(--surface);
+      border-color: var(--border-light);
+      box-shadow: var(--shadow-sm);
+    }
+    .refresh-tags-btn:hover::before { filter: grayscale(0); }
+    .refresh-tags-btn:active {
+      transform: rotate(180deg) scale(0.95);
+      background: var(--accent-light);
+      border-color: var(--accent);
+    }
+
     /* ─── Music Instrumental Toggle (inline) ─── */
     .music-toggle-row {
       display: flex;
@@ -1855,30 +1881,12 @@
             <div class="music-section-title">
               <span>② 风格 / 氛围</span>
               <span class="opt">点 tag 即填入</span>
+              <button type="button" id="refreshMusicTagsBtn" class="refresh-tags-btn" title="刷新风格标签"></button>
             </div>
             <textarea id="musicStyleInput" class="music-style-textarea"
               placeholder="例如：冷调合成器、Lo-fi 鼓组、女声哼唱、深夜独白感、120 BPM，留空也能生成。"></textarea>
             <div class="music-counter" id="musicStyleCounter">0 / 2,000 字符</div>
-            <div class="music-tags" id="musicTagCloud">
-              <button type="button" class="music-tag" data-tag="古风">古风</button>
-              <button type="button" class="music-tag" data-tag="中国风">中国风</button>
-              <button type="button" class="music-tag" data-tag="电子">电子</button>
-              <button type="button" class="music-tag" data-tag="赛博朋克">赛博朋克</button>
-              <button type="button" class="music-tag" data-tag="蓝调">蓝调</button>
-              <button type="button" class="music-tag" data-tag="爵士">爵士</button>
-              <button type="button" class="music-tag" data-tag="摇滚">摇滚</button>
-              <button type="button" class="music-tag" data-tag="金属">金属</button>
-              <button type="button" class="music-tag" data-tag="民谣">民谣</button>
-              <button type="button" class="music-tag" data-tag="治愈">治愈</button>
-              <button type="button" class="music-tag" data-tag="燃">燃</button>
-              <button type="button" class="music-tag" data-tag="史诗">史诗</button>
-              <button type="button" class="music-tag" data-tag="电影感">电影感</button>
-              <button type="button" class="music-tag" data-tag="夜晚">夜晚</button>
-              <button type="button" class="music-tag" data-tag="雨">雨</button>
-              <button type="button" class="music-tag" data-tag="渴望">渴望</button>
-              <button type="button" class="music-tag" data-tag="孤独">孤独</button>
-              <button type="button" class="music-tag" data-tag="怀旧">怀旧</button>
-            </div>
+            <div class="music-tags" id="musicTagCloud"></div>
           </div>
 
           <p class="note">点「开始创作」后会自动生成歌词 → 生成歌曲。参考音乐上传后存档到 R2，但当前 music-2.6 模型不消费。</p>
@@ -1980,26 +1988,7 @@
               </div>
               <textarea id="coverPromptEditor" class="music-style-textarea"
                 placeholder="例如：古风、笛子、女声空灵、慢板"></textarea>
-              <div class="music-tags" id="coverTagCloud" style="margin-top:8px;">
-                <button type="button" class="music-tag" data-tag="古风">古风</button>
-                <button type="button" class="music-tag" data-tag="中国风">中国风</button>
-                <button type="button" class="music-tag" data-tag="电子">电子</button>
-                <button type="button" class="music-tag" data-tag="赛博朋克">赛博朋克</button>
-                <button type="button" class="music-tag" data-tag="蓝调">蓝调</button>
-                <button type="button" class="music-tag" data-tag="爵士">爵士</button>
-                <button type="button" class="music-tag" data-tag="摇滚">摇滚</button>
-                <button type="button" class="music-tag" data-tag="金属">金属</button>
-                <button type="button" class="music-tag" data-tag="民谣">民谣</button>
-                <button type="button" class="music-tag" data-tag="治愈">治愈</button>
-                <button type="button" class="music-tag" data-tag="燃">燃</button>
-                <button type="button" class="music-tag" data-tag="史诗">史诗</button>
-                <button type="button" class="music-tag" data-tag="电影感">电影感</button>
-                <button type="button" class="music-tag" data-tag="夜晚">夜晚</button>
-                <button type="button" class="music-tag" data-tag="雨">雨</button>
-                <button type="button" class="music-tag" data-tag="渴望">渴望</button>
-                <button type="button" class="music-tag" data-tag="孤独">孤独</button>
-                <button type="button" class="music-tag" data-tag="怀旧">怀旧</button>
-              </div>
+              <div class="music-tags" id="coverTagCloud" style="margin-top:8px;"></div>
               <div class="style-editor-foot">
                 <button id="coverSavePromptBtn" class="small" type="button">保存目标风格</button>
               </div>
@@ -2038,6 +2027,16 @@
           <button id="generateMusicBtn" class="primary">生成歌曲</button>
           <button id="retryMusicBtn" class="warn hidden">重新生成歌曲</button>
           <button id="deleteMusicBtn" class="danger">删除</button>
+        </div>
+
+        <!-- Cover style tags (翻唱风格标签) -->
+        <div id="coverCreateTagWrap" class="hidden" style="margin-top:8px;">
+          <div class="music-section-title" style="margin-bottom:4px;">
+            <span style="font-size:12px;color:var(--text-2);">风格标签</span>
+            <span class="opt">点 tag 即填入</span>
+            <button type="button" id="refreshCoverTagsBtn" class="refresh-tags-btn" title="换一批风格标签"></button>
+          </div>
+          <div id="coverCreateTagCloud" class="music-tags"></div>
         </div>
 
         <!-- Cover job actions (翻唱) -->
@@ -2224,21 +2223,63 @@
       musicCount = Math.max(1, Math.min(4, n));
     }
 
+    let musicStyleTags = ["古风","中国风","电子","赛博朋克","蓝调","爵士","摇滚","金属","民谣","治愈","燃","史诗","电影感","夜晚","雨","渴望","孤独","怀旧"];
+
+    function renderTagCloud(containerId, targetTextareaId, extraOnClick) {
+      const container = $(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      musicStyleTags.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'music-tag';
+        btn.dataset.tag = tag;
+        btn.textContent = tag;
+        btn.addEventListener('mousedown', (e) => e.preventDefault());
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('selected');
+          if (btn.classList.contains('selected')) {
+            appendToTextarea(targetTextareaId, tag);
+          }
+          if (extraOnClick) extraOnClick();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function renderAllTagClouds() {
+      renderTagCloud('musicTagCloud', 'musicStyleInput');
+      renderTagCloud('coverTagCloud', 'coverPromptEditor', updateCoverCreateBtn);
+      renderTagCloud('coverCreateTagCloud', 'scriptEditor');
+    }
+
+    async function loadMusicStyleTags() {
+      try {
+        const tags = await api('/api/music-style-tags');
+        if (Array.isArray(tags) && tags.length) {
+          musicStyleTags = tags;
+        }
+      } catch (err) {
+        console.warn('[voice-studio] music style tags load failed, using defaults:', err);
+      }
+      renderAllTagClouds();
+    }
+
     function initMusicUI() {
       bindCharCounter('musicStyleInput', 'musicStyleCounter', MUSIC_STYLE_MAX);
 
-      // Tag cloud → append to style textarea (左侧创建面板专用).
-      // 右侧编辑面板不重复 tag cloud，左侧这套够用。
-      document.querySelectorAll('#musicTagCloud .music-tag').forEach(tag => {
-        tag.addEventListener('mousedown', (e) => e.preventDefault());  // 阻止 button 抢焦点
-        tag.addEventListener('click', () => {
-          const t = tag.dataset.tag;
-          tag.classList.toggle('selected');
-          if (tag.classList.contains('selected')) {
-            appendToTextarea('musicStyleInput', t);
-          }
-        });
-      });
+      loadMusicStyleTags();
+
+      async function refreshTagsWithSpin(btnId) {
+        const btn = $(btnId);
+        btn.disabled = true;
+        btn.style.animation = 'spin 0.6s linear infinite';
+        await loadMusicStyleTags();
+        btn.style.animation = '';
+        btn.disabled = false;
+      }
+      $('refreshMusicTagsBtn').onclick = () => refreshTagsWithSpin('refreshMusicTagsBtn');
+      $('refreshCoverTagsBtn').onclick = () => refreshTagsWithSpin('refreshCoverTagsBtn');
 
       // 右侧 styleDescriptionEditor 字符计数。
       bindCharCounter('styleDescriptionEditor', null, MUSIC_STYLE_MAX);
@@ -2616,7 +2657,9 @@
       $('jobTitle').textContent = titleText;
       $('jobStatus').textContent = isCoverMode ? '翻唱' : isMusicMode ? '音乐' : '声音';
       $('jobStatus').className = 'pill';
-      $('scriptEditor').value = '';
+      if (!isCoverMode || !$('scriptEditor').value.trim()) {
+        $('scriptEditor').value = '';
+      }
       $('errorBox').textContent = '';
       $('audioBox').classList.add('hidden');
       $('musicMeta').classList.add('hidden');
@@ -2624,6 +2667,7 @@
       $('voiceActions').classList.toggle('hidden', isMusicMode || isCoverMode);
       $('musicActions').classList.toggle('hidden', !isMusicMode);
       $('coverActions').classList.toggle('hidden', !isCoverMode);
+      $('coverCreateTagWrap').classList.toggle('hidden', !isCoverMode);
       document.querySelectorAll('.voice-only').forEach(el => {
         el.classList.toggle('hidden', isMusicMode || isCoverMode);
       });
@@ -3464,18 +3508,6 @@
     // ─── Cover UI 初始化 (翻唱) ───────────────────────────
     function initCoverUI() {
 
-      // Tag cloud → 填到 coverPromptEditor（中间 editor，与 textarea 物理上同区域）
-      document.querySelectorAll('#coverTagCloud .music-tag').forEach(tag => {
-        tag.addEventListener('mousedown', (e) => e.preventDefault());
-        tag.addEventListener('click', () => {
-          tag.classList.toggle('selected');
-          if (tag.classList.contains('selected')) {
-            appendToTextarea('coverPromptEditor', tag.dataset.tag);
-          }
-          updateCoverCreateBtn();
-        });
-      });
-
       // Mode pill toggle
       document.querySelectorAll('.cover-mode-pill').forEach(pill => {
         pill.addEventListener('click', () => {
@@ -3693,7 +3725,7 @@
         $('coverRefInput').value = '';
         $('coverUploadedFile').classList.add('hidden');
         $('coverUploadZone').classList.remove('hidden');
-        document.querySelectorAll('#coverTagCloud .music-tag.selected').forEach(t => t.classList.remove('selected'));
+        document.querySelectorAll('#coverTagCloud .music-tag.selected, #coverCreateTagCloud .music-tag.selected').forEach(t => t.classList.remove('selected'));
       } catch (err) {
         showActionFeedback('创建失败：' + err.message, 'error');
       } finally {

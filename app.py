@@ -304,6 +304,7 @@ def check_auth():
         'static', 'index', 'login', 'logout', 'api_check_auth', 'list_bgm',
         # 主题推荐只是公开本地缓存，允许未登录读取，避免登录 cookie/代理抖动导致首屏报错
         'topic_recommendations',
+        'get_music_style_tags',
     }
     if request.endpoint in public_endpoints:
         return
@@ -1132,6 +1133,22 @@ def refresh_topic_recommendations():
         return jsonify({'error': '刷新超时'}), 500
     except Exception as exc:
         return jsonify({'error': str(exc)}), 500
+
+MUSIC_STYLE_TAGS_FILE = os.path.join(os.path.dirname(__file__), 'music_style_tags.json')
+
+def load_music_style_tags():
+    with open(MUSIC_STYLE_TAGS_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+@app.route('/api/music-style-tags', methods=['GET'])
+def get_music_style_tags():
+    import random
+    try:
+        all_tags = load_music_style_tags()
+        count = min(18, len(all_tags))
+        return jsonify(random.sample(all_tags, count))
+    except (OSError, json.JSONDecodeError) as exc:
+        return jsonify({'error': f'风格标签读取失败：{exc}'}), 500
 
 def safe_name(value, fallback='voice', max_len=80):
     """Return a readable object-key fragment while preserving Chinese titles."""
