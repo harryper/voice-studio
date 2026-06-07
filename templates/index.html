@@ -1799,6 +1799,7 @@
     <header class="app-header">
       <h1 class="app-title">熊喵自媒体工作室</h1>
       <p class="app-subtitle" id="appSubtitle">主题创作先预览，确认后再生成语音</p>
+      <button id="refreshJobsBtn" class="refresh-tags-btn" title="刷新任务列表" style="margin-right:4px;"></button>
       <button id="logoutBtn">退出</button>
     </header>
 
@@ -3467,7 +3468,7 @@
         }
       }
       if (visibleJobs[0]) {
-        await loadJob(visibleJobs[0].id);
+        renderJob(visibleJobs[0]);
       } else {
         clearActiveJob();
       }
@@ -3499,6 +3500,14 @@
       }
     };
     $('password').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('loginBtn').click(); });
+    $('refreshJobsBtn').onclick = async () => {
+      const btn = $('refreshJobsBtn');
+      btn.disabled = true;
+      btn.style.animation = 'spin 0.6s linear infinite';
+      await refreshJobs().catch(() => {});
+      btn.style.animation = '';
+      btn.disabled = false;
+    };
     $('logoutBtn').onclick = async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); showApp(false); };
     $('tabVoice').onclick = () => setMode('voice');
     $('tabMusic').onclick = () => setMode('music');
@@ -4184,7 +4193,7 @@
       }
     }).catch(() => showApp(false));
 
-    pollTimer = setInterval(pollActive, 5000);
+    // pollTimer = setInterval(pollActive, 5000);
   </script>
 
 </body>
