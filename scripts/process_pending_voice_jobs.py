@@ -293,27 +293,96 @@ def process_one(job):
     return False
 
 
+# Debounce window: if the .writer-trigger was touched within this many
+# seconds before this script started, sleep until the window has passed.
+# This collapses bursty filesystem events (web app creates several jobs in
+# quick succession → many path-triggered service starts) into a single run.
+DEBOUNCE_SECONDS = 3
+
+# Last-run marker used to throttle token-plan consumption across service
+# invocations. If the previous writer run finished less than this many
+# seconds ago, sleep until the gap is met before launching the next
+# `openclaw agent` call. One agent run = ~5 min of LLM time + 4-5k tokens
+# for a 4k-char script.
+MIN_GAP_BETWEEN_RUNS = 30
+
+# Cap how many jobs a single writer invocation will process. The next job
+# gets picked up by the *next* path-triggered service start (the writer
+# itself writes back into jobs/, which re-fires PathChanged on /jobs).
+MAX_JOBS_PER_RUN = 1
+
+TRIGGER = SKILL_DIR / ".writer-trigger"
+LAST_RUN_MARKER = SKILL_DIR / ".writer.lastrun"
+
+
+def _sleep_until_quiet():
+    """Sleep until the trigger file has been stable for DEBOUNCE_SECONDS.
+
+    A bursty web-app creator will touch .writer-trigger 3-4 times in 200ms.
+    systemd's path unit fires once per event, so we get 3-4 service starts
+    in a row. The first one grabs fcntl + waits 3s; if the file was re-touched
+    during the wait, restart. The remaining service starts block on fcntl
+    and exit cheaply once the first run finishes.
+    """
+    if not TRIGGER.exists():
+        return
+    deadline = time.time() + DEBOUNCE_SECONDS * 4  # hard cap
+    while time.time() < deadline:
+        mtime = TRIGGER.stat().st_mtime
+        age = time.time() - mtime
+        if age >= DEBOUNCE_SECONDS:
+            return
+        time.sleep(min(DEBOUNCE_SECONDS, max(0.2, DEBOUNCE_SECONDS - age)))
+
+
+def _respect_min_gap():
+    """If the previous run finished < MIN_GAP_BETWEEN_RUNS ago, sleep."""
+    if not LAST_RUN_MARKER.exists():
+        return
+    try:
+        last = float(LAST_RUN_MARKER.read_text(encoding="utf-8").strip() or "0")
+    except ValueError:
+        return
+    if not last:
+        return
+    gap = time.time() - last
+    if gap >= MIN_GAP_BETWEEN_RUNS:
+        return
+    wait = MIN_GAP_BETWEEN_RUNS - gap
+    print(f"[voice-writer] throttling: previous run {gap:.1f}s ago, sleeping {wait:.1f}s")
+    time.sleep(wait)
+
+
+def _stamp_last_run():
+    LAST_RUN_MARKER.write_text(f"{time.time()}\n", encoding="utf-8")
+
+
 def main():
     JOBS_DIR.mkdir(exist_ok=True)
     RUNS_DIR.mkdir(exist_ok=True)
 
+    # Race: another writer is already running. The other run will pick up
+    # anything we'd touch too, so we exit cheaply.
     with LOCK_PATH.open("w") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            print("[voice-writer] another writer is running")
+            print("[voice-writer] another writer is running, skipping")
             return 0
 
+        _sleep_until_quiet()
+        _respect_min_gap()
+
         processed = 0
-        while True:
+        for _ in range(MAX_JOBS_PER_RUN):
             jobs = pending_jobs()
             if not jobs:
                 break
-            processed += 1
             process_one(jobs[0])
-            time.sleep(0.2)
+            processed += 1
 
-        print(f"[voice-writer] processed={processed}")
+        _stamp_last_run()
+        print(f"[voice-writer] processed={processed} (cap={MAX_JOBS_PER_RUN})")
     return 0
 
 
