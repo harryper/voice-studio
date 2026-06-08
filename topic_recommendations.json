@@ -1,44 +1,44 @@
 [
   {
-    "title": "你以为音爆震耳欲聋——其实它可以轻得像一声叹息",
+    "title": "超音速飞机为什么不能被听到？",
     "category": "地球",
-    "angle": "从 X-59 突破音障的瞬间切入，把刺耳的轰鸣误解拆成未来空中走廊的安静画面",
+    "angle": "从 X-59 第一次无声破音障，讲到原来音爆不是一道响，是一床被子",
     "source": "NASA news 2026-06-08",
     "source_url": "https://www.nasa.gov/aeronautics/x-59-first-supersonic-flight/",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
   {
-    "title": "恒星诞生这么吵闹，为什么韦布望远镜拍到的却是寂静？",
-    "category": "恒星",
-    "angle": "用第一视角穿过星云尘埃，把恒星形成的剧烈爆发讲成红外波段下无声的慢动作生长",
-    "source": "ESA Space Sci. 2026-06-08",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "记忆如果能被吃下去，你还是原来的你吗？",
-    "category": "生命",
-    "angle": "从 60 年代喂给涡虫的记忆碎片讲起，把大脑的存储机制拆成一场关于自我定义的梦",
-    "source": "Quanta Magazine 2026-06-08",
-    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "宇宙信号这么乱，为什么这对双星成了破译密码的罗塞塔石碑？",
+    "title": "JWST 拍到的小红点，到底是黑洞还是恒星？",
     "category": "宇宙",
-    "angle": "从 ASKAP J1745 重复的无线电脉冲切入，把杂乱的噪音讲成双星共舞留下的规律脚印",
-    "source": "Phys.org space 2026-06-08",
-    "source_url": "https://phys.org/news/2026-06-mysterious-space-astronomers-rosetta-stone.html",
+    "angle": "从早期宇宙里神秘的小红点，讲到一种怪物——一颗星星里藏着一颗黑洞",
+    "source": "arXiv astro-ph 2026-06-08",
+    "source_url": "https://arxiv.org/abs/2606.06575",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
   {
-    "title": "银河系缺了这么多质量，难道都藏在路过的彗星群里？",
+    "title": "太阳耀斑的能量，是怎么把空气烧穿的？",
+    "category": "太阳系",
+    "angle": "从日面脚点奇异的谱线变宽，讲到磁力线像血管一样把暴怒送到大气",
+    "source": "arXiv astro-ph 2026-06-08",
+    "source_url": "https://arxiv.org/abs/2606.06577",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "星星被黑洞一口一口咬，却一直不死",
+    "category": "黑洞",
+    "angle": "从部分撕裂事件的“消失”重现，讲到一颗恒星反复被啃、反复长回来的恐怖循环",
+    "source": "arXiv astro-ph 2026-06-08",
+    "source_url": "https://arxiv.org/abs/2606.06578",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "星际彗星里，会不会藏着一半的暗物质？",
     "category": "暗物质",
-    "angle": "从 3I/ATLAS 彗星掠过地球的轨迹讲起，把看不见的暗物质误解拆成无数冰球组成的隐形 swarm",
+    "angle": "从 3I/ATLAS 这位外来客，讲到银河系里可能漂着一整片暗物质做的彗星海",
     "source": "Phys.org space 2026-06-08",
     "source_url": "https://phys.org/news/2026-06-milky-mass-swarm-interstellar-comets.html",
     "evergreen": false,
@@ -171,6 +171,15 @@
     "evergreen": false
   },
   {
+    "title": "一颗被吃了又吐的恒星，每隔几年就亮一次",
+    "category": "黑洞",
+    "angle": "从被撕碎又复发的潮汐瓦解事件讲到恒星与黑洞的\"慢性\"共舞",
+    "source": "arXiv astro-ph 2026-06-08",
+    "source_url": "https://arxiv.org/abs/2606.06578",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
     "title": "为什么我们看见的星光，很多其实来自过去？",
     "category": "时间",
     "angle": "从光速有限讲到夜空像一座正在同时播放不同年代的博物馆。",
@@ -225,6 +234,15 @@
     "updated_at": "2026-06-08"
   },
   {
+    "title": "你以为所有红点都是黑洞——其实它们可能是怪胎恒星",
+    "category": "恒星",
+    "angle": "用第一视角讲 JWST 拍到的'小红点'，拆掉它们全是黑洞的误解",
+    "source": "arXiv 2026-06-08",
+    "source_url": "https://arxiv.org/abs/2606.06575",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
     "title": "你以为记忆只在大脑里？六十年前的实验说，吃下它就能继承别人的记忆",
     "category": "生命",
     "angle": "从被训练走迷宫的涡虫被切成两段，讲到吃掉它的同伴为何突然也会走迷宫",
@@ -246,24 +264,6 @@
     "title": "你以为记忆在大脑里？其实它可能像食物一样被吃掉",
     "category": "生命",
     "angle": "从两只吃下同类记忆的扁虫讲起，把记忆从神经信号拆解成可转移的化学分子",
-    "source": "Quanta Magazine 2026-06-08",
-    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "你以为记忆存于大脑——其实它可能像食物一样被“吃”掉？",
-    "category": "生命",
-    "angle": "从六十年代喂蜗牛吃记忆的诡异实验讲起，把记忆从电信号重塑为可转移的化学分子",
-    "source": "Quanta Magazine 2026-06-08",
-    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "你以为记忆存在大脑里？六十年前的虫子说它能被吃掉",
-    "category": "生命",
-    "angle": "从喂饱了知识的涡虫被切成两段，讲到记忆是否真的是一种可转移的物质",
     "source": "Quanta Magazine 2026-06-08",
     "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
     "evergreen": false,

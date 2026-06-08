@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
 刷新"热门主题推荐"：从 NASA、arXiv、ESA 等科学媒体真采原始线索，
-调用 NVIDIA NIM 上的 qwen3.5-397b（按 MEMORY 走 0 成本通道）改写为
+调用 OpenClaw 默认模型 MiniMax-M3（走 Anthropic Messages 协议）改写为
 "老波"风格的助眠科普中文选题，落到本地 topic_recommendations.json。
 
 行为：
 - 拉取 NASA APOD + NASA 新闻 RSS + arXiv astro-ph + ESA Space Science + Quanta + Phys.org 等源
-- 把这些原始英文/科学新闻塞进 prompt，让 qwen 按老波风格改写为 5 条
+- 把这些原始英文/科学新闻塞进 prompt，让 M3 按老波风格改写为 5 条
 - 按 title 去重，prepend 进现有 30 条，cap 在 30
-- 任何一步失败（外网抖 / qwen 限流 / JSON 解析不出来）都降级到洗牌，绝不静默失败
+- 任何一步失败（外网抖 / M3 限流 / JSON 解析不出来）都降级到洗牌，绝不静默失败
 - 文件不存在时降级到洗牌后写一份空骨架
 """
 import json
@@ -26,13 +26,15 @@ from datetime import datetime
 # ── 路径 / 配置 ───────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TOPICS_PATH = os.path.join(SCRIPT_DIR, '..', 'topic_recommendations.json')
-KEY_PATH = os.path.join(SCRIPT_DIR, 'nvidia_nim_api_key.txt')
+KEY_PATH = os.path.join(SCRIPT_DIR, 'minimax_api_key.txt')
 
-NVIDIA_BASE = 'https://integrate.api.nvidia.com/v1/chat/completions'
-NVIDIA_MODEL = 'qwen/qwen3.5-397b-a17b'
+# OpenClaw 默认模型 = minimax/MiniMax-M3（Anthropic Messages 协议）
+MINIMAX_BASE = 'https://api.minimaxi.com/anthropic/v1/messages'
+MINIMAX_MODEL = 'MiniMax-M3'
+ANTHROPIC_VERSION = '2023-06-01'
 
 HTTP_TIMEOUT = 8          # 单个外网请求的硬超时
-LLM_TIMEOUT = 25          # qwen 调用超时
+LLM_TIMEOUT = 40          # M3 一次调用上限（disabled thinking 后实测 16s 完成）
 MAX_TOPICS = 30
 NEW_TOPICS_PER_RUN = 5
 TODAY = datetime.now().strftime('%Y-%m-%d')
@@ -178,16 +180,17 @@ STYLE_GUIDE = '''你是"老波"——一个宇宙科普频道的助眠主播，�
 从原报道里选**最像科普大众报道的那一条**链接（不要 PDF 论文原始链接，要 RSS 里给的 html landing）
 
 【硬规则】
-- 输出必须是合法 JSON 数组
+- 输出必须是合法 JSON 数组，**第一个字符必须是 `[`，最后一个字符必须是 `]`**
 - **exactly 5 个对象**，不多不少
 - **5 条必须分散到 5 条不同的原始线索**；不要 5 条都讲同一篇新闻的不同角度
   （提示：[[1]][[2]][[3]] 三个不同线索对应三个不同主题；不要为了看似"都在讲一个主题"而全部引用同一条）
 - 如果某条线索不够"反常识 / 不够听完"、适合静眠，可以跳过该线索，选别的
 - 中文标点用全角（，。？——）
-- 不要给开头/结尾寒暄，不要 markdown 围栏
+- **不要任何开头/结尾寒暄、不要 markdown 围栏、不要代码块标记、不要 "以下是..." 引导句**
 - 不要复述英文原标题；中文标题要让人想点开听
 - 不要承诺疗效、不要医学建议、不要"治愈""根治"
 - `source_url` 选线索里给的 html 链接，不要 PDF；源不是网页的给主站 https://science.nasa.gov/
+- 字符串里要打引号的地方用全角 `“”`，**绝不能用转义 `\"`**
 '''
 
 def build_prompt(raw_items):
@@ -206,88 +209,102 @@ def build_prompt(raw_items):
 
 def _load_api_key():
     if not os.path.exists(KEY_PATH):
-        raise RuntimeError(f'nvidia nim key file missing: {KEY_PATH}')
+        raise RuntimeError(f'minimax key file missing: {KEY_PATH}')
     with open(KEY_PATH, 'r', encoding='utf-8') as f:
         return f.read().strip()
 
-def call_qwen(raw_items):
-    """调 qwen；带 warm-up ping + 1-2 次 retry。
-    NIM 0 成本通道有不定期 500/504/timeout/空响应，warm-up 用最小调用提前
-    探测一次“服务是不是刚”，不健康则直接放奔（不浪费 25s 等真请求）。
+def _extract_text(resp):
+    """从 Anthropic Messages 响应里抽取最终文本。跳过 type=thinking 的块。"""
+    blocks = resp.get('content') or []
+    parts = []
+    for b in blocks:
+        if b.get('type') == 'text':
+            parts.append(b.get('text', ''))
+    return ''.join(parts).strip()
+
+def call_minimax(raw_items):
+    """调 OpenClaw 默认模型 MiniMax-M3（Anthropic Messages 协议）。
+    带 warm-up ping + 1-2 次 retry。
+    M3 会在前面产生一个 type=thinking 的块（包含思考过程），取文本时跳过。
     """
     api_key = _load_api_key()
 
     # ── warm-up ping：1-2 次最小调用确认服务有响应 ──
     ping_body = {
-        'model': NVIDIA_MODEL,
+        'model': MINIMAX_MODEL,
+        'max_tokens': 8,
         'messages': [{'role': 'user', 'content': '回 OK'}],
-        'max_tokens': 4,
-        'temperature': 0.1,
     }
     for ping_try in range(2):
         try:
             req = urllib.request.Request(
-                NVIDIA_BASE,
+                MINIMAX_BASE,
                 data=json.dumps(ping_body).encode('utf-8'),
                 headers={
-                    'Authorization': f'Bearer {api_key}',
-                    'Content-Type': 'application/json',
+                    'x-api-key': api_key,
+                    'anthropic-version': ANTHROPIC_VERSION,
+                    'content-type': 'application/json',
                 },
             )
             with urllib.request.urlopen(req, timeout=8) as r:
                 ping_resp = json.loads(r.read())
-            # 验证响应体里有 choices[0].message.content
-            if not (ping_resp.get('choices') and
-                    ping_resp['choices'][0].get('message', {}).get('content')):
+            # M3 可能只回 type=thinking 块（不含 text），只要 content 数组有块就算服务健康
+            blocks = ping_resp.get('content') or []
+            if not blocks:
                 raise RuntimeError(f'warm-up ping 响应体空: {str(ping_resp)[:200]}')
             break  # ping 成功
         except Exception as e:
             if ping_try == 1:
                 raise RuntimeError(f'warm-up ping 失败: {type(e).__name__}: {e}') from e
             time.sleep(1.0 + random.random())
-    print('  [warmup] qwen ping OK', file=sys.stderr)
+    print('  [warmup] MiniMax-M3 ping OK', file=sys.stderr)
 
-    # ── 真请求：带 1-2 次 retry 处理真请求中的偶发 5xx/timeout/空响应 ──
+    # ── 真请求：带 1-2 次 retry 处理偶发 5xx/timeout/空响应 ──
+    # thinking 设为 disabled：M3 默认会先生成思考块（占很多 token 且对本任务的
+    # 中文 hook 改写无价值），关掉后 16s 就能出 text；否则 130s+
     body = {
-        'model': NVIDIA_MODEL,
-        'messages': [
-            {'role': 'system', 'content': STYLE_GUIDE},
-            {'role': 'user', 'content': build_prompt(raw_items)},
-        ],
+        'model': MINIMAX_MODEL,
+        'max_tokens': 2400,
+        'system': STYLE_GUIDE,
+        'messages': [{'role': 'user', 'content': build_prompt(raw_items)}],
         'temperature': 0.85,
-        'top_p': 0.9,
-        'max_tokens': 1800,
+        'thinking': {'type': 'disabled'},
     }
     last_err = None
     for attempt in range(3):
         try:
             req = urllib.request.Request(
-                NVIDIA_BASE,
+                MINIMAX_BASE,
                 data=json.dumps(body, ensure_ascii=False).encode('utf-8'),
                 headers={
-                    'Authorization': f'Bearer {api_key}',
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
+                    'x-api-key': api_key,
+                    'anthropic-version': ANTHROPIC_VERSION,
+                    'content-type': 'application/json',
+                    'accept': 'application/json',
                 },
             )
             with urllib.request.urlopen(req, timeout=LLM_TIMEOUT) as r:
                 resp = json.loads(r.read())
-            # 防 KeyError：空 choices / 缺 content 都走重试
-            content = (resp.get('choices') or [{}])[0].get('message', {}).get('content')
-            if not content:
-                raise RuntimeError(f'真请求响应体空: {str(resp)[:200]}')
+            # M3 可能输出多个 text 块；拼接后可能为空（仅 thinking），
+            # 仅当 type=text 的总拼接为空且没有 type=text 块时才重试
+            blocks = resp.get('content') or []
+            text_blocks = [b for b in blocks if b.get('type') == 'text']
+            content = ''.join(b.get('text', '') for b in text_blocks).strip()
+            if not content and not text_blocks:
+                raise RuntimeError(f'真请求响应体里没有 type=text 块: {str(resp)[:200]}')
             return parse_topics_json(content)
         except urllib.error.HTTPError as e:
             last_err = e
-            if e.code < 500:
+            # 4xx 客户端错不重试；5xx / 529（Anthropic 限流） 重试
+            if e.code < 500 and e.code != 429:
                 raise RuntimeError(f'HTTP {e.code}: {e.read().decode()[:200]}') from e
             backoff = (1.2 + random.random() * 0.8) * (attempt + 1)
-            print(f'  [retry] qwen HTTP {e.code}，第 {attempt+1} 次失败，{backoff:.1f}s 后重试', file=sys.stderr)
+            print(f'  [retry] M3 HTTP {e.code}，第 {attempt+1} 次失败，{backoff:.1f}s 后重试', file=sys.stderr)
             time.sleep(backoff)
         except (urllib.error.URLError, socket.timeout, TimeoutError) as e:
             last_err = e
             backoff = (1.2 + random.random() * 0.8) * (attempt + 1)
-            print(f'  [retry] qwen {type(e).__name__}，{backoff:.1f}s 后重试', file=sys.stderr)
+            print(f'  [retry] M3 {type(e).__name__}，{backoff:.1f}s 后重试', file=sys.stderr)
             time.sleep(backoff)
         except RuntimeError as e:
             # 空响应这种"疑似服务抖"，也重试
@@ -295,14 +312,14 @@ def call_qwen(raw_items):
             if attempt == 2:
                 raise
             backoff = (1.2 + random.random() * 0.8) * (attempt + 1)
-            print(f'  [retry] qwen {str(e)[:60]}，{backoff:.1f}s 后重试', file=sys.stderr)
+            print(f'  [retry] M3 {str(e)[:60]}，{backoff:.1f}s 后重试', file=sys.stderr)
             time.sleep(backoff)
-    raise RuntimeError(f'qwen 重试 3 次仍失败: {type(last_err).__name__}: {last_err}')
+    raise RuntimeError(f'M3 重试 3 次仍失败: {type(last_err).__name__}: {last_err}')
 
 _JSON_FENCE = re.compile(r'```(?:json)?\s*(\[[\s\S]*?\])\s*```', re.IGNORECASE)
 
 def parse_topics_json(content):
-    """从 qwen 回复里抽 JSON 数组；容错处理 markdown 围栏和前后杂质。"""
+    """从 M3 回复里抽 JSON 数组；容错处理 markdown 围栏和前后杂质。"""
     s = content.strip()
     # 1) 先抓 ```json [...] ``` 围栏
     m = _JSON_FENCE.search(s)
@@ -317,9 +334,9 @@ def parse_topics_json(content):
     try:
         arr = json.loads(s)
     except json.JSONDecodeError as e:
-        raise RuntimeError(f'qwen 返回不是合法 JSON: {e}; head={content[:200]!r}') from e
+        raise RuntimeError(f'M3 返回不是合法 JSON: {e}; head={content[:200]!r}') from e
     if not isinstance(arr, list):
-        raise RuntimeError(f'qwen 返回根不是数组: {type(arr).__name__}')
+        raise RuntimeError(f'M3 返回根不是数组: {type(arr).__name__}')
 
     cleaned = []
     for raw in arr[:NEW_TOPICS_PER_RUN]:
@@ -339,7 +356,7 @@ def parse_topics_json(content):
             'updated_at': TODAY,
         })
     if len(cleaned) < 1:
-        raise RuntimeError('qwen 返回 0 条有效 topic')
+        raise RuntimeError('M3 返回 0 条有效 topic')
     return cleaned
 
 # ── 落盘 / 降级 ──────────────────────────────────────────────
@@ -414,10 +431,10 @@ def main():
         return
 
     try:
-        new_topics = call_qwen(raw)
-        print(f'[refresh_topics] qwen 返回 {len(new_topics)} 条候选', file=sys.stderr)
+        new_topics = call_minimax(raw)
+        print(f'[refresh_topics] M3 返回 {len(new_topics)} 条候选', file=sys.stderr)
     except Exception as e:
-        print(f'  [warn] qwen 调用失败: {type(e).__name__}: {e}', file=sys.stderr)
+        print(f'  [warn] M3 调用失败: {type(e).__name__}: {e}', file=sys.stderr)
         result = fallback_shuffle()
         result['note'] = f'LLM 失败({type(e).__name__})；已降级到洗牌'
         print(json.dumps(result, ensure_ascii=False))

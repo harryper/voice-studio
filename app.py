@@ -1126,7 +1126,7 @@ def refresh_topic_recommendations():
         script = os.path.join(os.path.dirname(__file__), 'scripts', 'refresh_topics.py')
         result = subprocess.run(
             ['python3', script],
-            capture_output=True, text=True, timeout=60
+            capture_output=True, text=True, timeout=90
         )
         if result.returncode != 0:
             tail = (result.stderr or '').strip().splitlines()[-3:]
