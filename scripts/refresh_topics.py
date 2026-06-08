@@ -191,10 +191,23 @@ STYLE_GUIDE = '''你是"老波"——一个宇宙科普频道的助眠主播，�
 - 不要承诺疗效、不要医学建议、不要"治愈""根治"
 - `source_url` 选线索里给的 html 链接，不要 PDF；源不是网页的给主站 https://science.nasa.gov/
 - 字符串里要打引号的地方用全角 `“”`，**绝不能用转义 `\"`**
+
+【平衡要求】（关键）
+- 如果 user 消息末尾有【当前分类分布】块：5 条里**至少 3 条要覆盖【低于 3 条的分类】中列出的低分类**
+- 优先级：低分类 > 现有足够分类
+- 如果外部线索里某条不够反常识 / 不适合你需要的低分类，**你有权完全不用外部线索，调用你的科学知识库**造一条符合老波风格的题目：仅需满足"标题反常识、angle 有画面感、面向睡前听众"、以一个**真实科学概念**为基础（不编造不存在的物理/天文现象）
+- 造题时：`source` 写 "老波选题 2026-06-08"，`source_url` 写 "https://science.nasa.gov/"（避免编造看起来很权威的外部链接）
+- 5 条里**最多 2 条可以用老波选题**，至少 3 条**必须**覆盖低分类（要么外部线索支持、要么你造）
 '''
 
-def build_prompt(raw_items):
-    """raw_items 缩成 prompt 输入。"""
+def build_prompt(raw_items, category_status=''):
+    """raw_items 缩成 prompt 输入。
+
+    category_status: 形如：
+        【当前分类分布】
+        恒星=6  太阳系=5  宇宙=5  黑洞=4  时间=3
+        ⚠️ 低于 3 条的分类（需优先补足）: 暗物质, 生命, 观测, 量子, 地球
+    空字符串则不发该块。"""
     lines = [f'【{TODAY} 抓到的科学线索】共 {len(raw_items)} 条：']
     for i, it in enumerate(raw_items, 1):
         lines.append(f'\n[{i}] 来源: {it["source"]}')
@@ -203,9 +216,30 @@ def build_prompt(raw_items):
             lines.append(f'    摘要: {it["desc"]}')
         if it.get('link'):
             lines.append(f'    链接: {it["link"]}')
+    if category_status:
+        lines.append('\n' + category_status)
     lines.append('\n请严格按 schema 输出 5 条 JSON 对象，JSON 数组前后用 []，每条 7 个字段：'
                  ' title, category, angle, source, source_url, evergreen, updated_at')
     return '\n'.join(lines)
+
+
+def count_categories(existing, target=3):
+    """统计当前分类分布，返回 status 块字符串 + 低分类列表。
+
+    Returns: (status_block, low_categories)
+        status_block: 可拼到 prompt 末尾的多行文本
+        low_categories: ['暗物质', '生命', ...]  低于 target 条的分类
+    """
+    from collections import Counter
+    c = Counter(t.get('category', '?') for t in existing)
+    lines = ['【当前分类分布】']
+    for cat, n in sorted(c.items(), key=lambda x: (-x[1], x[0])):
+        lines.append(f'  {cat} = {n}')
+    low = [cat for cat, n in c.items() if n < target]
+    # 按 c.items() 的原顺序，低分类在[] 里也保持现存顺序
+    if low:
+        lines.append(f'  ⚠️ 低于 {target} 条的分类（需优先补足）: {", ".join(low)}')
+    return '\n'.join(lines), low
 
 def _load_api_key():
     if not os.path.exists(KEY_PATH):
@@ -222,10 +256,12 @@ def _extract_text(resp):
             parts.append(b.get('text', ''))
     return ''.join(parts).strip()
 
-def call_minimax(raw_items):
+def call_minimax(raw_items, category_status=''):
     """调 OpenClaw 默认模型 MiniMax-M3（Anthropic Messages 协议）。
     带 warm-up ping + 1-2 次 retry。
     M3 会在前面产生一个 type=thinking 的块（包含思考过程），取文本时跳过。
+
+    category_status: 分类平衡提示文本（由 main() 算好后传入）。
     """
     api_key = _load_api_key()
 
@@ -266,7 +302,7 @@ def call_minimax(raw_items):
         'model': MINIMAX_MODEL,
         'max_tokens': 2400,
         'system': STYLE_GUIDE,
-        'messages': [{'role': 'user', 'content': build_prompt(raw_items)}],
+        'messages': [{'role': 'user', 'content': build_prompt(raw_items, category_status)}],
         'temperature': 0.85,
         'thinking': {'type': 'disabled'},
     }
@@ -430,8 +466,14 @@ def main():
         print(json.dumps(result, ensure_ascii=False))
         return
 
+    # 算分类平衡提示：保证刷新后各分类 >= 3 条
+    existing = load_existing()
+    cat_status, low_cats = count_categories(existing, target=3)
+    if low_cats:
+        print(f'[refresh_topics] 低于3条的分类: {low_cats}', file=sys.stderr)
+
     try:
-        new_topics = call_minimax(raw)
+        new_topics = call_minimax(raw, category_status=cat_status)
         print(f'[refresh_topics] M3 返回 {len(new_topics)} 条候选', file=sys.stderr)
     except Exception as e:
         print(f'  [warn] M3 调用失败: {type(e).__name__}: {e}', file=sys.stderr)
@@ -440,7 +482,6 @@ def main():
         print(json.dumps(result, ensure_ascii=False))
         return
 
-    existing = load_existing()
     added, total = merge_and_write(new_topics, existing)
     result = {'mode': 'fetch+llm', 'added': added, 'total': total,
               'raw_count': len(raw), 'candidates': len(new_topics),
