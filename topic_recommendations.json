@@ -1,46 +1,46 @@
 [
   {
-    "title": "你以为超音速飞机会“砰”地炸响——其实它能安静地划破天空",
+    "title": "如果地球突然不转了，你会先飞起来还是先窒息？",
     "category": "地球",
-    "angle": "从 X-59 第一次破音障讲到“音爆”为什么可以被压成一声轻叹",
-    "source": "NASA news 2026-06-08",
-    "source_url": "https://www.nasa.gov/aeronautics/x-59-first-supersonic-flight/",
+    "angle": "从赤道一秒一千米的转速停掉那一刻，讲离心力消失、海水怎么重新铺开",
+    "source": "老波选题 2026-06-08",
+    "source_url": "https://science.nasa.gov/",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
   {
-    "title": "Webb 在一颗“星际旅客”身上，闻到了不属于太阳系的味道",
+    "title": "你以为望远镜只是看得远——其实它是在偷听光",
     "category": "观测",
-    "angle": "从 Webb 拍到 3I/ATLAS 喷出甲烷讲到它为什么可能是别的恒星孵出来的",
-    "source": "ESA Space Sci. 2026-06-08",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_sniffs_methane_from_interstellar_Comet_3I_ATLAS",
+    "angle": "把望远镜从“拍照”误解拆掉，讲成收集几百万年前的光谱拼图",
+    "source": "NASA news 2026-06-08",
+    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
   {
-    "title": "如果记忆可以被“吃掉”——你还能确定你是你吗",
+    "title": "记忆能不能像糖一样喂给下一只虫子？",
     "category": "生命",
-    "angle": "从六十年代那条被磨成浆的蠕虫，讲到“记忆能不能像食物一样被咽下去”",
+    "angle": "从六十年代那条被碾碎的蠕虫讲起，把“吃记忆”这件荒诞事讲成真实的神经实验",
     "source": "Quanta Magazine 2026-06-08",
     "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
   {
-    "title": "宇宙里反复闪的信号，终于被一对“抱在一起”的恒星说清楚了",
-    "category": "暗物质",
-    "angle": "从两颗互相缠绕的恒星讲到那种神秘射电爆为什么像罗塞塔石碑一样珍贵",
-    "source": "Phys.org space 2026-06-08",
-    "source_url": "https://phys.org/news/2026-06-mysterious-space-astronomers-rosetta-stone.html",
+    "title": "一颗粒子能同时穿过两条缝——你怎么知道自己不在现场？",
+    "category": "量子",
+    "angle": "用观察者的眼睛作为画面，讲双缝实验里“看一眼就变了”的那根刺",
+    "source": "老波选题 2026-06-08",
+    "source_url": "https://science.nasa.gov/",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
   {
-    "title": "银河系“丢”掉的那一半质量，可能藏在一群路过的彗星里",
-    "category": "暗物质",
-    "angle": "从 3I/ATLAS 这位不速之客，讲到暗物质也许根本不是粒子，而是宇宙的流浪冰块",
+    "title": "那些不断重复的宇宙信号，终于找到它的“罗塞塔石碑”了？",
+    "category": "观测",
+    "angle": "从一对互相缠绕的恒星画面切入，讲一颗重复射电爆发的源头是怎么被锁定的",
     "source": "Phys.org space 2026-06-08",
-    "source_url": "https://phys.org/news/2026-06-milky-mass-swarm-interstellar-comets.html",
+    "source_url": "https://phys.org/news/2026-06-mysterious-space-astronomers-rosetta-stone.html",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
@@ -171,6 +171,15 @@
     "updated_at": "2026-06-08"
   },
   {
+    "title": "Webb 在一颗“星际旅客”身上，闻到了不属于太阳系的味道",
+    "category": "观测",
+    "angle": "从 Webb 拍到 3I/ATLAS 喷出甲烷讲到它为什么可能是别的恒星孵出来的",
+    "source": "ESA Space Sci. 2026-06-08",
+    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_sniffs_methane_from_interstellar_Comet_3I_ATLAS",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
     "title": "一颗恒星被撕碎，却找不到它的“惨叫”？",
     "category": "黑洞",
     "angle": "从重复撕裂恒星事件的“消失耀斑”讲到潮汐力把星慢慢啃掉的安静恐怖",
@@ -255,15 +264,6 @@
     "title": "你以为恒星是一下子点燃的？其实 Webb 看见了漫长的挣扎",
     "category": "恒星",
     "angle": "把恒星诞生从瞬间点灯的误解，讲成气体云在黑暗中缓慢收缩的延时摄影感",
-    "source": "ESA Space Sci. 2026-06-08",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "你以为恒星是一点点长大的？其实它们是一瞬间“亮”起来的",
-    "category": "恒星",
-    "angle": "用韦伯望远镜的视角，把恒星诞生从漫长的等待，讲成迷雾中突然睁眼的惊悚瞬间",
     "source": "ESA Space Sci. 2026-06-08",
     "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
     "evergreen": false,

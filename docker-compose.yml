@@ -6,10 +6,59 @@ services:
     ports:
       - "9999:9999"
     volumes:
+      # Source code is bind-mounted for live edits during dev. In production
+      # this is fine because gunicorn re-reads the file on every request via
+      # the WSGI pipeline; for code-only edits that need a reload, run
+      # `docker compose restart voice-studio-web`.
       - .:/app
+      # Read-only access to the workspace for cross-skill scripts and
+      # uploads to public-downloads. Container does not need write here.
       - /root/.openclaw/workspace:/root/.openclaw/workspace:ro
+      # Public downloads dir is the one writable shared location.
       - /root/.openclaw/workspace/public-downloads:/root/.openclaw/workspace/public-downloads
+      # Host-side logrotate reads from /var/log/voice-studio on the host.
+      - /var/log/voice-studio:/app/logs
       - /usr/lib/node_modules:/usr/lib/node_modules:ro
     environment:
       - PYTHONUNBUFFERED=1
       - PATH=/usr/bin:/bin:/usr/local/bin:/root/.openclaw/workspace/skills/voice-studio/scripts:/root/.openclaw/workspace/public-downloads
+      # Gunicorn tuning (see gunicorn.conf.py for what each controls).
+      - GUNICORN_WORKERS=2
+      - GUNICORN_TIMEOUT=1800
+      - GUNICORN_GRACEFUL_TIMEOUT=30
+      - GUNICORN_KEEPALIVE=5
+      - GUNICORN_MAX_REQUESTS=500
+      - GUNICORN_MAX_REQUESTS_JITTER=100
+      - GUNICORN_LOG_LEVEL=info
+    # Cap CPU and memory so a runaway gunicorn cannot starve the host.
+    # Voice TTS peaks at ~600MB transient, mixing/BGM ~1.2GB, well within
+    # these limits. CPU shares 1024 == 1 full core; 1.5 leaves headroom for
+    # the host systemd + Docker daemon.
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1536M
+          # PidsLimit caps any accidental fork-bomb.
+          pids: 256
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    # ulimits tighten the file-descriptor ceiling to match container expectations.
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
+    # Prevent the container from gaining new privileges (defense in depth).
+    security_opt:
+      - no-new-privileges:true
+    # Stop with a grace period so gunicorn can finish in-flight requests.
+    stop_grace_period: 45s
+    # Healthcheck is also defined in the Dockerfile; declaring it here as
+    # well lets operators override intervals without rebuilding the image.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-m", "3", "http://127.0.0.1:9999/api/check-auth"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
