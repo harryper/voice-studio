@@ -302,8 +302,10 @@ def logout():
 def check_auth():
     public_endpoints = {
         'static', 'index', 'login', 'logout', 'api_check_auth', 'list_bgm',
-        # 主题推荐只是公开本地缓存，允许未登录读取，避免登录 cookie/代理抖动导致首屏报错
+        # 主题推荐只是公开本地缓存（GET 读取 + POST 触发本地脚本刷新列表顺序），
+        # 允许未登录读写，避免登录 cookie/代理抖动导致首屏报错或刷新按钮被静默吞掉
         'topic_recommendations',
+        'refresh_topic_recommendations',
         'get_music_style_tags',
     }
     if request.endpoint in public_endpoints:
@@ -1124,13 +1126,30 @@ def refresh_topic_recommendations():
         script = os.path.join(os.path.dirname(__file__), 'scripts', 'refresh_topics.py')
         result = subprocess.run(
             ['python3', script],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, timeout=60
         )
         if result.returncode != 0:
-            return jsonify({'error': result.stderr.strip()}), 500
-        return jsonify(load_topic_recommendations())
+            tail = (result.stderr or '').strip().splitlines()[-3:]
+            return jsonify({
+                'error': '刷新脚本退出非零',
+                'stderr_tail': tail,
+                'mode_note': (result.stdout or '').strip().splitlines()[-1] if result.stdout else '',
+            }), 500
+        # 脚本最后一行 stdout 是 JSON：{'mode': 'fetch+llm' | 'shuffle', ...}
+        last_line = (result.stdout or '').strip().splitlines()[-1] if result.stdout else ''
+        topics = load_topic_recommendations()
+        # 顺手把脚本的 note 拼进响应头让前端可以拿到，但不返回原始 list 双重负载
+        resp = jsonify(topics)
+        if last_line.startswith('{') and 'mode' in last_line:
+            try:
+                meta = json.loads(last_line)
+                resp.headers['X-Refresh-Mode'] = meta.get('mode', '')
+                resp.headers['X-Refresh-Note'] = (meta.get('note') or '')[:80]
+            except Exception:
+                pass
+        return resp
     except subprocess.TimeoutExpired:
-        return jsonify({'error': '刷新超时'}), 500
+        return jsonify({'error': '刷新超时（60s）'}), 500
     except Exception as exc:
         return jsonify({'error': str(exc)}), 500
 

@@ -1,12 +1,48 @@
 [
   {
-    "title": "如果时间倒流，宇宙会发生什么？",
-    "category": "时间",
-    "angle": "从热力学第二定律讲到熵增和时间箭头的不可逆。",
-    "source": "Thermodynamics",
-    "source_url": "https://science.nasa.gov/",
+    "title": "你以为音爆震耳欲聋——其实它可以轻得像一声叹息",
+    "category": "地球",
+    "angle": "从 X-59 突破音障的瞬间切入，把刺耳的轰鸣误解拆成未来空中走廊的安静画面",
+    "source": "NASA news 2026-06-08",
+    "source_url": "https://www.nasa.gov/aeronautics/x-59-first-supersonic-flight/",
     "evergreen": false,
-    "updated_at": "2026-06-06"
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "恒星诞生这么吵闹，为什么韦布望远镜拍到的却是寂静？",
+    "category": "恒星",
+    "angle": "用第一视角穿过星云尘埃，把恒星形成的剧烈爆发讲成红外波段下无声的慢动作生长",
+    "source": "ESA Space Sci. 2026-06-08",
+    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "记忆如果能被吃下去，你还是原来的你吗？",
+    "category": "生命",
+    "angle": "从 60 年代喂给涡虫的记忆碎片讲起，把大脑的存储机制拆成一场关于自我定义的梦",
+    "source": "Quanta Magazine 2026-06-08",
+    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "宇宙信号这么乱，为什么这对双星成了破译密码的罗塞塔石碑？",
+    "category": "宇宙",
+    "angle": "从 ASKAP J1745 重复的无线电脉冲切入，把杂乱的噪音讲成双星共舞留下的规律脚印",
+    "source": "Phys.org space 2026-06-08",
+    "source_url": "https://phys.org/news/2026-06-mysterious-space-astronomers-rosetta-stone.html",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "银河系缺了这么多质量，难道都藏在路过的彗星群里？",
+    "category": "暗物质",
+    "angle": "从 3I/ATLAS 彗星掠过地球的轨迹讲起，把看不见的暗物质误解拆成无数冰球组成的隐形 swarm",
+    "source": "Phys.org space 2026-06-08",
+    "source_url": "https://phys.org/news/2026-06-milky-mass-swarm-interstellar-comets.html",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
   },
   {
     "title": "中子星有多重？",
@@ -14,35 +50,8 @@
     "angle": "从一勺中子星物质重达10亿吨讲到极端密度的世界。",
     "source": "NASA Neutron Stars",
     "source_url": "https://science.nasa.gov/universe/",
-    "evergreen": false,
-    "updated_at": "2026-06-03"
-  },
-  {
-    "title": "如果太阳突然消失，地球会怎样？",
-    "category": "太阳系",
-    "angle": "从引力波速度讲到8分钟后的黑暗和轨道混乱。",
-    "source": "NASA Solar System",
-    "source_url": "https://science.nasa.gov/solar-system/",
-    "evergreen": false,
-    "updated_at": "2026-06-03"
-  },
-  {
-    "title": "宇宙有边界吗？",
-    "category": "宇宙",
-    "angle": "从可观测宇宙讲到视界之外的未知领域。",
-    "source": "NASA Universe",
-    "source_url": "https://science.nasa.gov/universe/",
     "evergreen": true,
-    "updated_at": "2026-06-01"
-  },
-  {
-    "title": "宇宙的温度是多少？",
-    "category": "宇宙",
-    "angle": "从宇宙微波背景辐射讲到绝对零度之上2.7K的余温。",
-    "source": "NASA Cosmic Background",
-    "source_url": "https://science.nasa.gov/universe/",
-    "evergreen": true,
-    "updated_at": "2026-06-01"
+    "updated_at": "2026-06-08"
   },
   {
     "title": "为什么火星是红色的？",
@@ -51,61 +60,34 @@
     "source": "NASA Mars",
     "source_url": "https://science.nasa.gov/mars/",
     "evergreen": true,
-    "updated_at": "2026-06-01"
+    "updated_at": "2026-06-08"
   },
   {
-    "title": "黑洞会死亡吗？",
-    "category": "黑洞",
-    "angle": "从霍金辐射讲到黑洞蒸发和最终的消失。",
-    "source": "Hawking Radiation",
-    "source_url": "https://science.nasa.gov/universe/black-holes/",
-    "evergreen": false,
-    "updated_at": "2026-06-01"
-  },
-  {
-    "title": "宇宙中最冷的地方在哪里？",
-    "category": "宇宙",
-    "angle": "从回旋镖星云讲到比宇宙背景辐射还冷的地方。",
-    "source": "NASA Extreme Universe",
-    "source_url": "https://science.nasa.gov/universe/",
-    "evergreen": true,
-    "updated_at": "2026-06-01"
-  },
-  {
-    "title": "为什么月球总是同一面对着地球？",
-    "category": "太阳系",
-    "angle": "从潮汐锁定讲到月球自转和公转的完美同步。",
-    "source": "NASA Moon",
-    "source_url": "https://science.nasa.gov/moon/",
-    "evergreen": false,
-    "updated_at": "2026-06-01"
-  },
-  {
-    "title": "光速真的是宇宙的速度极限吗？",
-    "category": "量子",
-    "angle": "从相对论讲到量子纠缠和信息传递的边界。",
-    "source": "Physics Today",
-    "source_url": "https://science.nasa.gov/",
-    "evergreen": true,
-    "updated_at": "2026-06-01"
-  },
-  {
-    "title": "恒星这么多，为什么宇宙还是这么暗？",
-    "category": "宇宙",
-    "angle": "从奥伯斯佯谬讲到宇宙年龄、光速和黑暗的来源。",
-    "source": "经典问题：Olbers' paradox",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-05-31",
+    "title": "外星人如果存在，为什么宇宙这么安静？",
+    "category": "生命",
+    "angle": "从费米悖论讲到沉默宇宙、距离、时间差和文明窗口。",
+    "source": "经典问题：Fermi paradox",
+    "source_url": "https://science.nasa.gov/exoplanets/",
+    "updated_at": "2026-06-08",
     "evergreen": true
   },
   {
-    "title": "先有黑洞，还是先有星系？",
-    "category": "黑洞",
-    "angle": "从早期宇宙的超大质量黑洞讲到星系形成顺序的谜题。",
-    "source": "NASA Webb",
-    "source_url": "https://science.nasa.gov/missions/webb/nasas-webb-reveals-black-hole-that-formed-before-its-galaxy/",
-    "updated_at": "2026-05-31",
-    "evergreen": false
+    "title": "如果太阳突然消失，地球会怎样？",
+    "category": "太阳系",
+    "angle": "从引力波速度讲到8分钟后的黑暗和轨道混乱。",
+    "source": "NASA Solar System",
+    "source_url": "https://science.nasa.gov/solar-system/",
+    "evergreen": true,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "如果时间倒流，宇宙会发生什么？",
+    "category": "时间",
+    "angle": "从热力学第二定律讲到熵增和时间箭头的不可逆。",
+    "source": "Thermodynamics",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": true,
+    "updated_at": "2026-06-08"
   },
   {
     "title": "宇宙一直在膨胀，那它到底在往哪里撑？",
@@ -113,25 +95,7 @@
     "angle": "把宇宙膨胀从气球误解，讲成空间本身变大的安静恐怖。",
     "source": "NASA / ESA cosmology explainers",
     "source_url": "https://science.nasa.gov/universe/overview/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "黑洞真的是黑的吗？",
-    "category": "黑洞",
-    "angle": "从事件视界、吸积盘和霍金辐射讲到最亮的黑暗。",
-    "source": "NASA black hole basics",
-    "source_url": "https://science.nasa.gov/universe/black-holes/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "如果掉进黑洞，你最后会看见什么？",
-    "category": "黑洞",
-    "angle": "用第一视角讲时间变慢、光线弯曲和不可返回的边界。",
-    "source": "NASA black hole basics",
-    "source_url": "https://science.nasa.gov/universe/black-holes/",
-    "updated_at": "2026-05-31",
+    "updated_at": "2026-06-08",
     "evergreen": true
   },
   {
@@ -140,8 +104,35 @@
     "angle": "从暗物质和暗能量讲到我们只看见宇宙极小的一层皮。",
     "source": "NASA dark matter and dark energy",
     "source_url": "https://science.nasa.gov/universe/dark-matter-dark-energy/",
-    "updated_at": "2026-05-31",
+    "updated_at": "2026-06-08",
     "evergreen": true
+  },
+  {
+    "title": "宇宙中最冷的地方在哪里？",
+    "category": "宇宙",
+    "angle": "从回旋镖星云讲到比宇宙背景辐射还冷的地方。",
+    "source": "NASA Extreme Universe",
+    "source_url": "https://science.nasa.gov/universe/",
+    "evergreen": true,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "宇宙最终会怎么死？",
+    "category": "宇宙",
+    "angle": "从热寂、大撕裂和真空衰变讲到几种安静但彻底的结局。",
+    "source": "经典问题：fate of the universe",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-06-08",
+    "evergreen": true
+  },
+  {
+    "title": "宇宙有边界吗？",
+    "category": "宇宙",
+    "angle": "从可观测宇宙讲到视界之外的未知领域。",
+    "source": "NASA Universe",
+    "source_url": "https://science.nasa.gov/universe/",
+    "evergreen": true,
+    "updated_at": "2026-06-08"
   },
   {
     "title": "时间为什么只能往前走？",
@@ -149,34 +140,7 @@
     "angle": "从熵增和时间箭头讲到一杯水为什么不会自己回到杯子里。",
     "source": "经典问题：arrow of time",
     "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "接近光速飞行，真的能去未来吗？",
-    "category": "时间",
-    "angle": "把相对论时间膨胀讲成一次安静但无法回头的远行。",
-    "source": "NASA spacetime explainers",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "外星人如果存在，为什么宇宙这么安静？",
-    "category": "生命",
-    "angle": "从费米悖论讲到沉默宇宙、距离、时间差和文明窗口。",
-    "source": "经典问题：Fermi paradox",
-    "source_url": "https://science.nasa.gov/exoplanets/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "地球上的水，最早是从哪里来的？",
-    "category": "生命",
-    "angle": "从彗星、小行星和早期地球讲到一杯水里的宇宙旧事。",
-    "source": "NASA solar system science",
-    "source_url": "https://science.nasa.gov/solar-system/",
-    "updated_at": "2026-05-31",
+    "updated_at": "2026-06-08",
     "evergreen": true
   },
   {
@@ -185,79 +149,16 @@
     "angle": "从量子涨落讲到看似空无的地方其实一直在轻微沸腾。",
     "source": "经典问题：quantum vacuum",
     "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-05-31",
+    "updated_at": "2026-06-08",
     "evergreen": true
   },
   {
-    "title": "宇宙有没有边界？如果有，边界外面是什么？",
-    "category": "宇宙",
-    "angle": "把边界、可观测宇宙和空间弯曲讲成一场没有墙的远行。",
-    "source": "NASA universe overview",
-    "source_url": "https://science.nasa.gov/universe/overview/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "星系之间那些巨大的空洞，里面真的什么都没有吗？",
-    "category": "宇宙",
-    "angle": "从宇宙网和巨洞讲到星系不是均匀撒开，而是长在一张暗网里。",
-    "source": "NASA universe structure",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "宇宙最终会怎么死？",
-    "category": "宇宙",
-    "angle": "从热寂、大撕裂和真空衰变讲到几种安静但彻底的结局。",
-    "source": "经典问题：fate of the universe",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "为什么我们看见的星光，很多其实来自过去？",
-    "category": "时间",
-    "angle": "从光速有限讲到夜空像一座正在同时播放不同年代的博物馆。",
-    "source": "NASA light travel time explainers",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "太阳有一天会吞掉地球吗？",
-    "category": "太阳系",
-    "angle": "从恒星演化讲到太阳变老后，地球会面对怎样的缓慢结局。",
-    "source": "NASA Sun and stars",
-    "source_url": "https://science.nasa.gov/sun/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "为什么月亮一直用同一面对着我们？",
-    "category": "太阳系",
-    "angle": "从潮汐锁定讲到月球像被地球轻轻拴住的一只旧钟。",
-    "source": "NASA Moon",
-    "source_url": "https://science.nasa.gov/moon/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "地球磁场如果消失，天空会发生什么？",
-    "category": "地球",
-    "angle": "从磁层、太阳风和极光讲到一层看不见的盾牌。",
-    "source": "NASA Earth science",
-    "source_url": "https://science.nasa.gov/earth/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
-  },
-  {
-    "title": "深海没有阳光，生命靠什么活下去？",
-    "category": "生命",
-    "angle": "从热液喷口讲到不靠太阳的生命系统，以及地外生命的想象。",
-    "source": "NASA astrobiology",
-    "source_url": "https://science.nasa.gov/astrobiology/",
-    "updated_at": "2026-05-31",
+    "title": "黑洞真的是黑的吗？",
+    "category": "黑洞",
+    "angle": "从事件视界、吸积盘和霍金辐射讲到最亮的黑暗。",
+    "source": "NASA black hole basics",
+    "source_url": "https://science.nasa.gov/universe/black-holes/",
+    "updated_at": "2026-06-08",
     "evergreen": true
   },
   {
@@ -266,7 +167,106 @@
     "angle": "从白矮星和碳结晶讲到恒星死亡后的冷光。",
     "source": "NASA stars",
     "source_url": "https://science.nasa.gov/universe/stars/",
-    "updated_at": "2026-05-31",
-    "evergreen": true
+    "updated_at": "2026-06-08",
+    "evergreen": false
+  },
+  {
+    "title": "为什么我们看见的星光，很多其实来自过去？",
+    "category": "时间",
+    "angle": "从光速有限讲到夜空像一座正在同时播放不同年代的博物馆。",
+    "source": "NASA light travel time explainers",
+    "source_url": "https://science.nasa.gov/universe/",
+    "updated_at": "2026-06-08",
+    "evergreen": false
+  },
+  {
+    "title": "为什么月亮一直用同一面对着我们？",
+    "category": "太阳系",
+    "angle": "从潮汐锁定讲到月球像被地球轻轻拴住的一只旧钟。",
+    "source": "NASA Moon",
+    "source_url": "https://science.nasa.gov/moon/",
+    "updated_at": "2026-06-08",
+    "evergreen": false
+  },
+  {
+    "title": "为什么月球总是同一面对着地球？",
+    "category": "太阳系",
+    "angle": "从潮汐锁定讲到月球自转和公转的完美同步。",
+    "source": "NASA Moon",
+    "source_url": "https://science.nasa.gov/moon/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "以为超音速一定吵闹？这架飞机正在撕裂音障却保持安静",
+    "category": "地球",
+    "angle": "从 X-59 首次突破音障的画面切入，讲它如何把震耳欲聋的音爆变成一声轻叹",
+    "source": "NASA news 2026-06-08",
+    "source_url": "https://www.nasa.gov/aeronautics/x-59-first-supersonic-flight/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "你以为恒星是一下子点燃的？其实 Webb 看见了漫长的挣扎",
+    "category": "恒星",
+    "angle": "把恒星诞生从瞬间点灯的误解，讲成气体云在黑暗中缓慢收缩的延时摄影感",
+    "source": "ESA Space Sci. 2026-06-08",
+    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "你以为恒星是一点点长大的？其实它们是一瞬间“亮”起来的",
+    "category": "恒星",
+    "angle": "用韦伯望远镜的视角，把恒星诞生从漫长的等待，讲成迷雾中突然睁眼的惊悚瞬间",
+    "source": "ESA Space Sci. 2026-06-08",
+    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "你以为记忆只在大脑里？六十年前的实验说，吃下它就能继承别人的记忆",
+    "category": "生命",
+    "angle": "从被训练走迷宫的涡虫被切成两段，讲到吃掉它的同伴为何突然也会走迷宫",
+    "source": "Quanta Magazine 2026-06-08",
+    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "你以为记忆在大脑里——其实它可能像食物一样被“吃”掉？",
+    "category": "生命",
+    "angle": "从六十年代海蜗牛互相吞噬记忆的诡异实验，讲成记忆或许只是某种可转移的化学分子",
+    "source": "Quanta Magazine 2026-06-08",
+    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "你以为记忆在大脑里？其实它可能像食物一样被吃掉",
+    "category": "生命",
+    "angle": "从两只吃下同类记忆的扁虫讲起，把记忆从神经信号拆解成可转移的化学分子",
+    "source": "Quanta Magazine 2026-06-08",
+    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "你以为记忆存于大脑——其实它可能像食物一样被“吃”掉？",
+    "category": "生命",
+    "angle": "从六十年代喂蜗牛吃记忆的诡异实验讲起，把记忆从电信号重塑为可转移的化学分子",
+    "source": "Quanta Magazine 2026-06-08",
+    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "你以为记忆存在大脑里？六十年前的虫子说它能被吃掉",
+    "category": "生命",
+    "angle": "从喂饱了知识的涡虫被切成两段，讲到记忆是否真的是一种可转移的物质",
+    "source": "Quanta Magazine 2026-06-08",
+    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
   }
 ]
