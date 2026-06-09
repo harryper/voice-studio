@@ -1,48 +1,39 @@
 [
   {
-    "title": "如果地球突然不转了，你会先飞起来还是先窒息？",
+    "title": "你以为 UAE 那片沙漠，地下曾经是海？",
     "category": "地球",
-    "angle": "从赤道一秒一千米的转速停掉那一刻，讲离心力消失、海水怎么重新铺开",
-    "source": "老波选题 2026-06-08",
-    "source_url": "https://science.nasa.gov/",
+    "angle": "从 UAE 一处山丘的化石，讲到撒哈拉也曾是鱼群游过的海",
+    "source": "NASA Earth Observatory 2026-06-09",
+    "source_url": "https://science.nasa.gov/earth/earth-observatory/digging-back-in-time-in-the-uae/",
     "evergreen": false,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-09"
   },
   {
-    "title": "你以为望远镜只是看得远——其实它是在偷听光",
+    "title": "Webb 拍到的小红点，到底是黑洞还是恒星？",
+    "category": "黑洞",
+    "angle": "从 JWST 在宇宙黎明看到的神秘红斑，讲到一顿一顿吸气的黑洞",
+    "source": "Phys.org 2026-06-09",
+    "source_url": "https://phys.org/news/2026-06-black-hole-jwst-red-dots.html",
+    "evergreen": false,
+    "updated_at": "2026-06-09"
+  },
+  {
+    "title": "宇宙最古老的一次闪烁，被我们看见了",
     "category": "观测",
-    "angle": "把望远镜从“拍照”误解拆掉，讲成收集几百万年前的光谱拼图",
-    "source": "NASA news 2026-06-08",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
+    "angle": "从远古类星体的忽明忽暗，讲到人类怎么用一台望远镜抓住 13 亿年前的眨眼",
+    "source": "Phys.org 2026-06-09",
+    "source_url": "https://phys.org/news/2026-06-astronomers-earliest-flickering-quasar.html",
     "evergreen": false,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-09"
   },
   {
-    "title": "记忆能不能像糖一样喂给下一只虫子？",
+    "title": "记忆能不能像糖一样被吃掉？",
     "category": "生命",
-    "angle": "从六十年代那条被碾碎的蠕虫讲起，把“吃记忆”这件荒诞事讲成真实的神经实验",
-    "source": "Quanta Magazine 2026-06-08",
+    "angle": "从 60 年代把训练过的虫子磨成糊喂给别的虫子的疯狂实验，讲到记忆可不可以移植",
+    "source": "Quanta Magazine 2026-06-09",
     "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
     "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "一颗粒子能同时穿过两条缝——你怎么知道自己不在现场？",
-    "category": "量子",
-    "angle": "用观察者的眼睛作为画面，讲双缝实验里“看一眼就变了”的那根刺",
-    "source": "老波选题 2026-06-08",
-    "source_url": "https://science.nasa.gov/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "那些不断重复的宇宙信号，终于找到它的“罗塞塔石碑”了？",
-    "category": "观测",
-    "angle": "从一对互相缠绕的恒星画面切入，讲一颗重复射电爆发的源头是怎么被锁定的",
-    "source": "Phys.org space 2026-06-08",
-    "source_url": "https://phys.org/news/2026-06-mysterious-space-astronomers-rosetta-stone.html",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-09"
   },
   {
     "title": "中子星有多重？",
@@ -198,11 +189,29 @@
     "evergreen": false
   },
   {
+    "title": "一颗粒子能同时穿过两条缝——你怎么知道自己不在现场？",
+    "category": "量子",
+    "angle": "用观察者的眼睛作为画面，讲双缝实验里“看一眼就变了”的那根刺",
+    "source": "老波选题 2026-06-08",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
     "title": "一颗被吃了又吐的恒星，每隔几年就亮一次",
     "category": "黑洞",
     "angle": "从被撕碎又复发的潮汐瓦解事件讲到恒星与黑洞的\"慢性\"共舞",
     "source": "arXiv astro-ph 2026-06-08",
     "source_url": "https://arxiv.org/abs/2606.06578",
+    "evergreen": false,
+    "updated_at": "2026-06-08"
+  },
+  {
+    "title": "为什么太阳一打喷嚏，地球上所有指南针都会一起发疯",
+    "category": "恒星",
+    "angle": "从太阳耀斑的磁场重联画面，讲到带电粒子雨落进地球磁层的连锁反应",
+    "source": "arXiv astro-ph 2026-06-08",
+    "source_url": "https://arxiv.org/abs/2606.06577",
     "evergreen": false,
     "updated_at": "2026-06-08"
   },
@@ -257,15 +266,6 @@
     "angle": "从太阳核心的核聚变讲到它其实不是在烧，而是在把氢一点一点变成氦、慢慢失去质量",
     "source": "arXiv astro-ph 2026-06-08",
     "source_url": "https://arxiv.org/abs/2606.06577",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "你以为恒星是一下子点燃的？其实 Webb 看见了漫长的挣扎",
-    "category": "恒星",
-    "angle": "把恒星诞生从瞬间点灯的误解，讲成气体云在黑暗中缓慢收缩的延时摄影感",
-    "source": "ESA Space Sci. 2026-06-08",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_unveils_young_stars_across_every_stage_of_formation",
     "evergreen": false,
     "updated_at": "2026-06-08"
   }

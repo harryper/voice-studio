@@ -12,7 +12,7 @@ DEFAULT_MODEL = "speech-2.8-hd"
 # voice_id 来源: 使用云泽 4 分钟样本调 https://api.minimaxi.com/v1/voice_clone 克隆得到。
 # 注意: 使用云泽合成音频做克隆存在 Azure 神经声音 ToS 风险,仅限内部/授权场景使用。
 DEFAULT_VOICE = "azure_yunze_clone"
-DEFAULT_SPEED = 0.85
+DEFAULT_SPEED = 0.9
 TTS_URL = "https://api.minimaxi.com/v1/t2a_v2"
 
 

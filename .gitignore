@@ -16,4 +16,5 @@ tmp/
 .DS_Store
 .writer-trigger
 .writer.lock
+.writer.lastrun
 backups/

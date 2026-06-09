@@ -1298,7 +1298,7 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm
     mixed_path = run_dir / 'mixed.mp3'
     script_path.write_text(script, encoding='utf-8')
 
-    speed_val = speed if speed is not None else 0.85
+    speed_val = speed if speed is not None else 0.9
 
     if provider == 'minimax':
         run_cmd([
@@ -1449,7 +1449,7 @@ def tts_voice_run(job_id):
         job['error'] = None
         save_job(job)
 
-        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'), bgm_volume=bgm_volume, speed=data.get('speed', 0.85))
+        run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'), bgm_volume=bgm_volume, speed=data.get('speed', 0.9))
         job['voice_runs'].append(run_info)
         job['final_url'] = run_info['final_url']
         job['voice_url'] = run_info['voice_url']

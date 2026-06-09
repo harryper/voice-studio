@@ -71,7 +71,7 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 
 `Chinese (Mandarin)_Gentleman` 已下线，不要再作为默认或 fallback 参数使用。
 
-- Speed: `0.85` (慢速；适合助眠节奏)
+- Speed: `0.9` (页面默认；慢速，助眠节奏；CLI 默认同 0.9)
 
 **MiniMax limits:**
 - 走 Token Plan 订阅（当前主用): 受 5 小时滚动 + 周窗口配额限制。平台统一按 3.5 元/万字符 (speech-2.8-hd) 折算 credits。够跑 ~18亿 M3 等价 token/月 额度。
@@ -154,7 +154,7 @@ python3 skills/voice-studio/scripts/minimax_tts.py \
   --text <script.md> \
   --out <voice.mp3> \
   --voice "Chinese_deep_voiced_male_vv1" \
-  --speed 0.85 \
+  --speed 0.9 \
   --retries 1
 ```
 
