@@ -828,6 +828,25 @@
     }
     .voice-run-card:hover { border-color: var(--accent); }
     .voice-run-card.active { border-color: var(--accent); }
+    .voice-jobs-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .voice-jobs-pagination .page-info {
+      color: var(--text-3);
+      font-size: 12px;
+    }
+    .voice-jobs-pagination .page-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .voice-jobs-pagination button {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
 
     .music-history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .music-history-card {
@@ -2210,6 +2229,13 @@
             <span id="voiceJobCount" class="pill">0</span>
           </div>
           <div id="voiceJobList" class="job-list"></div>
+          <div id="voiceJobPagination" class="voice-jobs-pagination hidden">
+            <span id="voiceJobPageInfo" class="page-info"></span>
+            <div class="page-actions">
+              <button id="voiceJobPrevBtn" type="button">上一页</button>
+              <button id="voiceJobNextBtn" type="button">下一页</button>
+            </div>
+          </div>
         </div>
 
         <!-- Music jobs -->
@@ -2539,6 +2565,8 @@
     let musicTab = 'works';
     let coverTab = 'works';
     let musicCount = 1;
+    let voiceJobPage = 0;
+    const VOICE_JOBS_PAGE_SIZE = 10;
     let topicCategory = localStorage.getItem('voiceStudio.topicCategory') || '全部';
     let topicOffset = Number(localStorage.getItem('voiceStudio.topicOffset') || 0);
 
@@ -3188,10 +3216,10 @@
           'zh-CN-YunfengNeural': '云枫', 'zh-CN-XiaoxiaoNeural': '晓晓',
           'zh-CN-XiaoyiNeural': '晓依', 'zh-CN-XiaochenNeural': '晓辰',
         };
-        runs.forEach((run, i) => {
+        runs.forEach((run, index) => {
           const card = document.createElement('div');
           card.className = 'voice-run-card';
-          card.dataset.runIndex = i;
+          card.dataset.runIndex = index;
           const voiceName = VOICE_NAMES[run.voice] || run.voice;
           const date = run.created_at ? new Date(run.created_at) : null;
           const time = date && !Number.isNaN(date.getTime())
@@ -3465,6 +3493,45 @@
       showActionFeedback('生成超时未完成，请检查列表', 'error');
     }
 
+    function renderVoiceJobList() {
+      const voiceList = $('voiceJobList');
+      if (!voiceList) return;
+
+      const voiceJobs = lastJobs.filter(j => j.mode === 'theme' || j.mode === 'script');
+      const totalPages = Math.ceil(voiceJobs.length / VOICE_JOBS_PAGE_SIZE);
+      voiceJobPage = Math.min(voiceJobPage, Math.max(totalPages - 1, 0));
+      const pageJobs = voiceJobs.slice(
+        voiceJobPage * VOICE_JOBS_PAGE_SIZE,
+        (voiceJobPage + 1) * VOICE_JOBS_PAGE_SIZE,
+      );
+
+      voiceList.innerHTML = '';
+      $('voiceJobCount').textContent = voiceJobs.length;
+      pageJobs.forEach(job => {
+        const btn = document.createElement('button');
+        btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
+        btn.dataset.jobId = job.id;
+        const jobLabel = job.theme || '直接文稿';
+        let badge = '';
+        const vStatus = job.status || 'pending';
+        if (vStatus === 'done') badge = '<span class="badge done">已完成</span>';
+        else if (vStatus === 'error') badge = '<span class="badge error">出错</span>';
+        else if (['pending', 'writing', 'tts', 'mixing'].includes(vStatus)) badge = '<span class="badge working">生成中</span>';
+        else if (vStatus === 'ready') badge = '<span class="badge">待确认</span>';
+        btn.innerHTML = `<strong>${escapeHtml(jobLabel)}</strong><br><span class="job-meta">${escapeHtml(job.id)}</span> ${badge}`;
+        btn.onclick = () => loadJob(job.id);
+        voiceList.appendChild(btn);
+      });
+
+      const pagination = $('voiceJobPagination');
+      pagination.classList.toggle('hidden', totalPages <= 1);
+      $('voiceJobPageInfo').textContent = totalPages
+        ? `第 ${voiceJobPage + 1} / ${totalPages} 页`
+        : '';
+      $('voiceJobPrevBtn').disabled = voiceJobPage === 0;
+      $('voiceJobNextBtn').disabled = voiceJobPage >= totalPages - 1;
+    }
+
     async function refreshJobs() {
       const jobs = await api('/api/jobs');
       lastJobs = jobs;
@@ -3472,27 +3539,7 @@
       if (activeJobId && !activeExists && !editorDirty) activeJobId = null;
 
       // Voice jobs (theme + script)
-      const voiceList = $('voiceJobList');
-      if (voiceList) {
-        voiceList.innerHTML = '';
-        const voiceJobs = jobs.filter(j => j.mode === 'theme' || j.mode === 'script');
-        $('voiceJobCount').textContent = voiceJobs.length;
-        voiceJobs.forEach(job => {
-          const btn = document.createElement('button');
-          btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
-          btn.dataset.jobId = job.id;
-          const jobLabel = job.theme || '直接文稿';
-          let badge = '';
-          const vStatus = job.status || 'pending';
-          if (vStatus === 'done') badge = '<span class="badge done">已完成</span>';
-          else if (vStatus === 'error') badge = '<span class="badge error">出错</span>';
-          else if (['pending', 'writing', 'tts', 'mixing'].includes(vStatus)) badge = '<span class="badge working">生成中</span>';
-          else if (vStatus === 'ready') badge = '<span class="badge">待确认</span>';
-          btn.innerHTML = `<strong>${jobLabel}</strong><br><span class="job-meta">${job.id}</span> ${badge}`;
-          btn.onclick = () => loadJob(job.id);
-          voiceList.appendChild(btn);
-        });
-      }
+      renderVoiceJobList();
 
       // Music jobs (rendered as track cards via renderMusicJobList)
       const musicJobs = jobs.filter(j => j.mode === 'music');
@@ -3705,6 +3752,18 @@
     $('tabVoice').onclick = () => setMode('voice');
     $('tabMusic').onclick = () => setMode('music');
     $('tabCover').onclick = () => setMode('cover');
+    $('voiceJobPrevBtn').onclick = () => {
+      if (voiceJobPage === 0) return;
+      voiceJobPage -= 1;
+      renderVoiceJobList();
+    };
+    $('voiceJobNextBtn').onclick = () => {
+      const voiceJobCount = lastJobs.filter(j => j.mode === 'theme' || j.mode === 'script').length;
+      const totalPages = Math.ceil(voiceJobCount / VOICE_JOBS_PAGE_SIZE);
+      if (voiceJobPage >= totalPages - 1) return;
+      voiceJobPage += 1;
+      renderVoiceJobList();
+    };
     $('scriptEditor').addEventListener('input', () => { editorDirty = true; });
 
     // ─── Cover UI 初始化 (翻唱) ───────────────────────────
@@ -4183,6 +4242,7 @@
         method: 'POST',
         body: JSON.stringify({ mode: 'theme', theme, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
       });
+      voiceJobPage = 0;
       await setMode('voice', { selectJob: false, force: true });
       renderJob(job.job);
       refreshJobs();
@@ -4201,6 +4261,7 @@
         method: 'POST',
         body: JSON.stringify({ mode: 'script', script: $('directScript').value, bgm: $('mixBgmCheck').checked, bgm_asset: $('bgmSelect').value || 'bgm_default.mp3' })
       });
+      voiceJobPage = 0;
       await setMode('voice', { selectJob: false, force: true });
       renderJob(job.job);
       refreshJobs();
