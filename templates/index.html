@@ -828,6 +828,36 @@
     }
     .voice-run-card:hover { border-color: var(--accent); }
     .voice-run-card.active { border-color: var(--accent); }
+
+    .music-history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .music-history-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      transition: all 0.15s;
+    }
+    .music-history-card:hover { border-color: var(--accent); }
+    .music-history-header {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: var(--text-2);
+      margin-bottom: 4px;
+    }
+    .music-history-label {
+      font-weight: 600; color: var(--text-1);
+    }
+    .music-history-time { color: var(--text-3); font-size: 12px; }
+    .music-history-dur {
+      margin-left: auto; font-size: 11px; padding: 2px 6px;
+      background: var(--surface-3); border-radius: 4px; color: var(--text-3);
+    }
+    .music-history-lyrics-preview {
+      font-size: 12px; color: var(--text-3);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin: 4px 0 8px 0;
+    }
+    .music-history-actions { display: flex; gap: 8px; }
+    .music-history-actions .download-btn { font-size: 12px; padding: 4px 10px; }
     .voice-run-header {
       display: flex;
       align-items: center;
@@ -2100,6 +2130,19 @@
           <div id="audioLinks" style="margin-top:8px;"></div>
         </div>
 
+        <!-- Music history versions -->
+        <div id="musicHistoryBox" class="hidden" style="margin-top:12px;">
+          <span class="section-label">历史版本</span>
+          <div id="musicHistoryList" class="music-history-list"></div>
+          <div id="musicHistoryPlayer" class="hidden" style="margin-top:10px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border-light);border-radius:var(--radius-md);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:12px;color:var(--text-2);">试听中：<span id="musicHistoryPlayingLabel">—</span></span>
+              <button type="button" id="musicHistoryStopBtn" class="download-btn" style="margin-left:auto;font-size:12px;padding:4px 10px;">停止并回到当前版本</button>
+            </div>
+            <audio id="musicHistoryAudio" controls style="width:100%;"></audio>
+          </div>
+        </div>
+
         <!-- Voice Configuration Card -->
         <div class="config-card voice-only">
           <div class="generate-section">
@@ -2536,6 +2579,23 @@
       return lastJobs.filter(job => jobGroup(job) === next);
     }
 
+    function resetMusicHistory() {
+      $('musicHistoryBox').classList.add('hidden');
+      $('musicHistoryPlayer').classList.add('hidden');
+      $('musicHistoryList').innerHTML = '';
+      const histAudio = $('musicHistoryAudio');
+      if (histAudio) {
+        histAudio.pause();
+        histAudio.removeAttribute('src');
+        histAudio.load();
+      }
+    }
+
+    function resetCoverLyricsWarning() {
+      $('coverLyricsWarning').classList.add('hidden');
+      $('coverLyricsWarning').textContent = '';
+    }
+
     async function setMode(next, options = {}) {
       if (editorDirty && options.force !== true) {
         const ok = confirm('当前编辑内容还没有保存，切换模块会离开当前任务。继续切换吗？');
@@ -2559,6 +2619,8 @@
       $('voiceJobsBlock').classList.toggle('hidden', mode !== 'voice');
       $('musicJobsBlock').classList.toggle('hidden', !isMusicMode);
       $('coverJobsBlock').classList.toggle('hidden', !isCoverMode);
+      if (!isMusicMode) resetMusicHistory();
+      if (!isCoverMode) resetCoverLyricsWarning();
       document.querySelectorAll('.voice-only').forEach(el => {
         el.classList.toggle('hidden', isMusicMode || isCoverMode);
       });
@@ -2707,8 +2769,7 @@
         $('scriptEditor').value = '';
       }
       $('errorBox').textContent = '';
-      $('coverLyricsWarning').classList.add('hidden');
-      $('coverLyricsWarning').textContent = '';
+      resetCoverLyricsWarning();
       $('audioBox').classList.add('hidden');
       $('musicMeta').classList.add('hidden');
       $('coverMeta').classList.add('hidden');
@@ -2720,6 +2781,7 @@
         el.classList.toggle('hidden', isMusicMode || isCoverMode);
       });
       $('voiceRunsBox').classList.add('hidden');
+      resetMusicHistory();
       $('editorLabel').textContent = isCoverMode ? '目标风格' : isMusicMode ? '歌词' : '文稿预览 / 编辑';
       $('scriptEditor').placeholder = isCoverMode
         ? '创建翻唱任务后，目标风格/歌词会显示在这里。'
@@ -2752,6 +2814,8 @@
       });
       const isMusic = job.mode === 'music';
       const isCover = job.mode === 'music_cover';
+      if (!isMusic) resetMusicHistory();
+      if (!isCover) resetCoverLyricsWarning();
       const titleFallback = isCover ? '翻唱任务' : isMusic ? '音乐创作' : '直接输入文稿';
       $('jobTitle').textContent = job.title || job.theme || titleFallback;
       $('jobStatus').textContent = statusLabel(job.status);
@@ -2848,6 +2912,89 @@
         $('generateMusicBtn').classList.toggle('hidden', isDone);
         $('retryMusicBtn').classList.toggle('hidden', !isDone);
         $('deleteMusicBtn').disabled = false;
+
+        // Render music history versions (excluding the current one)
+        const musicRuns = Array.isArray(job.music_runs) ? job.music_runs : [];
+        const histBox = $('musicHistoryBox');
+        const histList = $('musicHistoryList');
+        // 历史版本 = music_runs 中标记为 is_current=false 的项（以及非当前者）
+        // 顺序：最新的历史版本在最上面
+        const historicalRuns = musicRuns.filter(r => !r.is_current);
+        if (historicalRuns.length === 0) {
+          histBox.classList.add('hidden');
+          histList.innerHTML = '';
+        } else {
+          histBox.classList.remove('hidden');
+          histList.innerHTML = '';
+          // Sort by created_at desc
+          historicalRuns.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+          historicalRuns.forEach((run) => {
+            const card = document.createElement('div');
+            card.className = 'music-history-card';
+            card.dataset.runId = run.run_id;
+            const date = run.created_at ? new Date(run.created_at) : null;
+            const time = date && !Number.isNaN(date.getTime())
+              ? date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+              : (run.run_id || '历史版本');
+            const dur = run.audio_duration_ms ? Math.round(run.audio_duration_ms / 1000) : null;
+            const durLabel = dur ? `${Math.floor(dur/60)}:${String(dur%60).padStart(2,'0')}` : '';
+            const lyricsPreview = (run.lyrics || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+            card.innerHTML = `
+              <div class="music-history-header">
+                <span class="music-history-label">${escapeHtml(run.label || '历史版本')}</span>
+                <span class="music-history-time">${escapeHtml(time)}</span>
+                ${durLabel ? `<span class="music-history-dur">${durLabel}</span>` : ''}
+              </div>
+              <div class="music-history-lyrics-preview">${escapeHtml(lyricsPreview)}…</div>
+              <div class="music-history-actions">
+                <button type="button" class="download-btn" data-action="play-history">▶ 试听</button>
+                <button type="button" class="download-btn" data-action="load-history">切到此版本</button>
+              </div>
+            `;
+            // Play history audio (use SEPARATE audio element so main player is unaffected)
+            const playBtn = card.querySelector('[data-action="play-history"]');
+            if (playBtn && run.audio_url) {
+              playBtn.onclick = (e) => {
+                e.stopPropagation();
+                const player = $('musicHistoryAudio');
+                const wrap = $('musicHistoryPlayer');
+                const label = $('musicHistoryPlayingLabel');
+                // Pause main audio first to avoid two songs playing
+                const mainAudio = $('audio');
+                if (mainAudio && !mainAudio.paused) mainAudio.pause();
+                label.textContent = `${run.label || '历史版本'} · ${time}`;
+                wrap.classList.remove('hidden');
+                player.src = run.audio_url;
+                player.play().catch(() => {});
+              };
+            } else if (playBtn) {
+              playBtn.disabled = true;
+            }
+            // Switch active to this history version
+            const loadBtn = card.querySelector('[data-action="load-history"]');
+            if (loadBtn) {
+              loadBtn.onclick = (e) => {
+                e.stopPropagation();
+                showActionFeedback('正在切到此版本…');
+                api('/api/jobs/' + job.id + '/switch-music-run', {
+                  method: 'POST',
+                  body: JSON.stringify({ run_id: run.run_id }),
+                }).then((updated) => {
+                  // Replace job in list and re-render
+                  const idx = lastJobs.findIndex(j => j.id === job.id);
+                  if (idx >= 0) lastJobs[idx] = updated;
+                  activeJobId = updated.id;
+                  renderJob(updated);
+                  renderMusicJobList();
+                  showActionFeedback('已切到 ' + (run.label || '历史版本'), 'ok');
+                }).catch((err) => {
+                  showActionFeedback('切换失败：' + (err.message || err), 'error');
+                });
+              };
+            }
+            histList.appendChild(card);
+          });
+        }
       } else if (isCover) {
         // Cover mode: editor area shows the lyrics (read-only preview / editable in two_step)
         $('editorLabel').textContent = job.cover_mode === 'two_step' ? '改写后的歌词' : '原曲歌词预览';
@@ -3289,7 +3436,6 @@
         if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...data };
         if (activeJobId === job.id) renderJob(data);
         renderMusicJobList();
-        // light polling to follow progress
         pollJobUntilDone(job.id, ['generating'], ['done', 'error']);
       } catch (err) {
         showActionFeedback('重新生成失败：' + err.message, 'error');
@@ -4213,6 +4359,17 @@
     }
     initBgmUpload('uploadBgmBtn', 'bgmFileInput', $('bgmSelect'));
     // initBgmUpload for script mode removed (no longer in DOM)
+
+    // History version preview stop button
+    const _histStopBtn = $('musicHistoryStopBtn');
+    if (_histStopBtn) {
+      _histStopBtn.onclick = () => {
+        const histAudio = $('musicHistoryAudio');
+        const wrap = $('musicHistoryPlayer');
+        if (histAudio) { histAudio.pause(); histAudio.removeAttribute('src'); histAudio.load(); }
+        wrap.classList.add('hidden');
+      };
+    }
 
     // BGM volume slider sync
 

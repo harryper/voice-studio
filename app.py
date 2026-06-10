@@ -215,6 +215,22 @@ def job_response(job):
                 data['final_url'] = latest.get('final_url') or latest.get('voice_url')
             if not data.get('script_url'):
                 data['script_url'] = latest.get('script_url')
+    # Music mode: ensure music_runs is always a list (oldest first, current last)
+    if data.get('mode') == 'music':
+        runs = list(data.get('music_runs') or [])
+        # If empty, synthesize one legacy entry from current audio_url/lyrics
+        if not runs and (data.get('audio_url') or data.get('audio_path')):
+            runs.append({
+                'run_id': 'legacy',
+                'audio_url': data.get('audio_url'),
+                'lyrics_url': data.get('lyrics_url'),
+                'lyrics': data.get('lyrics') or data.get('edited_lyrics'),
+                'audio_duration_ms': data.get('audio_duration_ms'),
+                'created_at': data.get('updated_at') or data.get('created_at'),
+                'is_current': True,
+                'label': '初始版本',
+            })
+        data['music_runs'] = runs
     return data
 
 def archive_job(job):
@@ -644,6 +660,56 @@ def generate_music_api(job_id):
             except (ValueError, IndexError):
                 pass
 
+            # ── 音质质量保证 (2026-06-09) ───────────────────────────────
+            # User requirement: every generated music must be at least
+            #   320 kbps MP3 (CBR), 44.1 kHz, stereo.
+            # MiniMax / MiniMax music-2.6 returns 256 kbps by default,
+            # so we re-encode with libmp3lame CBR to meet the standard.
+            try:
+                tmp_320 = run_dir / 'music.320k.mp3'
+                _ffmpeg_qa = subprocess.run(
+                    [
+                        'ffmpeg', '-y', '-loglevel', 'error',
+                        '-i', str(output_path),
+                        '-c:a', 'libmp3lame',
+                        '-b:a', '320k',
+                        '-ar', '44100',
+                        '-ac', '2',
+                        '-reservoir', '0',  # force CBR (no VBR reservoir)
+                        '-write_xing', '1',
+                        str(tmp_320),
+                    ],
+                    text=True, capture_output=True, cwd=str(SKILL_DIR), timeout=120,
+                )
+                if _ffmpeg_qa.returncode == 0 and tmp_320.exists() and tmp_320.stat().st_size > 0:
+                    # Replace the original with the 320k version
+                    shutil.move(str(tmp_320), str(output_path))
+                    job['audio_quality'] = {
+                        'bitrate_kbps': 320,
+                        'sample_rate_hz': 44100,
+                        'channels': 2,
+                        'codec': 'mp3',
+                        'mode': 'CBR',
+                    }
+                else:
+                    job['audio_quality'] = {
+                        'bitrate_kbps': 256,
+                        'sample_rate_hz': 44100,
+                        'channels': 2,
+                        'codec': 'mp3',
+                        'mode': 'default',
+                        'warning': '320kbps re-encode failed; using provider default',
+                    }
+            except Exception as _qa_exc:
+                job['audio_quality'] = {
+                    'bitrate_kbps': 256,
+                    'sample_rate_hz': 44100,
+                    'channels': 2,
+                    'codec': 'mp3',
+                    'mode': 'default',
+                    'warning': f'320kbps re-encode skipped: {_qa_exc}',
+                }
+
             # Upload to R2 with readable names.
             ts = datetime.now().strftime('%Y%m%d-%H%M%S')
             upload_result = subprocess.run(
@@ -677,6 +743,22 @@ def generate_music_api(job_id):
                 job['lyrics_url'] = lyrics_url
             job['status'] = 'done'
             job['error'] = None
+            # Append this new generation to music_runs history
+            runs = list(job.get('music_runs') or [])
+            for r in runs:
+                r['is_current'] = False
+            runs.append({
+                'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+                'audio_url': audio_url,
+                'lyrics_url': lyrics_url,
+                'lyrics': lyrics_text,
+                'audio_duration_ms': job.get('audio_duration_ms'),
+                'audio_quality': job.get('audio_quality'),
+                'created_at': datetime.now().isoformat(),
+                'is_current': True,
+                'label': '当前版本',
+            })
+            job['music_runs'] = runs
             save_job(job)
         except Exception as exc:
             job['status'] = 'error'
@@ -726,25 +808,123 @@ def retry_lyrics_api(job_id):
 
 @app.route('/api/jobs/<job_id>/retry-music', methods=['POST'])
 def retry_music_api(job_id):
-    """Regenerate music from existing lyrics (async, returns immediately)."""
-    job = load_job(job_id)
-    if not job:
+    """Regenerate music from existing lyrics.
+    Preserves the previous version into job['music_runs'] history
+    and replaces job['audio_url']/['lyrics_url'] with the new result.
+    """
+    original = load_job(job_id)
+    if not original:
         return jsonify({'error': '任务不存在'}), 404
-    if job.get('mode') != 'music':
+    if original.get('mode') != 'music':
         return jsonify({'error': '非音乐任务'}), 400
 
-    lyrics_text = (job.get('edited_lyrics') or job.get('lyrics') or '').strip()
-    is_instrumental = job.get('is_instrumental', False)
+    lyrics_text = (original.get('edited_lyrics') or original.get('lyrics') or '').strip()
+    is_instrumental = original.get('is_instrumental', False)
     if not lyrics_text and not is_instrumental:
         return jsonify({'error': '歌词为空，请先生成或编辑歌词'}), 400
 
-    job['audio_url'] = None
-    job['audio_path'] = None
-    job['status'] = 'lyrics_ready'
-    job['error'] = None
-    save_job(job)
+    # Snapshot the CURRENT run into music_runs history (only if it has audio)
+    runs = list(original.get('music_runs') or [])
+    if original.get('audio_url') or original.get('audio_path'):
+        # Mark the previous current as not-current and snapshot it
+        for r in runs:
+            r['is_current'] = False
+        runs.append({
+            'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+            'audio_url': original.get('audio_url'),
+            'lyrics_url': original.get('lyrics_url'),
+            'lyrics': original.get('lyrics') or original.get('edited_lyrics'),
+            'audio_duration_ms': original.get('audio_duration_ms'),
+            'audio_quality': original.get('audio_quality'),
+            'created_at': original.get('updated_at') or original.get('created_at'),
+            'is_current': False,
+            'label': f"第 {len(runs)+1} 版",
+        })
+
+    # Reset current run to empty (will be filled by generate_music_api)
+    original['audio_url'] = None
+    original['audio_path'] = None
+    original['lyrics_url'] = None
+    original['status'] = 'lyrics_ready'
+    original['error'] = None
+    original['music_runs'] = runs
+    save_job(original)
 
     return generate_music_api(job_id)
+
+
+@app.route('/api/jobs/<job_id>/switch-music-run', methods=['POST'])
+def switch_music_run_api(job_id):
+    """Switch the active 'current' music_runs entry for a music job.
+    Body: { "run_id": "r2-..." }
+    Promotes the chosen historical run to the top-level audio_url/lyrics
+    and marks the current one as history (does NOT delete anything).
+    """
+    original = load_job(job_id)
+    if not original:
+        return jsonify({'error': '任务不存在'}), 404
+    if original.get('mode') != 'music':
+        return jsonify({'error': '非音乐任务'}), 400
+
+    body = request.get_json(silent=True) or {}
+    target_run_id = body.get('run_id')
+    if not target_run_id:
+        return jsonify({'error': '缺少 run_id'}), 400
+
+    runs = list(original.get('music_runs') or [])
+    if not runs:
+        return jsonify({'error': '没有可切换的历史版本'}), 400
+
+    target = None
+    for r in runs:
+        if r.get('run_id') == target_run_id:
+            target = r
+            break
+    if not target:
+        return jsonify({'error': '找不到指定版本'}), 404
+
+    # Snapshot the current run (if it has audio) into history
+    if original.get('audio_url') or original.get('audio_path'):
+        for r in runs:
+            r['is_current'] = False
+        runs.append({
+            'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-switch",
+            'audio_url': original.get('audio_url'),
+            'lyrics_url': original.get('lyrics_url'),
+            'lyrics': original.get('lyrics') or original.get('edited_lyrics'),
+            'audio_duration_ms': original.get('audio_duration_ms'),
+            'audio_quality': original.get('audio_quality'),
+            'created_at': original.get('updated_at') or original.get('created_at'),
+            'is_current': False,
+            'label': f"第 {len(runs)+1} 版",
+        })
+        # Remove the original target from runs so we don't duplicate
+        runs = [r for r in runs if r.get('run_id') != target_run_id]
+
+    # Promote target to current
+    original['audio_url'] = target.get('audio_url')
+    original['lyrics_url'] = target.get('lyrics_url')
+    original['lyrics'] = target.get('lyrics')
+    original['edited_lyrics'] = None
+    original['audio_duration_ms'] = target.get('audio_duration_ms')
+    original['status'] = 'done'
+    original['error'] = None
+    # Mark the (now top-level) target as current in the list
+    for r in runs:
+        r['is_current'] = False
+    runs.append({
+        'run_id': target.get('run_id') + '-current',
+        'audio_url': target.get('audio_url'),
+        'lyrics_url': target.get('lyrics_url'),
+        'lyrics': target.get('lyrics'),
+        'audio_duration_ms': target.get('audio_duration_ms'),
+        'created_at': target.get('created_at') or datetime.now().isoformat(),
+        'is_current': True,
+        'label': '当前版本',
+    })
+    original['music_runs'] = runs
+    save_job(original)
+    return jsonify(job_response(original))
 
 
 # ── Music Cover Endpoints (翻唱) ──────────────────────────
