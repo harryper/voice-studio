@@ -28,7 +28,7 @@ Direct chat requests like "用 voice-studio 做一个主题" should create or gu
 
 ## Script writing
 
-The Web app (`app.py`) creates `mode="theme"` jobs with `status="pending"` and touches `.writer-trigger`. A host-side systemd watcher (`voice-studio-writer.path` → `voice-studio-writer.service`) runs `scripts/process_pending_voice_jobs.py`, calls `openclaw agent` from the host environment, generates the script, and updates the job to `status="ready"`. Do not call `openclaw agent` from inside the Docker Web container; it cannot reliably reach the host gateway/auth context. The writer must read `reference-style.md` and the three files in `reference-scripts/` before drafting, then imitate their structure, hook logic, sentence rhythm, and ending style without copying original sentences. The main chat session should only orchestrate the Web job workflow: create or inspect jobs, and stop for review. Do not draft the long narration directly in the main chat session.
+The Web app (`app.py`) creates `mode="theme"` jobs with `status="pending"` and touches `.writer-trigger`. A host-side systemd watcher (`voice-studio-writer.path` → `voice-studio-writer.service`) runs `scripts/process_pending_voice_jobs.py`, calls `openclaw agent` from the host environment, generates the script, and updates the job to `status="ready"`. Do not call `openclaw agent` from inside the Docker Web container; it cannot reliably reach the host gateway/auth context. The writer must read `reference-style.md`, which is the canonical abstraction of the project's historical writing style. Individual files under `reference-scripts/` are archival material and are not runtime prompt dependencies. The main chat session should only orchestrate the Web job workflow: create or inspect jobs, and stop for review. Do not draft the long narration directly in the main chat session.
 
 **Important constraint for content style:** The script is for a **narration/voice blog**, not a document or article with formal section headers. Do not prefix paragraphs with titles or labels (e.g. "一、", "1.", "【】", or bolded headings). Write in continuous, breathable prose with natural paragraph breaks — the kind that sounds like someone talking softly, not reading a report. Keep the tone intimate, unhurried, and suited for listening rather than scanning.
 
@@ -99,32 +99,21 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 
 ## Script style
 
-Write directly in a sleep/narration cadence. Do not create a long outline first unless the user asks.
+`reference-style.md` is the single canonical writing specification. Follow its
+historical style abstraction rather than imitating individual old scripts.
 
-The script must first work as **immersive sleep audio**, not as a compressed knowledge article. The listener should feel personally placed inside the scene, become calmer within the first minute, and clearly understand the theme early.
+Hard constraints:
 
-Structure:
-
-1. Quiet hook: 20-40 seconds, one unsettling or expansive question that names or strongly reveals the theme immediately.
-2. Immersive descent: place the listener in a concrete, low-stimulation scene — lying in bed, looking at the ceiling, hearing night sounds, watching darkness, breathing slower.
-3. Theme anchoring: within the first 60-90 seconds, clearly return to the exact theme/question. Do not delay the topic for several minutes.
-4. Gentle scale expansion: move from the listener's body and room → city/night sky → Earth → solar system → stars → galaxies → deep time/space.
-5. Soft repetition: repeat the core theme in different, quiet forms throughout the script so the listener never loses the subject.
-6. Soft landing: end calmly. 留白式很强：不解决问题，把听者扔在不安感里。品牌锚点（"我是老波，咱们在梦中的平行宇宙继续聊。" / "我是老波，祝你晚安。"）偶用即可，不必每篇都强求。
-
-Rules:
-
-- Before drafting, calculate target character count: `target_minutes × calibrated_chars_per_minute`. Target: **20 minutes** (~4400 chars at 220 chars/min). Hard floor: **15 minutes** (~3300 chars). Use the latest measured speed from prior productions when available. If no calibration exists, use ~220 Chinese chars/min for Azure.
-- After Web TTS generation, check actual audio duration. The acceptable range is **15-25 minutes**; 20 minutes is the target. Do **not** recalibrate or rewrite solely for duration if output falls within 15-25 minutes. Only if it is shorter than 15 minutes, adjust future script length: `new_chars = current_chars × target_seconds / actual_seconds`.
-- The listener must have **代入感**: use second-person perspective (`你`) often, concrete sensations, slow breathing cues, darkness, distance, silence, temperature, and bodily relaxation.
-- The opening must quickly answer: "我现在在听什么主题？" If the listener cannot identify the theme within the first minute, rewrite the opening.
-- Keep cognitive load low. Do not stack too many facts, numbers, or definitions. Use facts as quiet stepping stones, not lecture notes.
-- Use short paragraphs and natural pauses.
-- Prefer calm certainty over clickbait.
-- Avoid dense citation-style exposition.
-- Do not fabricate specific named studies, dates, or numbers unless verified or broadly established.
-- For speculative ideas, say `也许`, `可能`, `有一种想法认为`.
-- Keep it original; do not imitate or preserve another creator's signature phrases.
+- Open within 30 seconds with the topic, a clear contradiction/question, and one core image; vary the wording instead of always using `你以为……错了`.
+- Build the whole narration around one mechanism and one causal chain.
+- Start with tension, then lower the pace into an audio-first, low-cognitive-load explanation.
+- Verify concrete dates, numbers, missions, studies, and “first-ever” claims against reliable primary sources before drafting. Remove unverifiable details.
+- Mark theory and speculation with language such as `可能`, `模型认为`, or `一种解释是`.
+- Use second person naturally, but do not force bed, breathing, darkness, or cosmic-scale expansion into every topic.
+- End by returning to the opening image through a loop, progression, or unresolved question. The 老波 brand sign-off is optional.
+- Keep paragraphs short and spoken. Do not use headings, numbered sections, Markdown, citations, or a reference list in the narration.
+- Target **4200-4800 Chinese characters** and never go below **3300**. After TTS, accept **15-25 minutes**; recalibrate future length only when output falls outside that range.
+- Keep it original. Do not copy old metaphors, jokes, signature phrases, or endings.
 
 ## Token-saving rules
 
