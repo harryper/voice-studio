@@ -33,6 +33,7 @@ DEFAULT_CONF = {
     'port': 9999,
     'download_root': '/root/.openclaw/workspace/public-downloads',
     'cosmic_sleep_folder': 'cosmic-sleep',
+    'local_artifact_retention_hours': 72,
 }
 
 CONF = DEFAULT_CONF.copy()
@@ -46,12 +47,16 @@ ENV_MAP = {
     'VOICE_STUDIO_PORT': 'port',
     'VOICE_STUDIO_DOWNLOAD_ROOT': 'download_root',
     'VOICE_STUDIO_COSMIC_FOLDER': 'cosmic_sleep_folder',
+    'VOICE_STUDIO_LOCAL_ARTIFACT_RETENTION_HOURS': 'local_artifact_retention_hours',
 }
 for env_key, conf_key in ENV_MAP.items():
     if os.getenv(env_key):
         CONF[conf_key] = os.getenv(env_key)
 
 CONF['port'] = int(CONF.get('port') or 9999)
+CONF['local_artifact_retention_hours'] = max(
+    1, float(CONF.get('local_artifact_retention_hours') or 72)
+)
 
 app = Flask(__name__, template_folder='templates')
 PASSWORD = CONF.get('password') or ''
@@ -65,6 +70,10 @@ COSMIC_DIR = os.path.join(DOWNLOAD_ROOT, COSMIC_FOLDER)
 SKILL_DIR = Path(__file__).resolve().parent
 RUNS_DIR = SKILL_DIR / 'runs'
 RUNS_DIR.mkdir(exist_ok=True)
+LOCAL_ARTIFACT_RETENTION_SECONDS = CONF['local_artifact_retention_hours'] * 3600
+LOCAL_ARTIFACT_CLEANUP_INTERVAL_SECONDS = 6 * 3600
+_local_artifact_cleanup_lock = threading.Lock()
+_last_local_artifact_cleanup = 0.0
 BGM_DIR = SKILL_DIR / 'bgm'
 BGM_DIR.mkdir(exist_ok=True)
 
@@ -260,6 +269,144 @@ def safe_unlink(path, allowed_roots):
     if any(is_relative_to(target, root) for root in allowed_roots):
         target.unlink()
 
+def _unlink_expired_file(path, cutoff):
+    """Delete one uploaded local artifact after its retention window."""
+    target = Path(path)
+    try:
+        if (
+            target.is_file()
+            and is_relative_to(target, RUNS_DIR)
+            and target.stat().st_mtime <= cutoff
+        ):
+            size = target.stat().st_size
+            target.unlink()
+            return size
+    except FileNotFoundError:
+        pass
+    return 0
+
+def _remove_uploaded_chunk_dir(path):
+    """Remove Azure chunks once both voice and final artifacts are uploaded."""
+    chunk_dir = Path(path)
+    try:
+        if (
+            chunk_dir.name == 'azure_chunks'
+            and chunk_dir.is_dir()
+            and is_relative_to(chunk_dir, RUNS_DIR)
+        ):
+            files = [item for item in chunk_dir.rglob('*') if item.is_file()]
+            size = sum(item.stat().st_size for item in files)
+            count = len(files)
+            shutil.rmtree(chunk_dir)
+            return count, size
+    except FileNotFoundError:
+        pass
+    return 0, 0
+
+def _iter_persisted_jobs():
+    """Yield active and archived jobs, ignoring malformed records."""
+    roots = []
+    for cfg in MODE_CONFIG.values():
+        roots.extend((Path(cfg['job_dir']), Path(cfg['archive_dir'])))
+
+    seen_paths = set()
+    for root in roots:
+        if not root.exists():
+            continue
+        for path in root.rglob('*.json'):
+            resolved = path.resolve()
+            if resolved in seen_paths:
+                continue
+            seen_paths.add(resolved)
+            try:
+                with path.open(encoding='utf-8') as f:
+                    job = json.load(f)
+                if isinstance(job, dict) and job.get('id'):
+                    yield job
+            except (OSError, json.JSONDecodeError):
+                continue
+
+def cleanup_expired_local_artifacts(now=None):
+    """Remove uploaded audio artifacts older than the configured retention."""
+    now = time.time() if now is None else now
+    cutoff = now - LOCAL_ARTIFACT_RETENTION_SECONDS
+    deleted_files = 0
+    deleted_bytes = 0
+
+    def remove(path):
+        nonlocal deleted_files, deleted_bytes
+        size = _unlink_expired_file(path, cutoff)
+        if size:
+            deleted_files += 1
+            deleted_bytes += size
+
+    for job in _iter_persisted_jobs():
+        base = RUNS_DIR / str(job['id'])
+        mode = job.get('mode')
+
+        if mode in ('theme', 'script'):
+            for run in job.get('voice_runs') or []:
+                run_id = run.get('run_id')
+                if not run_id or run_id == 'legacy':
+                    continue
+                run_dir = base / run_id
+                if run.get('voice_url'):
+                    remove(run_dir / 'voice.mp3')
+                if run.get('final_url') and run.get('bgm'):
+                    remove(run_dir / 'mixed.mp3')
+                if run.get('voice_url') and run.get('final_url'):
+                    chunk_files, chunk_bytes = _remove_uploaded_chunk_dir(
+                        run_dir / 'azure_chunks'
+                    )
+                    deleted_files += chunk_files
+                    deleted_bytes += chunk_bytes
+
+        elif mode == 'music':
+            if job.get('audio_url'):
+                remove(base / 'music.mp3')
+                remove(base / 'music.320k.mp3')
+
+        elif mode == 'music_cover':
+            if job.get('audio_url'):
+                remove(base / 'cover.mp3')
+            if job.get('reference_audio_url'):
+                for reference in base.glob('reference.*'):
+                    remove(reference)
+
+    return {'files': deleted_files, 'bytes': deleted_bytes}
+
+def maybe_cleanup_expired_local_artifacts(force=False):
+    """Rate-limit cleanup so normal requests do not repeatedly scan the disk."""
+    global _last_local_artifact_cleanup
+    now_monotonic = time.monotonic()
+    if (
+        not force
+        and now_monotonic - _last_local_artifact_cleanup
+        < LOCAL_ARTIFACT_CLEANUP_INTERVAL_SECONDS
+    ):
+        return None
+    if not _local_artifact_cleanup_lock.acquire(blocking=False):
+        return None
+    try:
+        now_monotonic = time.monotonic()
+        if (
+            not force
+            and now_monotonic - _last_local_artifact_cleanup
+            < LOCAL_ARTIFACT_CLEANUP_INTERVAL_SECONDS
+        ):
+            return None
+        result = cleanup_expired_local_artifacts()
+        _last_local_artifact_cleanup = now_monotonic
+        if result['files']:
+            print(
+                '[cleanup] removed '
+                f"{result['files']} uploaded local audio files "
+                f"({result['bytes']} bytes)"
+            )
+        return result
+    finally:
+        _local_artifact_cleanup_lock.release()
+
 def public_path_from_url(url):
     if not url:
         return None
@@ -316,6 +463,7 @@ def logout():
 
 @app.before_request
 def check_auth():
+    maybe_cleanup_expired_local_artifacts()
     public_endpoints = {
         'static', 'index', 'login', 'logout', 'api_check_auth', 'list_bgm',
         # 主题推荐只是公开本地缓存（GET 读取 + POST 触发本地脚本刷新列表顺序），
@@ -1528,6 +1676,12 @@ def _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure', bgm
         '--file', str(final_source), '--theme', theme_slug,
         '--name', oss_object_name(job, final_artifact, 'mp3', run_id=run_id, ts=ts),
     ]).splitlines()[-1].strip()
+
+    # The combined voice file and final output are now on R2, so the Azure
+    # chunk directory is no longer needed for recovery.
+    chunk_dir = run_dir / 'azure_chunks'
+    if chunk_dir.exists():
+        shutil.rmtree(chunk_dir, ignore_errors=True)
 
     return {
         'run_id': run_id,

@@ -3,5 +3,6 @@
   "secret_key": "replace-with-a-long-random-secret",
   "port": 9999,
   "download_root": "/root/.openclaw/workspace/public-downloads",
-  "cosmic_sleep_folder": "cosmic-sleep"
+  "cosmic_sleep_folder": "cosmic-sleep",
+  "local_artifact_retention_hours": 72
 }
