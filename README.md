@@ -4,6 +4,8 @@
 
 **核心流程：** 主题 → AI 写稿（NVIDIA qwen3.5-397b）→ 人工审核 → Web UI 一键生成音频 + 混入 BGM → 发布公网链接。
 
+**视频模式（4th tab 🎬 视频）：** 输入主题 → 自动写稿 → 渲染 (hyperframes 1080×1920) → 配音 (MiniMax 电台男主播) → 混入 BGM → 上传公网链接。约 5–10 分钟产出一部 30–60s 短视频。状态机：`pending → ready_script → rendered → final` (auto-pilot, 0 次人工介入)。
+
 ---
 
 ## 部署方式选择
