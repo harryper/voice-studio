@@ -98,12 +98,13 @@ def safe_slug(name):
 
 
 def upload_mp4(local_path, slug, short_id, kind):
-    """Upload via upload_to_oss.py. Returns the pre-signed URL."""
+    """Upload to COS and return the pre-signed URL."""
+    filename = f"video-{slug}-{short_id}-{kind}.mp4"
+    object_key = f"{datetime.now().strftime('%Y-%m-%d')}/video-studio/{filename}"
     cmd = [
         "python3", str(UPLOAD_SCRIPT),
         "--file", str(local_path),
-        "--theme", "video-studio",
-        "--name", f"video-{slug}-{short_id}-{kind}.mp4",
+        "--key", object_key,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
