@@ -1905,6 +1905,7 @@
           <button id="tabVoice" class="tab active">🎙️ 声音</button>
           <button id="tabMusic" class="tab">🎵 音乐</button>
           <button id="tabCover" class="tab">🎤 翻唱</button>
+          <button id="tabVideo" class="tab">🎬 视频</button>
         </div>
 
         <!-- Voice Module -->
@@ -2036,6 +2037,16 @@
 
           <button id="createCoverBtn" class="primary full" style="margin-top:10px;" disabled>创建翻唱任务</button>
           <p class="note">One-Step：保留原曲歌词，只换风格/音色（最快）。Two-Step：先抽取结构化歌词，可改写后再生成（更灵活）。</p>
+        </div>
+
+        <!-- Video Module (视频) -->
+        <div id="videoBox" class="hidden">
+          <div class="feature-card">
+            <span class="section-label">视频创作</span>
+            <input id="videoThemeInput" placeholder="例：AI 名词其实就 5 个 / 70 年代的物价">
+            <button id="createVideoBtn" class="primary full" style="margin-top:10px;">创建视频任务</button>
+            <p class="note">60–90 秒短视频。提交后自动写稿 → 渲染 → 配音 → 合成 (约 5–10 分钟)。</p>
+          </div>
         </div>
 
       </aside>
@@ -2262,6 +2273,15 @@
             <button type="button" class="music-tab-btn" data-cover-tab="favorites">收藏</button>
           </div>
           <div id="coverJobList" class="job-list"></div>
+        </div>
+
+        <!-- Video jobs (视频) -->
+        <div id="videoJobsBlock" class="hidden">
+          <div class="job-header-new">
+            <span class="label">🎬 视频任务</span>
+            <span id="videoJobCount" class="pill">0</span>
+          </div>
+          <div id="videoJobList" class="job-list"></div>
         </div>
       </aside>
 
@@ -2633,20 +2653,26 @@
       mode = next;
       const isMusicMode = mode === 'music';
       const isCoverMode = mode === 'cover';
+      const isVideoMode = mode === 'video';
       $('tabVoice').classList.toggle('active', mode === 'voice');
       $('tabMusic').classList.toggle('active', isMusicMode);
       $('tabCover').classList.toggle('active', isCoverMode);
+      $('tabVideo').classList.toggle('active', isVideoMode);
       $('appSubtitle').textContent = isCoverMode
         ? '上传参考曲 + 目标风格 → 一步翻唱 / 改词翻唱'
         : isMusicMode
           ? '输入主题自动生成歌词，确认后一键生成歌曲'
-          : '主题创作先预览，确认后再生成语音';
+          : isVideoMode
+            ? '输入主题 → 自动写稿 → 渲染 → 配音 → 合成'
+            : '主题创作先预览，确认后再生成语音';
       $('voiceBox').classList.toggle('hidden', mode !== 'voice');
       $('musicBox').classList.toggle('hidden', !isMusicMode);
       $('coverBox').classList.toggle('hidden', !isCoverMode);
+      $('videoBox').classList.toggle('hidden', !isVideoMode);
       $('voiceJobsBlock').classList.toggle('hidden', mode !== 'voice');
       $('musicJobsBlock').classList.toggle('hidden', !isMusicMode);
       $('coverJobsBlock').classList.toggle('hidden', !isCoverMode);
+      $('videoJobsBlock').classList.toggle('hidden', !isVideoMode);
       if (!isMusicMode) resetMusicHistory();
       if (!isCoverMode) resetCoverLyricsWarning();
       document.querySelectorAll('.voice-only').forEach(el => {
@@ -3752,6 +3778,132 @@
     $('tabVoice').onclick = () => setMode('voice');
     $('tabMusic').onclick = () => setMode('music');
     $('tabCover').onclick = () => setMode('cover');
+    $('tabVideo').onclick = () => setMode('video');
+
+    // ─── Video tab logic (2026-06-11 add) ───
+    const videoState = { jobs: [], pollTimer: null, selectedJobId: null };
+
+    async function videoApi(path, options = {}) {
+      const r = await fetch(path, options);
+      return r.json();
+    }
+
+    async function loadVideoJobs() {
+      const jobs = await videoApi('/api/jobs?mode=video');
+      videoState.jobs = (jobs || []).sort((a, b) =>
+        (b.created_at || '').localeCompare(a.created_at || '')
+      );
+      renderVideoJobList();
+    }
+
+    function renderVideoJobList() {
+      const ul = $('videoJobList');
+      ul.innerHTML = '';
+      $('videoJobCount').textContent = videoState.jobs.length;
+      for (const j of videoState.jobs) {
+        const li = document.createElement('div');
+        li.className = 'job-item' + (j.id === videoState.selectedJobId ? ' active' : '');
+        const sc = j.script_meta || {};
+        const dur = sc.actual_seconds || sc.target_seconds;
+        const durStr = dur ? ` · ${Math.round(dur)}s` : '';
+        li.innerHTML = `
+          <div class="job-item-header">
+            <span class="job-theme">${escapeHtml((j.theme || '').slice(0, 40))}</span>
+            <span class="pill ${j.status}">${j.status}</span>
+          </div>
+          <div class="job-item-meta">${(j.created_at || '').slice(0, 16)}${durStr}</div>
+        `;
+        li.onclick = () => selectVideoJob(j.id);
+        ul.appendChild(li);
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    async function selectVideoJob(id) {
+      videoState.selectedJobId = id;
+      renderVideoJobList();
+      await refreshVideoDetail();
+    }
+
+    async function refreshVideoDetail() {
+      if (!videoState.selectedJobId) return;
+      const j = await videoApi(`/api/jobs/${videoState.selectedJobId}`);
+      renderVideoDetail(j);
+    }
+
+    function renderVideoDetail(j) {
+      // No right-panel detail UI in v1; just update the selected job item + log.
+      if (j && j.id) {
+        // refresh the job in state
+        const idx = videoState.jobs.findIndex(x => x.id === j.id);
+        if (idx >= 0) videoState.jobs[idx] = j;
+        renderVideoJobList();
+      }
+    }
+
+    async function rerunVideoStage(jobId, stage) {
+      const endpoint = stage === 'script' ? '/render' : '/' + stage; // script trigger cascades from render
+      // For 'script' stage, PATCH back to pending + touch script trigger
+      if (stage === 'script') {
+        await videoApi(`/api/jobs/${jobId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'pending' }),
+        });
+        await videoApi('/__internal/touch-trigger', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: 'script' }),
+        });
+      } else if (stage === 'render') {
+        await videoApi(`/api/jobs/${jobId}/render`, { method: 'POST' });
+      } else if (stage === 'narrate') {
+        await videoApi(`/api/jobs/${jobId}/narrate`, { method: 'POST' });
+      }
+    }
+
+    $('createVideoBtn').onclick = async () => {
+      const theme = $('videoThemeInput').value.trim();
+      if (!theme) return alert('请输入主题');
+      const j = await videoApi('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'video', theme }),
+      });
+      if (j.error) return alert('创建失败: ' + j.error);
+      $('videoThemeInput').value = '';
+      await loadVideoJobs();
+      selectVideoJob(j.job_id || j.id);
+    };
+
+    function startVideoPolling() {
+      if (videoState.pollTimer) return;
+      videoState.pollTimer = setInterval(async () => {
+        await loadVideoJobs();
+        if (videoState.selectedJobId) await refreshVideoDetail();
+      }, 5000);
+    }
+
+    // Hook setMode to start polling + initial load when video tab is active
+    const _origSetMode = setMode;
+    setMode = function(mode) {
+      _origSetMode(mode);
+      if (mode === 'video') {
+        startVideoPolling();
+        loadVideoJobs();
+      }
+    };
+    // Initial load if video is the default tab (it isn't, but be safe)
+    if (document.querySelector('.tab.active')?.id === 'tabVideo') {
+      startVideoPolling();
+      loadVideoJobs();
+    }
+    $('tabVideo').onclick = () => setMode('video');
     $('voiceJobPrevBtn').onclick = () => {
       if (voiceJobPage === 0) return;
       voiceJobPage -= 1;
