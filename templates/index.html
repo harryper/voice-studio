@@ -2049,6 +2049,49 @@
           </div>
         </div>
 
+        <!-- Video Detail Box (视频详情, 右面板) -->
+        <div id="videoDetailBox" class="hidden">
+          <div class="music-progress" style="margin-top:12px;">
+            <div class="row">
+              <span class="stage" id="videoStageLabel">待生成</span>
+              <span class="eta" id="videoEtaMeta">~ 5-7 分钟</span>
+            </div>
+            <div class="progress" style="margin-top:6px;">
+              <div class="progress-bar" id="videoProgressBar" style="width:0%;"></div>
+            </div>
+            <div class="row" style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="small" data-video-rerun="script" id="videoRerunScriptBtn">重跑脚本</button>
+              <button class="small" data-video-rerun="render" id="videoRerunRenderBtn">重跑渲染</button>
+              <button class="small" data-video-rerun="narrate" id="videoRerunNarrateBtn">重跑配音</button>
+            </div>
+          </div>
+
+          <div id="videoScriptBox" class="hidden" style="margin-top:14px;">
+            <span class="section-label">📝 旁白稿</span>
+            <pre id="videoScriptText" style="background:var(--surface-2);padding:12px;border-radius:6px;max-height:200px;overflow:auto;white-space:pre-wrap;font-size:13px;line-height:1.6;margin-top:6px;"></pre>
+          </div>
+
+          <div id="videoRenderedBox" class="hidden" style="margin-top:14px;">
+            <span class="section-label">🎞️ 渲染版 (无声轨)</span>
+            <video id="videoRenderedPlayer" controls style="width:100%;margin-top:6px;border-radius:6px;background:#000;"></video>
+          </div>
+
+          <div id="videoFinalBox" class="hidden" style="margin-top:14px;">
+            <span class="section-label">🎬 成品</span>
+            <video id="videoFinalPlayer" controls style="width:100%;margin-top:6px;border-radius:6px;background:#000;"></video>
+            <div class="row" style="margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <button class="small" id="videoCopyUrlBtn">复制 R2 链接</button>
+              <a id="videoDownloadLink" class="small" download>下载</a>
+              <span style="font-size:12px;color:var(--text-3);" id="videoMetaInfo"></span>
+            </div>
+          </div>
+
+          <div id="videoErrorBox" class="hidden" style="margin-top:14px;padding:10px 12px;background:#fee;border-radius:6px;">
+            <strong style="color:#c00;">⚠️ 错误</strong>
+            <pre id="videoErrorText" style="white-space:pre-wrap;font-size:12px;margin-top:4px;color:#600;"></pre>
+          </div>
+        </div>
+
       </aside>
 
       <!-- ─── Right Main ─── -->
@@ -2673,6 +2716,9 @@
       $('musicJobsBlock').classList.toggle('hidden', !isMusicMode);
       $('coverJobsBlock').classList.toggle('hidden', !isCoverMode);
       $('videoJobsBlock').classList.toggle('hidden', !isVideoMode);
+      // Show video detail only when video mode + a job is selected
+      const videoDetailVisible = isVideoMode && videoState && videoState.selectedJobId;
+      $('videoDetailBox').classList.toggle('hidden', !videoDetailVisible);
       if (!isMusicMode) resetMusicHistory();
       if (!isCoverMode) resetCoverLyricsWarning();
       document.querySelectorAll('.voice-only').forEach(el => {
@@ -3837,14 +3883,89 @@
     }
 
     function renderVideoDetail(j) {
-      // No right-panel detail UI in v1; just update the selected job item + log.
-      if (j && j.id) {
-        // refresh the job in state
-        const idx = videoState.jobs.findIndex(x => x.id === j.id);
-        if (idx >= 0) videoState.jobs[idx] = j;
-        renderVideoJobList();
+      const detail = $('videoDetailBox');
+      if (!j || !j.id) {
+        detail.classList.add('hidden');
+        return;
       }
+      detail.classList.remove('hidden');
+
+      // Stage label + progress bar
+      const stages = ['pending', 'ready_script', 'rendered', 'final'];
+      const currentIdx = stages.indexOf(j.status);
+      const stageLabels = { pending: '待写稿', ready_script: '已写稿·待渲染', rendered: '已渲染·待配音', final: '✓ 成品', error: '⚠️ 错误' };
+      const etaMap = { pending: '~5-7 分钟', ready_script: '~5 分钟', rendered: '~30 秒', final: '完成', error: '失败' };
+      $('videoStageLabel').textContent = stageLabels[j.status] || j.status;
+      $('videoEtaMeta').textContent = etaMap[j.status] || '';
+      const pct = j.status === 'error' ? 0 : Math.max(0, (currentIdx + 1) / stages.length * 100);
+      $('videoProgressBar').style.width = pct + '%';
+
+      // Script zone
+      const scriptBox = $('videoScriptBox');
+      if (j.script) {
+        scriptBox.classList.remove('hidden');
+        $('videoScriptText').textContent = j.script;
+      } else {
+        scriptBox.classList.add('hidden');
+      }
+
+      // Rendered zone
+      const renderedBox = $('videoRenderedBox');
+      if (j.render && j.render.mp4_url) {
+        renderedBox.classList.remove('hidden');
+        $('videoRenderedPlayer').src = j.render.mp4_url;
+      } else {
+        renderedBox.classList.add('hidden');
+        $('videoRenderedPlayer').removeAttribute('src');
+      }
+
+      // Final zone
+      const finalBox = $('videoFinalBox');
+      if (j.final && j.final.mp4_url) {
+        finalBox.classList.remove('hidden');
+        $('videoFinalPlayer').src = j.final.mp4_url;
+        $('videoDownloadLink').href = j.final.mp4_url;
+        $('videoMetaInfo').textContent = `${j.final.duration_sec}s · ${(j.final.size_bytes/1048576).toFixed(2)} MB`;
+        $('videoCopyUrlBtn').onclick = () => {
+          navigator.clipboard.writeText(j.final.mp4_url).then(() => {
+            $('videoCopyUrlBtn').textContent = '已复制 ✓';
+            setTimeout(() => { $('videoCopyUrlBtn').textContent = '复制 R2 链接'; }, 1500);
+          });
+        };
+      } else {
+        finalBox.classList.add('hidden');
+        $('videoFinalPlayer').removeAttribute('src');
+      }
+
+      // Error zone
+      const errorBox = $('videoErrorBox');
+      if (j.status === 'error' && j.error) {
+        errorBox.classList.remove('hidden');
+        $('videoErrorText').textContent = j.error;
+      } else {
+        errorBox.classList.add('hidden');
+      }
+
+      // Rerun button states
+      $('videoRerunScriptBtn').disabled = j.status === 'pending' && !j.script;
+      $('videoRerunRenderBtn').disabled = !j.script;
+      $('videoRerunNarrateBtn').disabled = !(j.render && j.render.mp4_url);
     }
+
+    // Rerun buttons
+    document.querySelectorAll('[data-video-rerun]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!videoState.selectedJobId) return;
+        const stage = btn.dataset.videoRerun;
+        btn.disabled = true;
+        try {
+          await rerunVideoStage(videoState.selectedJobId, stage);
+          setTimeout(refreshVideoDetail, 800);
+        } finally {
+          setTimeout(() => { btn.disabled = false; }, 1500);
+        }
+      });
+    });
 
     async function rerunVideoStage(jobId, stage) {
       const endpoint = stage === 'script' ? '/render' : '/' + stage; // script trigger cascades from render
