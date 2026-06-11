@@ -721,6 +721,73 @@ def archive_job_api(job_id):
     archive_job(job)
     return jsonify({'ok': True})
 
+# ── Video Endpoints ───────────────────────────────────────
+# video mode = auto-pilot: pending → ready_script → rendered → final.
+# These routes let the UI and the daemons cascade through the stages
+# without a human review gate (per 2026-06-11 spec).
+
+VIDEO_TRIGGER_MAP = {
+    'script': '.video-script-trigger',
+    'render': '.video-render-trigger',
+    'narrate': '.video-narrate-trigger',
+}
+
+
+def _touch_video_trigger(stage: str) -> bool:
+    path = SKILL_DIR / VIDEO_TRIGGER_MAP[stage]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(str(time.time()), encoding='utf-8')
+    return True
+
+
+@app.route('/api/jobs/<job_id>/render', methods=['POST'])
+def trigger_video_render(job_id):
+    """Reset a video job to ready_script and wake the render daemon.
+
+    Allows re-running the render stage from rendered / final / error.
+    """
+    job = load_job(job_id)
+    if not job or job.get('mode') != 'video':
+        return jsonify({'error': 'video job not found'}), 404
+    job['status'] = 'ready_script'
+    job['error'] = None
+    job.setdefault('logs', []).append(f"{datetime.now().isoformat()} render re-triggered by user")
+    save_job(job)
+    _touch_video_trigger('render')
+    return jsonify({'ok': True, 'job': job_response(job)})
+
+
+@app.route('/api/jobs/<job_id>/narrate', methods=['POST'])
+def trigger_video_narrate(job_id):
+    """Reset a video job to rendered and wake the narrate daemon.
+
+    Allows re-running the narrate stage from final / error.
+    """
+    job = load_job(job_id)
+    if not job or job.get('mode') != 'video':
+        return jsonify({'error': 'video job not found'}), 404
+    job['status'] = 'rendered'
+    job['error'] = None
+    job.setdefault('logs', []).append(f"{datetime.now().isoformat()} narrate re-triggered by user")
+    save_job(job)
+    _touch_video_trigger('narrate')
+    return jsonify({'ok': True, 'job': job_response(job)})
+
+
+@app.route('/__internal/touch-trigger', methods=['POST'])
+def internal_touch_trigger():
+    """Wake a video stage's systemd path unit by name.
+
+    Body: {"trigger": "script"|"render"|"narrate"}
+    Used by the Web UI's "rerun" buttons and create flow.
+    """
+    data = request.get_json(force=True, silent=True) or {}
+    trigger = data.get('trigger')
+    if trigger not in VIDEO_TRIGGER_MAP:
+        return jsonify({'error': f'unknown trigger {trigger!r}'}), 400
+    _touch_video_trigger(trigger)
+    return jsonify({'ok': True, 'trigger': trigger})
+
 # ── Music Endpoints ───────────────────────────────────────
 
 def _run_lyrics_generation(job_id, full_prompt):
