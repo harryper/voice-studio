@@ -124,10 +124,13 @@ def render_placeholder(job_id, render_dir, script_text="", theme=""):
     render_dir.mkdir(parents=True, exist_ok=True)
     html_path = render_dir / "index.html"
 
-    # 1. Generate 10 scene images (Pexels primary, MiniMax fallback, gradient last)
+    # 1. Generate scene images (Pexels primary, MiniMax fallback, gradient last)
     images_dir = render_dir / "images"
     images_dir.mkdir(exist_ok=True)
-    chunks = split_script_to_cards(script_text, n_cards=10)
+    # Smart scene count: ~30 chars per scene, capped 6-10
+    n_scenes = min(10, max(6, len(script_text) // 30)) if script_text else 6
+    chunks = split_script_to_cards(script_text, n_cards=n_scenes)
+    log(f"  using {n_scenes} scenes for {len(script_text)} chars")
     log(f"  generating {len(chunks)} scene images (Pexels → MiniMax → gradient)...")
     image_paths = []
     for i, chunk in enumerate(chunks):
@@ -156,6 +159,7 @@ def render_placeholder(job_id, render_dir, script_text="", theme=""):
 
     # 2. Build HTML with images + Ken Burns + subtitles
     html = build_image_composition_html(image_paths, chunks, total_duration=30)
+    # build_image_composition_html uses its own n_scenes from image_paths
     html_path.write_text(html, encoding="utf-8")
     log(f"  generated HTML with {len(chunks)} scenes ({len(script_text)} chars)")
 
@@ -218,25 +222,39 @@ def try_minimax_image(prompt, out_path, timeout=120):
 
 
 def extract_pexels_query(chunk_text, theme, scene_index):
-    """Extract a 1-3 word Pexels search query from a script chunk.
+    """Extract a Pexels search query from a script chunk.
 
-    Strategy: prefer theme + chunk keywords. Pexels handles Chinese queries
-    (老人 → 2500+ results), so we just need a coherent search term.
+    Strategy: use theme as the primary anchor (consistent visual style),
+    enrich with chunk keywords for variety, add per-scene hint.
+    Pexels handles Chinese queries (老人 → 2500+ results).
     """
     import re as _re
     text = _re.sub(r"[，。！？、,.!?\s\d]+", " ", chunk_text).strip()
-    # Take up to 3 meaningful chinese chars + 1-2 theme words
-    # Pexels works better with concise queries
     cn_chars = [c for c in text if '\u4e00' <= c <= '\u9fff']
+    # Per-scene variation hints (different angles/subjects to avoid all-same-photo)
+    scene_hints = [
+        "portrait", "close-up", "wide", "detail", "outdoor",
+        "candid", "interior", "still life", "landscape", "urban",
+    ]
+    hint = scene_hints[scene_index % len(scene_hints)]
+
     if cn_chars:
-        # Take first 4 chinese chars as the core subject
+        # Take 2-4 chinese chars as the core subject
         cn_part = "".join(cn_chars[:4])
-        if theme and theme != cn_part:
-            return f"{cn_part} {theme}"[:30]
-        return cn_part
-    # Fallback: use first few words
-    words = text.split()[:3]
-    return " ".join(words) if words else (theme or "cinematic")
+        # Mix subject + theme + hint
+        parts = [cn_part]
+        if theme:
+            theme_chars = [c for c in theme if '\u4e00' <= c <= '\u9fff']
+            if theme_chars:
+                theme_short = "".join(theme_chars[:3])
+                if theme_short != cn_part:
+                    parts.append(theme_short)
+        parts.append(hint)
+        return " ".join(parts)[:35]
+    # No Chinese in chunk: use theme + hint
+    if theme:
+        return f"{theme} {hint}"[:35]
+    return hint
 
 
 def build_visual_prompt(chunk_text, theme, scene_index, total):
