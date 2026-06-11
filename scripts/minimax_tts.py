@@ -14,6 +14,18 @@ DEFAULT_MODEL = "speech-2.8-hd"
 DEFAULT_VOICE = "azure_yunze_clone"
 DEFAULT_SPEED = 0.9
 TTS_URL = "https://api.minimaxi.com/v1/t2a_v2"
+VOICE_REGISTRY_FILE = Path(__file__).parent / "voice_registry.json"
+
+
+def load_voice_registry(path=None):
+    """Read voice_registry.json; return {} on missing or invalid file."""
+    p = Path(path) if path else VOICE_REGISTRY_FILE
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
 def load_api_key():
@@ -41,7 +53,10 @@ def main():
     ap.add_argument("--text", required=True, help="Input text/markdown file")
     ap.add_argument("--out", required=True, help="Output narration audio (mp3)")
     ap.add_argument("--voice", default=DEFAULT_VOICE)
-    ap.add_argument("--speed", type=float, default=DEFAULT_SPEED)
+    ap.add_argument("--speed", type=float, default=None,
+                    help="Speech speed multiplier. If omitted, falls back to voice_registry default_speed; otherwise to 1.0.")
+    ap.add_argument("--voice-registry", default=str(VOICE_REGISTRY_FILE),
+                    help="Path to voice_registry.json (for display_name + default_speed lookup).")
     ap.add_argument("--retries", type=int, default=1)
     ap.add_argument("--timeout", type=int, default=120)
     args = ap.parse_args()
@@ -51,6 +66,14 @@ def main():
         raise SystemExit("empty input text")
     chars = char_len(text)
     print(f"Text: {chars} chars", file=sys.stderr)
+
+    # Resolve display_name + default_speed from voice_registry when --voice is a known key.
+    registry = load_voice_registry(args.voice_registry)
+    voice_meta = registry.get(args.voice, {})
+    display_name = voice_meta.get("display_name", args.voice)
+    if args.speed is None:
+        args.speed = float(voice_meta.get("default_speed", 1.0))
+    print(f"Voice: '{display_name}' (id={args.voice}, speed={args.speed})", file=sys.stderr)
 
     import requests
 
