@@ -130,12 +130,29 @@ def mix_voice_with_bgm_loop(voice_mp3, bgm_mp3, out_mp3, bgm_volume):
 
 
 def merge_video_audio(video_mp4, audio_mp3, out_mp4):
+    """Loop audio to match video duration; re-encode audio to aac; copy video.
+
+    v1 placeholder video is 30s; we always produce a final at the video's
+    natural length. If audio is shorter (typical — 32 char script → ~6s),
+    the audio (voice + BGM mix) is looped to fill. If audio is longer
+    (real 60-90s scripts in P2), we'll need a longer placeholder.
+    """
+    v_dur = get_duration_sec(video_mp4)
+    a_dur = get_duration_sec(audio_mp3)
+    log(f"  video={v_dur:.1f}s, audio={a_dur:.1f}s, output={v_dur:.1f}s (looping audio)")
+
     cmd = [
         "ffmpeg", "-y",
         "-i", str(video_mp4),
         "-i", str(audio_mp3),
-        "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-        "-shortest",
+        "-filter_complex",
+        f"[1:a]aloop=loop=-1:size=2e9,atrim=0:{v_dur},asetpts=PTS-STARTPTS[a]",
+        "-map", "0:v",
+        "-map", "[a]",
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-t", str(v_dur),
         str(out_mp4),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)

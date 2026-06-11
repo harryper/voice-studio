@@ -102,6 +102,7 @@ def build_prompt(job):
         f"6. 更新 jobs/video/{job_id}.json: status=\"ready_script\", script=<全文>, script_meta={{char_count, target_seconds, actual_seconds=null}}, error=null\n"
         f"7. job_id={job_id}\n\n"
         "执行纪律：\n"
+        "- **首次写入即终稿**: 不要反复自我检查 / 改写 / 重写。最多 3 次写入, 第一次写完直接落盘。\n"
         "- 不要把全文写在 thinking 或最终回复里, 必须用文件写入工具落盘\n"
         "- 文稿字数 < 100 字视为失败 (min_script_chars=100), 重写后再保存\n"
         "- 不要生成音频, 不要发布, 不要给用户发消息\n"
