@@ -97,13 +97,12 @@ MODE_CONFIG = {
         'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'cover'),
         'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'cover'),
     },
-    # 未来添加 video：
-    # 'video': {
-    #     'name': '视频',
-    #     'icon': '🎬',
-    #     'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'video'),
-    #     'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'video'),
-    # },
+    'video': {
+        'name': '视频',
+        'icon': '🎬',
+        'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'video'),
+        'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'video'),
+    },
 }
 
 for cfg in MODE_CONFIG.values():
@@ -587,8 +586,46 @@ def create_job():
             'is_starred': False,
             'created_at': datetime.now().isoformat(),
         }
+    elif mode == 'video':
+        theme = (data.get('theme') or '').strip()
+        if not theme:
+            return jsonify({'error': '主题不能为空'}), 400
+        # Video jobs use 'v_' prefix on id to disambiguate from voice jobs.
+        video_id = 'v_' + str(uuid.uuid4())[:8]
+        job = {
+            'id': video_id,
+            'mode': 'video',
+            'theme': theme,
+            'status': 'pending',   # pending → ready_script → rendered → final
+            'script': None,
+            'script_meta': None,
+            'render': {
+                'width': 1080,
+                'height': 1920,
+                'fps': 30,
+                'duration_sec': 90,
+            },
+            'audio': {
+                'voice': 'Chinese (Mandarin)_Radio_Host',
+                'voice_display_name': '电台男主播',
+                'speed': 1.0,
+                'bgm_volume': 0.06,
+                'bgm_asset': 'bgm_default.mp3',
+            },
+            'final': None,
+            'error': None,
+            'created_at': datetime.now().isoformat(),
+            'logs': [],
+        }
+        save_job(job)
+        # Wake the host-side script daemon. No-op if the systemd path unit is not yet installed.
+        try:
+            (SKILL_DIR / '.video-script-trigger').write_text(str(time.time()), encoding='utf-8')
+        except OSError as e:
+            print(f'[video] failed to touch script trigger: {e}', file=sys.stderr)
+        return jsonify({'job_id': video_id, 'job': job_response(job)})
     else:
-        return jsonify({'error': 'mode 必须是 theme、script 或 music'}), 400
+        return jsonify({'error': 'mode 必须是 theme、script、music、music_cover 或 video'}), 400
 
     save_job(job)
     if mode == 'theme':
