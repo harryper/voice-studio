@@ -30,9 +30,13 @@ JOBS_DIR = SKILL_DIR / "jobs" / "video"
 VIDEO_RUNS_DIR = Path("/root/.openclaw/workspace/skills/video-studio/runs")
 PLACEHOLDER_HTML = SKILL_DIR / "templates" / "video_placeholder.html"
 VIDEO_STYLE_HELPER = Path("/root/.openclaw/workspace/skills/video-studio/reference-style-video.md")
-UPLOAD_SCRIPT = SKILL_DIR / "scripts" / "upload_to_oss.py"
+UPLOAD_SCRIPT = SKILL_DIR / "scripts" / "upload_to_cos.py"
 IMAGE_GEN_SCRIPT = SKILL_DIR / "scripts" / "minimax_image_gen.py"
 PEXELS_IMAGE_SCRIPT = SKILL_DIR / "scripts" / "pexels_image.py"
+
+# 2026-06-11: 16:9 horizontal (1920x1080) for landscape video
+DEFAULT_WIDTH = 1920
+DEFAULT_HEIGHT = 1080
 
 LOCK_PATH = SKILL_DIR / ".video-render-writer.lock"
 RENDER_TRIGGER = SKILL_DIR / ".video-render-trigger"
@@ -194,7 +198,7 @@ def try_pexels_image(query, out_path, timeout=30):
             ["python3", str(PEXELS_IMAGE_SCRIPT),
              "--query", query,
              "--out", str(out_path),
-             "--w", "1080", "--h", "1920",
+             "--w", str(DEFAULT_WIDTH), "--h", str(DEFAULT_HEIGHT),
              "--per-page", "3"],
             capture_output=True, text=True, timeout=timeout,
         )
@@ -211,7 +215,7 @@ def try_minimax_image(prompt, out_path, timeout=120):
         result = subprocess.run(
             ["python3", str(IMAGE_GEN_SCRIPT),
              "--prompt", prompt,
-             "--aspect", "9:16",
+             "--aspect", "16:9",
              "--n", "1",
              "--out", str(out_path)],
             capture_output=True, text=True, timeout=timeout,
@@ -419,7 +423,7 @@ def build_image_composition_html(image_paths, chunks, total_duration=30):
   <title>video composition</title>
   <style>
     [data-composition-id="dynamic"] {{
-      width: 1080px; height: 1920px; background: #0a0e1a; color: #fff;
+      width: {DEFAULT_WIDTH}px; height: {DEFAULT_HEIGHT}px; background: #0a0e1a; color: #fff;
       font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
       overflow: hidden;
     }}
@@ -434,21 +438,21 @@ def build_image_composition_html(image_paths, chunks, total_duration=30):
     }}
     .subtitle {{
       position: absolute; left: 0; right: 0; bottom: 0;
-      padding: 80px 60px 120px 60px;
+      padding: 40px 80px 60px 80px;
       background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.85) 100%);
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
       opacity: 0;
     }}
     .cap-line {{
-      font-size: 88px; font-weight: bold; line-height: 1.2; text-align: center;
-      letter-spacing: 4px;
+      font-size: 64px; font-weight: bold; line-height: 1.3; text-align: center;
+      letter-spacing: 2px;
       text-shadow: 0 4px 20px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6);
     }}
   </style>
 </head>
 <body>
   <div data-composition-id="dynamic"
-       data-width="1080" data-height="1920"
+       data-width="{DEFAULT_WIDTH}" data-height="{DEFAULT_HEIGHT}"
        data-start="0" data-duration="{total_duration}">
 {scenes_str}
   </div>

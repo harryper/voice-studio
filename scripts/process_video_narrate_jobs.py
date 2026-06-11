@@ -30,7 +30,7 @@ JOBS_DIR = SKILL_DIR / "jobs" / "video"
 VIDEO_RUNS_DIR = Path("/root/.openclaw/workspace/skills/video-studio/runs")
 BGM_PATH = SKILL_DIR / "assets" / "bgm_default.mp3"
 TTS_SCRIPT = SKILL_DIR / "scripts" / "minimax_tts.py"
-UPLOAD_SCRIPT = SKILL_DIR / "scripts" / "upload_to_oss.py"
+UPLOAD_SCRIPT = SKILL_DIR / "scripts" / "upload_to_cos.py"
 VOICE_REGISTRY = SKILL_DIR / "scripts" / "voice_registry.json"
 
 LOCK_PATH = SKILL_DIR / ".video-narrate-writer.lock"
@@ -161,13 +161,16 @@ def merge_video_audio(video_mp4, audio_mp3, out_mp4):
 
 
 def upload_mp4(local_path, slug, short_id, kind):
+    from datetime import datetime as _dt
+    date_str = _dt.now().strftime("%Y-%m-%d")
+    key = f"{date_str}/video-studio/video-{slug}-{short_id}-{kind}.mp4"
     cmd = [
         "python3", str(UPLOAD_SCRIPT),
         "--file", str(local_path),
-        "--theme", "video-studio",
-        "--name", f"video-{slug}-{short_id}-{kind}.mp4",
+        "--key", key,
+        "--content-type", "video/mp4",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if result.returncode != 0:
         raise RuntimeError(f"upload failed: {(result.stderr or result.stdout)[-500:]}")
     return result.stdout.strip()
