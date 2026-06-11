@@ -17,4 +17,5 @@ tmp/
 .writer-trigger
 .writer.lock
 .writer.lastrun
+.video-*-trigger
 backups/
