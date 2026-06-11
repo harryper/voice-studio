@@ -31,6 +31,8 @@ VIDEO_RUNS_DIR = Path("/root/.openclaw/workspace/skills/video-studio/runs")
 PLACEHOLDER_HTML = SKILL_DIR / "templates" / "video_placeholder.html"
 VIDEO_STYLE_HELPER = Path("/root/.openclaw/workspace/skills/video-studio/reference-style-video.md")
 UPLOAD_SCRIPT = SKILL_DIR / "scripts" / "upload_to_oss.py"
+IMAGE_GEN_SCRIPT = SKILL_DIR / "scripts" / "minimax_image_gen.py"
+PEXELS_IMAGE_SCRIPT = SKILL_DIR / "scripts" / "pexels_image.py"
 
 LOCK_PATH = SKILL_DIR / ".video-render-writer.lock"
 RENDER_TRIGGER = SKILL_DIR / ".video-render-trigger"
@@ -105,21 +107,57 @@ def upload_mp4(local_path, slug, short_id, kind):
     return result.stdout.strip()
 
 
-def render_placeholder(job_id, render_dir, script_text=""):
-    """Generate a simple HTML composition from the script text (P2 v1).
+def render_placeholder(job_id, render_dir, script_text="", theme=""):
+    """Generate images + HTML composition for 抖音-style video (P3 v1).
 
-    Splits the script into ~5 chunks, each shown on its own card with fade
-    transitions. Total composition length is 30s (5 cards x 6s).
-    P2.5+ will replace this with LLM-generated compositions.
+    Splits the script into 10 chunks, then for each chunk:
+    1. Try Pexels stock photos (real, fast)
+    2. Fall back to MiniMax image generation (AI, slower)
+    3. Final fallback: gradient placeholder
+
+    Builds an HTML composition with:
+    - Image background per scene
+    - Ken Burns effect (slow zoom + pan)
+    - Subtitle overlay at bottom
+    - Total: 30s (10 scenes x 3s)
     """
     render_dir.mkdir(parents=True, exist_ok=True)
     html_path = render_dir / "index.html"
 
-    # Build the HTML dynamically
-    chunks = split_script_to_cards(script_text, n_cards=5)
-    html = build_card_composition_html(chunks, total_duration=30)
+    # 1. Generate 10 scene images (Pexels primary, MiniMax fallback, gradient last)
+    images_dir = render_dir / "images"
+    images_dir.mkdir(exist_ok=True)
+    chunks = split_script_to_cards(script_text, n_cards=10)
+    log(f"  generating {len(chunks)} scene images (Pexels → MiniMax → gradient)...")
+    image_paths = []
+    for i, chunk in enumerate(chunks):
+        img_path = images_dir / f"scene_{i+1}.jpg"
+        if img_path.exists() and img_path.stat().st_size > 5000:
+            log(f"  scene {i+1}: cached")
+            image_paths.append(img_path)
+            continue
+        # 1. Try Pexels
+        query = extract_pexels_query(chunk, theme, i)
+        if try_pexels_image(query, img_path):
+            log(f"  scene {i+1}: pexels (q={query!r})")
+            image_paths.append(img_path)
+            continue
+        # 2. Fall back to MiniMax
+        log(f"  scene {i+1}: pexels miss, trying MiniMax...")
+        prompt = build_visual_prompt(chunk, theme, scene_index=i, total=len(chunks))
+        if try_minimax_image(prompt, img_path):
+            log(f"  scene {i+1}: minimax")
+            image_paths.append(img_path)
+            continue
+        # 3. Gradient fallback
+        log(f"  scene {i+1}: both miss, using gradient")
+        create_fallback_image(img_path, scene_index=i, total=len(chunks))
+        image_paths.append(img_path)
+
+    # 2. Build HTML with images + Ken Burns + subtitles
+    html = build_image_composition_html(image_paths, chunks, total_duration=30)
     html_path.write_text(html, encoding="utf-8")
-    log(f"  generated HTML with {len(chunks)} cards ({len(script_text)} chars)")
+    log(f"  generated HTML with {len(chunks)} scenes ({len(script_text)} chars)")
 
     out_mp4 = render_dir / "video-only.mp4"
 
@@ -143,6 +181,129 @@ def render_placeholder(job_id, render_dir, script_text=""):
     if not out_mp4.exists():
         raise RuntimeError("render exit 0 but video-only.mp4 missing")
     return out_mp4
+
+
+def try_pexels_image(query, out_path, timeout=30):
+    """Try to fetch a Pexels image. Returns True on success."""
+    try:
+        result = subprocess.run(
+            ["python3", str(PEXELS_IMAGE_SCRIPT),
+             "--query", query,
+             "--out", str(out_path),
+             "--w", "1080", "--h", "1920",
+             "--per-page", "3"],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        if result.returncode == 0 and out_path.exists() and out_path.stat().st_size > 5000:
+            return True
+        return False
+    except Exception:
+        return False
+
+
+def try_minimax_image(prompt, out_path, timeout=120):
+    """Try to generate a MiniMax image. Returns True on success."""
+    try:
+        result = subprocess.run(
+            ["python3", str(IMAGE_GEN_SCRIPT),
+             "--prompt", prompt,
+             "--aspect", "9:16",
+             "--n", "1",
+             "--out", str(out_path)],
+            capture_output=True, text=True, timeout=timeout,
+        )
+        return result.returncode == 0 and out_path.exists() and out_path.stat().st_size > 5000
+    except Exception:
+        return False
+
+
+def extract_pexels_query(chunk_text, theme, scene_index):
+    """Extract a 1-3 word Pexels search query from a script chunk.
+
+    Strategy: prefer theme + chunk keywords. Pexels handles Chinese queries
+    (老人 → 2500+ results), so we just need a coherent search term.
+    """
+    import re as _re
+    text = _re.sub(r"[，。！？、,.!?\s\d]+", " ", chunk_text).strip()
+    # Take up to 3 meaningful chinese chars + 1-2 theme words
+    # Pexels works better with concise queries
+    cn_chars = [c for c in text if '\u4e00' <= c <= '\u9fff']
+    if cn_chars:
+        # Take first 4 chinese chars as the core subject
+        cn_part = "".join(cn_chars[:4])
+        if theme and theme != cn_part:
+            return f"{cn_part} {theme}"[:30]
+        return cn_part
+    # Fallback: use first few words
+    words = text.split()[:3]
+    return " ".join(words) if words else (theme or "cinematic")
+
+
+def build_visual_prompt(chunk_text, theme, scene_index, total):
+    """Build a visual prompt for MiniMax image generation.
+
+    Strategy: use theme as global style anchor, chunk as scene subject.
+    Add per-scene visual variation (wide / close-up / object / person)
+    so consecutive scenes don't look identical.
+    """
+    # Style: cinematic 抖音-quality, vertical
+    style = (
+        "cinematic photography, professional quality, "
+        "warm natural lighting, shallow depth of field, "
+        "35mm film grain, 9:16 vertical composition"
+    )
+
+    # Per-scene shot variation
+    shot_variations = [
+        "wide establishing shot",
+        "medium shot with context",
+        "close-up detail shot",
+        "extreme close-up texture",
+        "wide shot from a different angle",
+        "over-the-shoulder perspective",
+        "low angle dramatic shot",
+        "portrait framing centered",
+        "object still life composition",
+        "wide cinematic vista",
+    ]
+    shot = shot_variations[scene_index % len(shot_variations)]
+
+    # Clean up chunk for prompt use
+    subject = chunk_text.strip()[:60].rstrip("。，！？,.!? ")
+    if not subject:
+        subject = theme[:30] if theme else "atmospheric scene"
+
+    # Translate/keep chinese: MiniMax image gen supports mixed
+    prompt = f"{shot}, {subject}, {style}"
+    # Cap prompt length (API limit ~2000 chars)
+    if len(prompt) > 500:
+        prompt = prompt[:500]
+    return prompt
+
+
+def create_fallback_image(out_path, scene_index, total):
+    """Generate a gradient PNG as fallback when image gen fails."""
+    try:
+        from PIL import Image, ImageDraw
+        palette = [
+            (30, 58, 138), (124, 58, 237), (236, 72, 153),
+            (245, 158, 11), (16, 185, 129), (14, 165, 233),
+            (99, 102, 241), (220, 38, 38), (217, 119, 6),
+            (5, 150, 105),
+        ]
+        c1, c2 = palette[scene_index % len(palette)], palette[(scene_index + 1) % len(palette)]
+        img = Image.new("RGB", (720, 1280), c1)
+        draw = ImageDraw.Draw(img)
+        for y in range(1280):
+            t = y / 1280
+            r = int(c1[0] * (1 - t) + c2[0] * t)
+            g = int(c1[1] * (1 - t) + c2[1] * t)
+            b = int(c1[2] * (1 - t) + c2[2] * t)
+            draw.line([(0, y), (720, y)], fill=(r, g, b))
+        img.save(out_path, "JPEG", quality=85)
+    except ImportError:
+        # PIL not available: just write empty
+        out_path.write_bytes(b"")
 
 
 def split_script_to_cards(script_text, n_cards=5):
@@ -172,6 +333,118 @@ def split_script_to_cards(script_text, n_cards=5):
         end = int((i + 1) * per) if i < n_cards - 1 else len(sentences)
         chunks.append("".join(sentences[start:end]))
     return chunks
+
+
+def build_image_composition_html(image_paths, chunks, total_duration=30):
+    """Build hyperframes composition HTML with image backgrounds + Ken Burns + subtitles.
+
+    Each scene:
+    - image_path: background image (1080x1920)
+    - chunk: caption text
+    - per-scene duration: total_duration / n_scenes
+    - Ken Burns: slow zoom in (scale 1.0 → 1.12) + slight pan
+    - Subtitle: large text at bottom with dark gradient overlay
+    """
+    n = len(image_paths)
+    per = total_duration / n
+    # Ken Burns direction varies per scene (avoids all-same motion)
+    kb_variants = [
+        {"scale": 1.12, "x": -20, "y": -10},   # 0: zoom + left-up
+        {"scale": 1.15, "x": 20, "y": 0},       # 1: zoom + right
+        {"scale": 1.10, "x": 0, "y": -20},      # 2: zoom + up
+        {"scale": 1.13, "x": -15, "y": 10},     # 3: zoom + left-down
+        {"scale": 1.18, "x": 10, "y": -10},     # 4: zoom + right-up
+        {"scale": 1.12, "x": -25, "y": 0},      # 5: zoom + left
+        {"scale": 1.15, "x": 15, "y": 15},      # 6: zoom + right-down
+        {"scale": 1.10, "x": 0, "y": 20},       # 7: zoom + down
+        {"scale": 1.13, "x": -10, "y": -15},    # 8: zoom + left-up2
+        {"scale": 1.16, "x": 20, "y": -5},      # 9: zoom + right-up
+    ]
+
+    scenes_html = []
+    timeline_tweens = []
+    for i, (img_path, chunk) in enumerate(zip(image_paths, chunks)):
+        start = i * per
+        img_filename = Path(img_path).name  # just the basename
+        kb = kb_variants[i % len(kb_variants)]
+        # Wrap caption into lines (max ~10 chars per line for 抖音-style)
+        lines = wrap_caption_lines(chunk, max_chars=10, max_lines=3)
+        caption_html = "".join(f'<div class="cap-line">{escape_html(line)}</div>' for line in lines)
+        scenes_html.append(
+            f'    <div id="scene-{i+1}" class="clip" data-track-index="0" '
+            f'data-start="{start}" data-duration="{per}">\n'
+            f'      <div class="bg" id="bg-{i+1}" style="background-image: url(\'images/{img_filename}\');"></div>\n'
+            f'      <div class="subtitle" id="sub-{i+1}">{caption_html}</div>\n'
+            f'    </div>'
+        )
+        # Ken Burns: scale + x/y pan over the scene duration
+        timeline_tweens.append(
+            f"tl.to('#bg-{i+1}', {{ scale: {kb['scale']}, x: {kb['x']}, y: {kb['y']}, "
+            f"ease: 'none', duration: {per} }}, {start});"
+        )
+        # Subtitle fade in/out (fast, 0.2s in, hold, 0.3s out)
+        timeline_tweens.append(
+            f"tl.fromTo('#sub-{i+1}', {{ opacity: 0 }}, {{ opacity: 1, duration: 0.2 }}, {start});"
+        )
+        if i < n - 1:
+            timeline_tweens.append(
+                f"tl.to('#sub-{i+1}', {{ opacity: 0, duration: 0.3 }}, {start + per - 0.3});"
+            )
+
+    scenes_str = "\n".join(scenes_html)
+    tweens_str = "\n    ".join(timeline_tweens)
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>video composition</title>
+  <style>
+    [data-composition-id="dynamic"] {{
+      width: 1080px; height: 1920px; background: #0a0e1a; color: #fff;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      overflow: hidden;
+    }}
+    .clip {{
+      width: 100%; height: 100%; position: relative; overflow: hidden;
+    }}
+    .bg {{
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      transform: scale(1.0) translate(0, 0);
+      will-change: transform;
+    }}
+    .subtitle {{
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 80px 60px 120px 60px;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.85) 100%);
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      opacity: 0;
+    }}
+    .cap-line {{
+      font-size: 88px; font-weight: bold; line-height: 1.2; text-align: center;
+      letter-spacing: 4px;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6);
+    }}
+  </style>
+</head>
+<body>
+  <div data-composition-id="dynamic"
+       data-width="1080" data-height="1920"
+       data-start="0" data-duration="{total_duration}">
+{scenes_str}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {{}};
+    const tl = gsap.timeline({{ paused: true }});
+    {tweens_str}
+    window.__timelines["dynamic"] = tl;
+  </script>
+</body>
+</html>
+"""
 
 
 def build_card_composition_html(chunks, total_duration=30):
@@ -268,6 +541,40 @@ def wrap_text_to_lines(text, max_chars=13, max_lines=4):
         if len(lines) >= max_lines:
             break
     # If there's leftover, append "..." to last line
+    if len(chars) > max_lines * max_chars and lines:
+        last = lines[-1]
+        if len(last) >= max_chars - 1:
+            lines[-1] = last[:-1] + "…"
+        else:
+            lines[-1] = last + "…"
+    return lines
+
+
+def wrap_caption_lines(text, max_chars=10, max_lines=3):
+    """Wrap caption text for 抖音-style subtitles (fewer chars, more lines visible).
+
+    Chunks are 1-3 sentences, so we want them split to fit 2-3 lines.
+    """
+    if not text:
+        return [""]
+    text = text.strip().rstrip("。！？.!?")
+    chars = list(text)
+    if len(chars) <= max_chars:
+        return [text]
+    # Try to split at sentence boundary if short enough
+    import re as _re
+    parts = _re.split(r'(?<=[。！？,，;；])', text)
+    if len(parts) > 1 and all(len(p) <= max_chars * 2 for p in parts if p.strip()):
+        # Already split into natural phrases
+        result = [p.strip() for p in parts if p.strip()][:max_lines]
+        if len(result) <= max_lines:
+            return result
+    # Fallback: char-based wrapping
+    lines = []
+    for i in range(0, len(chars), max_chars):
+        lines.append("".join(chars[i:i + max_chars]))
+        if len(lines) >= max_lines:
+            break
     if len(chars) > max_lines * max_chars and lines:
         last = lines[-1]
         if len(last) >= max_chars - 1:
