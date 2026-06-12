@@ -1,9 +1,0 @@
-[Unit]
-Description=Watch video-render trigger and run host-side render writer
-
-[Path]
-PathModified=/root/.openclaw/workspace/skills/voice-studio/.video-render-trigger
-Unit=voice-studio-video-render-watcher.service
-
-[Install]
-WantedBy=multi-user.target

@@ -97,12 +97,13 @@ MODE_CONFIG = {
         'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'cover'),
         'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'cover'),
     },
-    'video': {
-        'name': '视频',
-        'icon': '🎬',
-        'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'video'),
-        'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'video'),
-    },
+    # 未来添加 video：
+    # 'video': {
+    #     'name': '视频',
+    #     'icon': '🎬',
+    #     'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'video'),
+    #     'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'video'),
+    # },
 }
 
 for cfg in MODE_CONFIG.values():
@@ -586,46 +587,8 @@ def create_job():
             'is_starred': False,
             'created_at': datetime.now().isoformat(),
         }
-    elif mode == 'video':
-        theme = (data.get('theme') or '').strip()
-        if not theme:
-            return jsonify({'error': '主题不能为空'}), 400
-        # Video jobs use 'v_' prefix on id to disambiguate from voice jobs.
-        video_id = 'v_' + str(uuid.uuid4())[:8]
-        job = {
-            'id': video_id,
-            'mode': 'video',
-            'theme': theme,
-            'status': 'pending',   # pending → ready_script → rendered → final
-            'script': None,
-            'script_meta': None,
-            'render': {
-                'width': 1920,
-                'height': 1080,
-                'fps': 30,
-                'duration_sec': 90,
-            },
-            'audio': {
-                'voice': 'Chinese (Mandarin)_Radio_Host',
-                'voice_display_name': '电台男主播',
-                'speed': 1.0,
-                'bgm_volume': 0.06,
-                'bgm_asset': 'bgm_default.mp3',
-            },
-            'final': None,
-            'error': None,
-            'created_at': datetime.now().isoformat(),
-            'logs': [],
-        }
-        save_job(job)
-        # Wake the host-side script daemon. No-op if the systemd path unit is not yet installed.
-        try:
-            (SKILL_DIR / '.video-script-trigger').write_text(str(time.time()), encoding='utf-8')
-        except OSError as e:
-            print(f'[video] failed to touch script trigger: {e}', file=sys.stderr)
-        return jsonify({'job_id': video_id, 'job': job_response(job)})
     else:
-        return jsonify({'error': 'mode 必须是 theme、script、music、music_cover 或 video'}), 400
+        return jsonify({'error': 'mode 必须是 theme、script 或 music'}), 400
 
     save_job(job)
     if mode == 'theme':
@@ -720,73 +683,6 @@ def archive_job_api(job_id):
         return jsonify({'error': '任务不存在'}), 404
     archive_job(job)
     return jsonify({'ok': True})
-
-# ── Video Endpoints ───────────────────────────────────────
-# video mode = auto-pilot: pending → ready_script → rendered → final.
-# These routes let the UI and the daemons cascade through the stages
-# without a human review gate (per 2026-06-11 spec).
-
-VIDEO_TRIGGER_MAP = {
-    'script': '.video-script-trigger',
-    'render': '.video-render-trigger',
-    'narrate': '.video-narrate-trigger',
-}
-
-
-def _touch_video_trigger(stage: str) -> bool:
-    path = SKILL_DIR / VIDEO_TRIGGER_MAP[stage]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(str(time.time()), encoding='utf-8')
-    return True
-
-
-@app.route('/api/jobs/<job_id>/render', methods=['POST'])
-def trigger_video_render(job_id):
-    """Reset a video job to ready_script and wake the render daemon.
-
-    Allows re-running the render stage from rendered / final / error.
-    """
-    job = load_job(job_id)
-    if not job or job.get('mode') != 'video':
-        return jsonify({'error': 'video job not found'}), 404
-    job['status'] = 'ready_script'
-    job['error'] = None
-    job.setdefault('logs', []).append(f"{datetime.now().isoformat()} render re-triggered by user")
-    save_job(job)
-    _touch_video_trigger('render')
-    return jsonify({'ok': True, 'job': job_response(job)})
-
-
-@app.route('/api/jobs/<job_id>/narrate', methods=['POST'])
-def trigger_video_narrate(job_id):
-    """Reset a video job to rendered and wake the narrate daemon.
-
-    Allows re-running the narrate stage from final / error.
-    """
-    job = load_job(job_id)
-    if not job or job.get('mode') != 'video':
-        return jsonify({'error': 'video job not found'}), 404
-    job['status'] = 'rendered'
-    job['error'] = None
-    job.setdefault('logs', []).append(f"{datetime.now().isoformat()} narrate re-triggered by user")
-    save_job(job)
-    _touch_video_trigger('narrate')
-    return jsonify({'ok': True, 'job': job_response(job)})
-
-
-@app.route('/__internal/touch-trigger', methods=['POST'])
-def internal_touch_trigger():
-    """Wake a video stage's systemd path unit by name.
-
-    Body: {"trigger": "script"|"render"|"narrate"}
-    Used by the Web UI's "rerun" buttons and create flow.
-    """
-    data = request.get_json(force=True, silent=True) or {}
-    trigger = data.get('trigger')
-    if trigger not in VIDEO_TRIGGER_MAP:
-        return jsonify({'error': f'unknown trigger {trigger!r}'}), 400
-    _touch_video_trigger(trigger)
-    return jsonify({'ok': True, 'trigger': trigger})
 
 # ── Music Endpoints ───────────────────────────────────────
 

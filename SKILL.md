@@ -34,49 +34,6 @@ The Web app (`app.py`) creates `mode="theme"` jobs with `status="pending"` and t
 
 This skill no longer defaults to parsing other videos. Only download/transcribe video links if the user explicitly asks: `解析这个视频` / `提取视频文案` / `按这个视频改`.
 
-## Video mode (mode='video') (2026-06-11 新增)
-
-4th tab in the Web UI (`🎬 视频`). User inputs a topic; pipeline auto-produces a 60–90s 1080×1920 short video with TTS voiceover and BGM, no human review gates.
-
-### State machine
-
-`pending → ready_script → rendered → final` (auto-cascading)
-
-### Daemons (3 host-side systemd path/service pairs)
-
-| Trigger | Service | Job dir | What it does |
-|---|---|---|---|
-| `.video-script-trigger` | `voice-studio-video-script-watcher.service` | `jobs/video/` | LLM writes 60–90s narration script via `openclaw agent` (sees `skills/video-studio/reference-style-video.md`) |
-| `.video-render-trigger` | `voice-studio-video-render-watcher.service` | (same) | hyperframes HTML → mp4 (30fps, 1080×1920), uploads to R2 |
-| `.video-narrate-trigger` | `voice-studio-video-narrate-watcher.service` | (same) | MiniMax TTS + BGM loop + ffmpeg merge, uploads final mp4 to R2 |
-
-### Voice registry (shared by voice + video)
-
-`scripts/voice_registry.json` is the single source of truth for voice configs. Each entry has:
-- `display_name` — human name (e.g., "电台男主播")
-- `default_speed` — used when --speed not provided
-- `description` — when to use
-- `enabled` — whether voice is selectable
-- `primary_use` — `voice` (sleep audio) or `video` (shorts)
-
-Video default: `Chinese (Mandarin)_Radio_Host` (display: 电台男主播), speed `1.0`.
-Voice default: `azure_yunze_clone` (display: 云泽克隆), speed `0.9`.
-
-`minimax_tts.py` reads the registry when --voice is a known key; logs the display name; uses default_speed when --speed is omitted.
-
-### R2 / OSS naming
-
-Final mp4 path: `{YYYY-MM-DD}/voice-studio/video-studio/video-{slug}-{shortid}-final.mp4` (7-day pre-signed URL).
-Rendered-only mp4: same prefix with `-rendered` suffix.
-
-### Render performance
-
-30s @ 30fps = 900 frames renders in ~5 min on this VM (~130ms/frame via puppeteer+chrome headless). 60s+ videos need 10min timeout in `process_video_render_jobs.py` (already set).
-
-### Related files (not in this repo)
-
-- `skills/video-studio/` (sibling skill folder) — holds `reference-style-video.md`, `reference-scripts/`, and `runs/{job_id}/` artifact dirs
-
 ## TTS Provider: Azure Speech (primary) + MiniMax (fallback) (as of 2026-05-21)
 
 ### Primary: Azure Speech REST TTS

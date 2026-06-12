@@ -1,39 +1,48 @@
 [
   {
-    "title": "你以为 UAE 那片沙漠，地下曾经是海？",
-    "category": "地球",
-    "angle": "从 UAE 一处山丘的化石，讲到撒哈拉也曾是鱼群游过的海",
-    "source": "NASA Earth Observatory 2026-06-09",
-    "source_url": "https://science.nasa.gov/earth/earth-observatory/digging-back-in-time-in-the-uae/",
-    "evergreen": false,
-    "updated_at": "2026-06-09"
-  },
-  {
-    "title": "Webb 拍到的小红点，到底是黑洞还是恒星？",
-    "category": "黑洞",
-    "angle": "从 JWST 在宇宙黎明看到的神秘红斑，讲到一顿一顿吸气的黑洞",
-    "source": "Phys.org 2026-06-09",
-    "source_url": "https://phys.org/news/2026-06-black-hole-jwst-red-dots.html",
-    "evergreen": false,
-    "updated_at": "2026-06-09"
-  },
-  {
-    "title": "宇宙最古老的一次闪烁，被我们看见了",
+    "title": "你在天上看 X 光，每 93 分钟就天黑一次",
     "category": "观测",
-    "angle": "从远古类星体的忽明忽暗，讲到人类怎么用一台望远镜抓住 13 亿年前的眨眼",
-    "source": "Phys.org 2026-06-09",
-    "source_url": "https://phys.org/news/2026-06-astronomers-earliest-flickering-quasar.html",
+    "angle": "从国际空间站 NICER 在 93 分钟一圈里反复穿过白天和黑夜，讲到 X 射线望远镜怎么在地平线下继续看宇宙",
+    "source": "NASA APOD 2026-06-10",
+    "source_url": "https://apod.nasa.gov/apod/image/1906/NICERNightMovesnolabels1200.jpg",
     "evergreen": false,
-    "updated_at": "2026-06-09"
+    "updated_at": "2026-06-10"
   },
   {
-    "title": "记忆能不能像糖一样被吃掉？",
-    "category": "生命",
-    "angle": "从 60 年代把训练过的虫子磨成糊喂给别的虫子的疯狂实验，讲到记忆可不可以移植",
-    "source": "Quanta Magazine 2026-06-09",
-    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "title": "飞机尾迹，可能正在悄悄改写地球的气候",
+    "category": "地球",
+    "angle": "从一张拍自佐治亚上空的卫星图里那些像铅笔线的凝结尾迹，讲到人类在平流层里织出的一张巨网",
+    "source": "NASA APOD 2026-06-10",
+    "source_url": "https://apod.nasa.gov/apod/image/0410/contrails_nasa_big.jpg",
     "evergreen": false,
-    "updated_at": "2026-06-09"
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "日落时月亮被一口一口吃掉，月亮是怎么熬过这一夜的",
+    "category": "太阳系",
+    "angle": "从重庆日落时血红色月升起的长时间曝光，讲到月全食的地球影子、地球大气里的瑞利散射",
+    "source": "NASA APOD 2026-06-10",
+    "source_url": "https://apod.nasa.gov/apod/image/1410/20141008tleZhouyannan1024.jpg",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "韦伯刚闻到一个来自太阳系外的彗星，3I/ATLAS 飘了什么",
+    "category": "太阳系",
+    "angle": "从韦伯望远镜在不同波段拍下的 3I/ATLAS 彗星，讲到星际访客身上的甲烷签名和它飘过的几万年长夜",
+    "source": "ESA Space Sci. 2026-06-10",
+    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_sniffs_methane_from_interstellar_Comet_3I_ATLAS",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "你以为暗能量只是把宇宙撑大，其实它在被一张新镜头悄悄数清",
+    "category": "暗物质",
+    "angle": "从 Vera Rubin 望远镜开始正式巡天讲起，把暗能量从玄学名词还原成 10 年里被数清楚的几亿个星系的微小形变",
+    "source": "arXiv astro-ph 2026-06-10",
+    "source_url": "https://arxiv.org/abs/2606.09938",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
   },
   {
     "title": "中子星有多重？",
@@ -153,6 +162,87 @@
     "evergreen": true
   },
   {
+    "title": "你以为暗物质看不见——其实它一直在弯光",
+    "category": "暗物质",
+    "angle": "从一张被拉长的星系照片，讲到看不见的海洋如何让整片星空变形",
+    "source": "老波选题 2026-06-10",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "冰川碎成一座湖，地球的伤口在慢慢变蓝",
+    "category": "地球",
+    "angle": "从巴塔哥尼亚冰川崩塌的航拍画面，讲到冰川湖如何记录地球变暖的呼吸",
+    "source": "NASA Earth Observatory 2026-06-10",
+    "source_url": "https://science.nasa.gov/earth/earth-observatory/tyndalls-trail-of-bergs/",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "外星来的彗星，闻起来像一颗流浪的地球",
+    "category": "生命",
+    "angle": "从 Webb 拍到的 3I/ATLAS 甲烷光谱，讲到星际访客身上为什么带着熟悉的味道",
+    "source": "ESA Space Sci. 2026-06-10",
+    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_sniffs_methane_from_interstellar_Comet_3I_ATLAS",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "如果把整座天文台对准宇宙最深处的皱纹",
+    "category": "观测",
+    "angle": "从 Vera C. Rubin 望远镜的调试画面，讲到弱引力透镜如何拍下暗能量的影子",
+    "source": "arXiv astro-ph 2026-06-10",
+    "source_url": "https://arxiv.org/abs/2606.09938",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "宇宙里最长寿的灯，正在中年发福",
+    "category": "恒星",
+    "angle": "从脉冲星风云的回声阶段，讲到一颗中子星如何把高能宇宙照亮几万年再慢慢熄灭",
+    "source": "arXiv astro-ph 2026-06-10",
+    "source_url": "https://arxiv.org/abs/2606.09914",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "Webb 拍到的小红点，到底是黑洞还是恒星？",
+    "category": "黑洞",
+    "angle": "从 JWST 在宇宙黎明看到的神秘红斑，讲到一顿一顿吸气的黑洞",
+    "source": "Phys.org 2026-06-09",
+    "source_url": "https://phys.org/news/2026-06-black-hole-jwst-red-dots.html",
+    "evergreen": false,
+    "updated_at": "2026-06-09"
+  },
+  {
+    "title": "你以为 UAE 那片沙漠，地下曾经是海？",
+    "category": "地球",
+    "angle": "从 UAE 一处山丘的化石，讲到撒哈拉也曾是鱼群游过的海",
+    "source": "NASA Earth Observatory 2026-06-09",
+    "source_url": "https://science.nasa.gov/earth/earth-observatory/digging-back-in-time-in-the-uae/",
+    "evergreen": false,
+    "updated_at": "2026-06-09"
+  },
+  {
+    "title": "宇宙最古老的一次闪烁，被我们看见了",
+    "category": "观测",
+    "angle": "从远古类星体的忽明忽暗，讲到人类怎么用一台望远镜抓住 13 亿年前的眨眼",
+    "source": "Phys.org 2026-06-09",
+    "source_url": "https://phys.org/news/2026-06-astronomers-earliest-flickering-quasar.html",
+    "evergreen": false,
+    "updated_at": "2026-06-09"
+  },
+  {
+    "title": "记忆能不能像糖一样被吃掉？",
+    "category": "生命",
+    "angle": "从 60 年代把训练过的虫子磨成糊喂给别的虫子的疯狂实验，讲到记忆可不可以移植",
+    "source": "Quanta Magazine 2026-06-09",
+    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
+    "evergreen": false,
+    "updated_at": "2026-06-09"
+  },
+  {
     "title": "JWST 拍到的小红点，到底是黑洞还是恒星？",
     "category": "宇宙",
     "angle": "从早期宇宙里神秘的小红点，讲到一种怪物——一颗星星里藏着一颗黑洞",
@@ -176,96 +266,6 @@
     "angle": "从重复撕裂恒星事件的“消失耀斑”讲到潮汐力把星慢慢啃掉的安静恐怖",
     "source": "arXiv astro-ph 2026-06-08",
     "source_url": "https://arxiv.org/abs/2606.06578",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "一颗星星死后，为什么可能变成钻石一样的尸体？",
-    "category": "恒星",
-    "angle": "从白矮星和碳结晶讲到恒星死亡后的冷光。",
-    "source": "NASA stars",
-    "source_url": "https://science.nasa.gov/universe/stars/",
-    "updated_at": "2026-06-08",
-    "evergreen": false
-  },
-  {
-    "title": "一颗粒子能同时穿过两条缝——你怎么知道自己不在现场？",
-    "category": "量子",
-    "angle": "用观察者的眼睛作为画面，讲双缝实验里“看一眼就变了”的那根刺",
-    "source": "老波选题 2026-06-08",
-    "source_url": "https://science.nasa.gov/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "一颗被吃了又吐的恒星，每隔几年就亮一次",
-    "category": "黑洞",
-    "angle": "从被撕碎又复发的潮汐瓦解事件讲到恒星与黑洞的\"慢性\"共舞",
-    "source": "arXiv astro-ph 2026-06-08",
-    "source_url": "https://arxiv.org/abs/2606.06578",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "为什么太阳一打喷嚏，地球上所有指南针都会一起发疯",
-    "category": "恒星",
-    "angle": "从太阳耀斑的磁场重联画面，讲到带电粒子雨落进地球磁层的连锁反应",
-    "source": "arXiv astro-ph 2026-06-08",
-    "source_url": "https://arxiv.org/abs/2606.06577",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "为什么我们看见的星光，很多其实来自过去？",
-    "category": "时间",
-    "angle": "从光速有限讲到夜空像一座正在同时播放不同年代的博物馆。",
-    "source": "NASA light travel time explainers",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-06-08",
-    "evergreen": false
-  },
-  {
-    "title": "为什么月亮一直用同一面对着我们？",
-    "category": "太阳系",
-    "angle": "从潮汐锁定讲到月球像被地球轻轻拴住的一只旧钟。",
-    "source": "NASA Moon",
-    "source_url": "https://science.nasa.gov/moon/",
-    "updated_at": "2026-06-08",
-    "evergreen": false
-  },
-  {
-    "title": "为什么月球总是同一面对着地球？",
-    "category": "太阳系",
-    "angle": "从潮汐锁定讲到月球自转和公转的完美同步。",
-    "source": "NASA Moon",
-    "source_url": "https://science.nasa.gov/moon/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "以为超音速一定吵闹？这架飞机正在撕裂音障却保持安静",
-    "category": "地球",
-    "angle": "从 X-59 首次突破音障的画面切入，讲它如何把震耳欲聋的音爆变成一声轻叹",
-    "source": "NASA news 2026-06-08",
-    "source_url": "https://www.nasa.gov/aeronautics/x-59-first-supersonic-flight/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "你以为你记得昨天——其实那是脑补出来的电影",
-    "category": "量子",
-    "angle": "从记忆被转录、被\"吃\"的怪实验讲到大脑每天都在重写你自己的过去",
-    "source": "Quanta Magazine 2026-06-08",
-    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "你以为太阳在\"燃烧\"——其实它在把自己一节一节拆掉",
-    "category": "恒星",
-    "angle": "从太阳核心的核聚变讲到它其实不是在烧，而是在把氢一点一点变成氦、慢慢失去质量",
-    "source": "arXiv astro-ph 2026-06-08",
-    "source_url": "https://arxiv.org/abs/2606.06577",
     "evergreen": false,
     "updated_at": "2026-06-08"
   }

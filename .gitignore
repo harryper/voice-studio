@@ -18,4 +18,6 @@ tmp/
 .writer.lock
 .writer.lastrun
 .video-*-trigger
+.video-*-writer.lock
+.video-*-writer.lastrun
 backups/

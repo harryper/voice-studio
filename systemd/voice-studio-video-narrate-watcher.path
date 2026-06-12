@@ -1,9 +1,0 @@
-[Unit]
-Description=Watch video-narrate trigger and run host-side narrate writer
-
-[Path]
-PathModified=/root/.openclaw/workspace/skills/voice-studio/.video-narrate-trigger
-Unit=voice-studio-video-narrate-watcher.service
-
-[Install]
-WantedBy=multi-user.target
