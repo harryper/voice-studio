@@ -4,7 +4,7 @@
 
 **核心流程：** 主题 → AI 写稿（NVIDIA qwen3.5-397b）→ 人工审核 → Web UI 一键生成音频 + 混入 BGM → 发布公网链接。
 
-**视频模式（4th tab 🎬 视频）：** 输入主题 → 自动写稿 → 渲染 (hyperframes 1080×1920) → 配音 (MiniMax 电台男主播) → 混入 BGM → 上传公网链接。约 5–10 分钟产出一部 30–60s 短视频。状态机：`pending → ready_script → rendered → final` (auto-pilot, 0 次人工介入)。
+> 视频模式已独立到 [harryper/video-studio](https://github.com/harryper/video-studio) 仓库，voice-studio 不再提供视频 tab。
 
 ---
 
@@ -134,7 +134,7 @@ voice-studio/
 |------|-------------|
 | **服务商** | Azure TTS（主用）/ MiniMax TTS（备用） |
 | **Azure 音色** | 云泽 / 云希 / 云健 / 云扬 / 云枫 / 晓晓 / 晓依 / 晓辰 |
-| **MiniMax 音色** | Deep Voice（低沉男声）/ 温婉柔和 |
+| **MiniMax 音色** | 云泽克隆版 / 电台男主播 / Deep Voice（低沉男声）/ 温婉柔和 |
 | **语速** | 0.75x / 0.80x / 0.85x / **0.90x（默认）** / 1.00x |
 | **混音音量** | 滑块 0~20%，默认 6% |
 
@@ -153,7 +153,7 @@ voice-studio/
 | 参数 | 值 |
 |------|---|
 | Model | `speech-2.8-hd` |
-| 可用音色 | Deep Voice / 温婉柔和（Gentleman 已下线）|
+| 可用音色 | 云泽克隆版 / 电台男主播 / Deep Voice / 温婉柔和（Gentleman 已下线）|
 | Speed | `0.9` (页面与 CLI 默认) |
 | 每日额度 | 11000 字 |
 

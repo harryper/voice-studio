@@ -97,13 +97,6 @@ MODE_CONFIG = {
         'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'cover'),
         'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'cover'),
     },
-    # 未来添加 video：
-    # 'video': {
-    #     'name': '视频',
-    #     'icon': '🎬',
-    #     'job_dir': os.path.join(os.path.dirname(__file__), 'jobs', 'video'),
-    #     'archive_dir': os.path.join(os.path.dirname(__file__), 'archive', 'video'),
-    # },
 }
 
 for cfg in MODE_CONFIG.values():
@@ -1401,7 +1394,7 @@ def star_job_api(job_id):
 
 @app.route('/api/jobs', methods=['GET'])
 def list_jobs():
-    """列出当前活跃任务（不包括已归档）。?mode=voice|music|video"""
+    """列出当前活跃任务（不包括已归档）。?mode=voice|music|cover"""
     mode_filter = request.args.get('mode')
     jobs = []
     modes_to_scan = [mode_filter] if mode_filter in MODE_CONFIG else list(MODE_CONFIG.keys())
