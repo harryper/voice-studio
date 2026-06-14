@@ -2566,6 +2566,7 @@
     let coverTab = 'works';
     let musicCount = 1;
     let voiceJobPage = 0;
+    let voiceJobTotal = 0;
     const VOICE_JOBS_PAGE_SIZE = 10;
     let topicCategory = localStorage.getItem('voiceStudio.topicCategory') || '全部';
     let topicOffset = Number(localStorage.getItem('voiceStudio.topicOffset') || 0);
@@ -3494,35 +3495,55 @@
       return null;
     }
 
-    function renderVoiceJobList() {
+    async function renderVoiceJobList() {
       const voiceList = $('voiceJobList');
       if (!voiceList) return;
 
-      const voiceJobs = lastJobs.filter(j => j.mode === 'theme' || j.mode === 'script');
-      const totalPages = Math.ceil(voiceJobs.length / VOICE_JOBS_PAGE_SIZE);
-      voiceJobPage = Math.min(voiceJobPage, Math.max(totalPages - 1, 0));
-      const pageJobs = voiceJobs.slice(
-        voiceJobPage * VOICE_JOBS_PAGE_SIZE,
-        (voiceJobPage + 1) * VOICE_JOBS_PAGE_SIZE,
-      );
+      const offset = voiceJobPage * VOICE_JOBS_PAGE_SIZE;
+      let data;
+      try {
+        data = await api(`/api/jobs/voice?limit=${VOICE_JOBS_PAGE_SIZE}&offset=${offset}`);
+      } catch (e) {
+        showActionFeedback('任务列表加载失败：' + e.message, 'error');
+        return;
+      }
+      voiceJobTotal = data.total;
+
+      // Total may have shrunk (job deleted) while user was on a high page;
+      // clamp voiceJobPage and refetch.
+      const totalPages = data.total === 0 ? 0 : Math.ceil(data.total / VOICE_JOBS_PAGE_SIZE);
+      if (voiceJobPage >= totalPages) {
+        voiceJobPage = Math.max(totalPages - 1, 0);
+        if (voiceJobPage !== offset / VOICE_JOBS_PAGE_SIZE) {
+          return renderVoiceJobList();
+        }
+      }
 
       voiceList.innerHTML = '';
-      $('voiceJobCount').textContent = voiceJobs.length;
-      pageJobs.forEach(job => {
-        const btn = document.createElement('button');
-        btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
-        btn.dataset.jobId = job.id;
-        const jobLabel = job.theme || '直接文稿';
-        let badge = '';
-        const vStatus = job.status || 'pending';
-        if (vStatus === 'done') badge = '<span class="badge done">已完成</span>';
-        else if (vStatus === 'error') badge = '<span class="badge error">出错</span>';
-        else if (['pending', 'writing', 'tts', 'mixing'].includes(vStatus)) badge = '<span class="badge working">生成中</span>';
-        else if (vStatus === 'ready') badge = '<span class="badge">待确认</span>';
-        btn.innerHTML = `<strong>${escapeHtml(jobLabel)}</strong><br><span class="job-meta">${escapeHtml(job.id)}</span> ${badge}`;
-        btn.onclick = () => loadJob(job.id);
-        voiceList.appendChild(btn);
-      });
+      $('voiceJobCount').textContent = data.total;
+
+      if (data.total === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'voice-jobs-empty';
+        empty.textContent = '还没有声音任务';
+        voiceList.appendChild(empty);
+      } else {
+        data.jobs.forEach(job => {
+          const btn = document.createElement('button');
+          btn.className = 'job' + (job.id === activeJobId ? ' active' : '');
+          btn.dataset.jobId = job.id;
+          const jobLabel = job.theme || '直接文稿';
+          let badge = '';
+          const vStatus = job.status || 'pending';
+          if (vStatus === 'done') badge = '<span class="badge done">已完成</span>';
+          else if (vStatus === 'error') badge = '<span class="badge error">出错</span>';
+          else if (['pending', 'writing', 'tts', 'mixing'].includes(vStatus)) badge = '<span class="badge working">生成中</span>';
+          else if (vStatus === 'ready') badge = '<span class="badge">待确认</span>';
+          btn.innerHTML = `<strong>${escapeHtml(jobLabel)}</strong><br><span class="job-meta">${escapeHtml(job.id)}</span> ${badge}`;
+          btn.onclick = () => loadJob(job.id);
+          voiceList.appendChild(btn);
+        });
+      }
 
       const pagination = $('voiceJobPagination');
       pagination.classList.toggle('hidden', totalPages <= 1);
@@ -3759,9 +3780,8 @@
       renderVoiceJobList();
     };
     $('voiceJobNextBtn').onclick = () => {
-      const voiceJobCount = lastJobs.filter(j => j.mode === 'theme' || j.mode === 'script').length;
-      const totalPages = Math.ceil(voiceJobCount / VOICE_JOBS_PAGE_SIZE);
-      if (voiceJobPage >= totalPages - 1) return;
+      // Allow the click; if total shrank past our new page, renderVoiceJobList
+      // will clamp voiceJobPage back to the last valid page.
       voiceJobPage += 1;
       renderVoiceJobList();
     };

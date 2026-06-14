@@ -1413,15 +1413,37 @@ def list_jobs():
 
 @app.route('/api/jobs/voice', methods=['GET'])
 def list_voice_jobs():
-    return list_jobs_by_mode('voice')
+    limit, offset = _parse_pagination()
+    if limit is None:
+        return list_jobs_by_mode('voice')
+    return list_jobs_by_mode('voice', limit=limit, offset=offset)
 
 
 @app.route('/api/jobs/music', methods=['GET'])
 def list_music_jobs():
-    return list_jobs_by_mode('music')
+    limit, offset = _parse_pagination()
+    if limit is None:
+        return list_jobs_by_mode('music')
+    return list_jobs_by_mode('music', limit=limit, offset=offset)
 
 
-def list_jobs_by_mode(mode):
+def _parse_pagination():
+    """Read ?limit=&offset= from request args.
+
+    Returns (limit, offset). limit is None when ?limit= is absent
+    (caller decides whether to fall back to "return everything" or
+    apply a default). Negative values are clamped to safe defaults.
+    """
+    limit = request.args.get('limit', type=int)
+    offset = request.args.get('offset', default=0, type=int)
+    if limit is not None and limit < 0:
+        limit = None
+    if offset < 0:
+        offset = 0
+    return limit, offset
+
+
+def list_jobs_by_mode(mode, limit=None, offset=0):
     jobs = []
     d = job_dir(mode)
     for fname in os.listdir(d):
@@ -1432,7 +1454,18 @@ def list_jobs_by_mode(mode):
             except json.JSONDecodeError:
                 continue
     jobs.sort(key=lambda x: x['created_at'], reverse=True)
-    return jsonify([job_response(job) for job in jobs])
+
+    if limit is None:
+        return jsonify([job_response(job) for job in jobs])
+
+    total = len(jobs)
+    page = jobs[offset:offset + limit]
+    return jsonify({
+        'jobs': [job_response(job) for job in page],
+        'total': total,
+        'limit': limit,
+        'offset': offset,
+    })
 
 @app.route('/api/topic-recommendations', methods=['GET'])
 def topic_recommendations():
