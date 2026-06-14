@@ -66,6 +66,7 @@ This skill no longer defaults to parsing other videos. Only download/transcribe 
 **Default Voice (2026-06-01 启用):** `azure_yunze_clone` — 由 Microsoft Azure `zh-CN-YunzeNeural` 4 分钟合成样本调 `/v1/voice_clone` 克隆得到。复用云泽音色，但走 MiniMax 路径，省下 Azure 额度。
 
 **Other voices (可选):**
+- `Chinese (Mandarin)_Radio_Host` — 电台男主播（短视频/科普/叙事）
 - `Chinese_deep_voiced_male_vv1` — Deep Voice（低沉男声，原默认）
 - `Chinese (Mandarin)_Gentle_Senior` — 温婉柔和
 

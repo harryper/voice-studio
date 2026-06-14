@@ -2542,16 +2542,16 @@
     ];
     const MINIMAX_VOICES = [
       { value: 'azure_yunze_clone', label: '☁️ 云泽克隆版（Azure 复刻，默认推荐）' },
+      { value: 'Chinese (Mandarin)_Radio_Host', label: '电台男主播' },
       { value: 'Chinese_deep_voiced_male_vv1', label: 'Deep Voice（低沉男声）' },
       { value: 'Chinese (Mandarin)_Gentle_Senior', label: '温婉柔和' },
     ];
 
-    // 可扩展模块配置（新增 video 只需在这里加一条）
+    // 可扩展模块配置（新增 mode 只需在这里加一条，并在 app.py MODE_CONFIG 同步）
     const MODES = {
       voice: { key: 'voice', name: '声音', icon: '🎤' },
       music: { key: 'music', name: '音乐', icon: '🎵' },
       cover: { key: 'cover', name: '翻唱', icon: '🎤' },
-      // video: { key: 'video', name: '视频', icon: '🎬' }
     };
 
     let mode = 'voice';
@@ -3486,11 +3486,12 @@
               ? (j.status === 'lyrics_ready' ? '歌词已重新生成' : '生成完成')
               : ('生成失败：' + (j.error || ''));
             showActionFeedback(msg, ok ? 'ok' : 'error');
-            return;
+            return j;
           }
         } catch (e) { /* keep polling */ }
       }
       showActionFeedback('生成超时未完成，请检查列表', 'error');
+      return null;
     }
 
     function renderVoiceJobList() {
@@ -4091,13 +4092,29 @@
         try {
           const job = await api('/api/jobs/' + resp.job_id + '/generate-lyrics', { method: 'POST' });
           renderJob(job);
+          const lyricsJob = await pollJobUntilDone(
+            resp.job_id,
+            ['pending', 'generating_lyrics'],
+            ['lyrics_ready', 'error'],
+            200000,
+          );
+          if (!lyricsJob || lyricsJob.status !== 'lyrics_ready') return;
+
           showActionFeedback('歌词就绪，开始生成歌曲…', 'ok');
           // Auto-chain to generate music
           try {
             const final = await api('/api/jobs/' + resp.job_id + '/generate-music', { method: 'POST' });
             renderJob(final);
             renderMusicJobList();
-            showActionFeedback('歌曲已生成，右侧可播放', 'ok');
+            const musicJob = await pollJobUntilDone(
+              resp.job_id,
+              ['generating'],
+              ['done', 'error'],
+              600000,
+            );
+            if (musicJob && musicJob.status === 'done') {
+              showActionFeedback('歌曲已生成，右侧可播放', 'ok');
+            }
           } catch (err) {
             showActionFeedback('歌曲生成失败：' + err.message, 'error');
           }
