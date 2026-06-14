@@ -2,9 +2,9 @@
   "Chinese (Mandarin)_Radio_Host": {
     "display_name": "电台男主播",
     "default_speed": 1.0,
-    "description": "video-studio 默认 (60-90s 视频/科普/叙事)",
+    "description": "voice-studio 科普/叙事 (与 harryper/video-studio 共享音色)",
     "enabled": true,
-    "primary_use": "video"
+    "primary_use": "voice"
   },
   "azure_yunze_clone": {
     "display_name": "云泽克隆",
