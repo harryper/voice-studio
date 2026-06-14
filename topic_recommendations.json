@@ -1,48 +1,48 @@
 [
   {
-    "title": "你在天上看 X 光，每 93 分钟就天黑一次",
+    "title": "你以为黑洞像个洞，其实它更像一面镜子",
+    "category": "黑洞",
+    "angle": "从事件视界讲到黑洞会把你吐出去——霍金辐射和时间之外的那一点点光",
+    "source": "老波选题 2026-06-14",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-14"
+  },
+  {
+    "title": "你眼睛里的那颗细胞，是十亿年前一颗死星给的",
+    "category": "生命",
+    "angle": "从化石里的微量元素讲到，我们身体里几乎每一种重元素，都是恒星尸骨拼出来的",
+    "source": "Quanta Magazine 2026-06-14",
+    "source_url": "https://www.quantamagazine.org/where-did-earth-get-its-oceans-maybe-it-made-them-itself-20260612/",
+    "evergreen": false,
+    "updated_at": "2026-06-14"
+  },
+  {
+    "title": "如果两颗粒子分开放在宇宙两端，剪一个，另一个会知道？",
+    "category": "量子",
+    "angle": "用第一人称讲量子纠缠——你不碰它，它也没动，可它们像共用一个影子",
+    "source": "老波选题 2026-06-14",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-14"
+  },
+  {
+    "title": "为什么我们能看见一百亿光年外的灯，却看不见身边 95% 的世界？",
     "category": "观测",
-    "angle": "从国际空间站 NICER 在 93 分钟一圈里反复穿过白天和黑夜，讲到 X 射线望远镜怎么在地平线下继续看宇宙",
-    "source": "NASA APOD 2026-06-10",
-    "source_url": "https://apod.nasa.gov/apod/image/1906/NICERNightMovesnolabels1200.jpg",
+    "angle": "从哈勃看星系团讲到——我们看到的宇宙，其实只是真实宇宙的零头",
+    "source": "NASA news 2026-06-14",
+    "source_url": "https://science.nasa.gov/missions/hubble/hubble-sees-swarm-of-galaxies/",
     "evergreen": false,
-    "updated_at": "2026-06-10"
+    "updated_at": "2026-06-14"
   },
   {
-    "title": "飞机尾迹，可能正在悄悄改写地球的气候",
-    "category": "地球",
-    "angle": "从一张拍自佐治亚上空的卫星图里那些像铅笔线的凝结尾迹，讲到人类在平流层里织出的一张巨网",
-    "source": "NASA APOD 2026-06-10",
-    "source_url": "https://apod.nasa.gov/apod/image/0410/contrails_nasa_big.jpg",
+    "title": "宇宙深处有一束激光，是两个星系打架打出来的",
+    "category": "宇宙",
+    "angle": "从巨脉泽讲到——宁静的夜空中，藏着比太阳还亮百万倍的微波",
+    "source": "Phys.org space 2026-06-14",
+    "source_url": "https://phys.org/news/2026-06-south-african-telescope-recordbreaking-early.html",
     "evergreen": false,
-    "updated_at": "2026-06-10"
-  },
-  {
-    "title": "日落时月亮被一口一口吃掉，月亮是怎么熬过这一夜的",
-    "category": "太阳系",
-    "angle": "从重庆日落时血红色月升起的长时间曝光，讲到月全食的地球影子、地球大气里的瑞利散射",
-    "source": "NASA APOD 2026-06-10",
-    "source_url": "https://apod.nasa.gov/apod/image/1410/20141008tleZhouyannan1024.jpg",
-    "evergreen": false,
-    "updated_at": "2026-06-10"
-  },
-  {
-    "title": "韦伯刚闻到一个来自太阳系外的彗星，3I/ATLAS 飘了什么",
-    "category": "太阳系",
-    "angle": "从韦伯望远镜在不同波段拍下的 3I/ATLAS 彗星，讲到星际访客身上的甲烷签名和它飘过的几万年长夜",
-    "source": "ESA Space Sci. 2026-06-10",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_sniffs_methane_from_interstellar_Comet_3I_ATLAS",
-    "evergreen": false,
-    "updated_at": "2026-06-10"
-  },
-  {
-    "title": "你以为暗能量只是把宇宙撑大，其实它在被一张新镜头悄悄数清",
-    "category": "暗物质",
-    "angle": "从 Vera Rubin 望远镜开始正式巡天讲起，把暗能量从玄学名词还原成 10 年里被数清楚的几亿个星系的微小形变",
-    "source": "arXiv astro-ph 2026-06-10",
-    "source_url": "https://arxiv.org/abs/2606.09938",
-    "evergreen": false,
-    "updated_at": "2026-06-10"
+    "updated_at": "2026-06-14"
   },
   {
     "title": "中子星有多重？",
@@ -162,11 +162,74 @@
     "evergreen": true
   },
   {
+    "title": "一颗粒子，怎么会同时穿过两条缝？",
+    "category": "量子",
+    "angle": "从双缝干涉的诡异画面讲到观测本身会改变结果",
+    "source": "老波选题 2026-06-13",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-13"
+  },
+  {
+    "title": "如果地球的水，是地球自己“煮”出来的呢？",
+    "category": "地球",
+    "angle": "从彗星和小行星的旧故事讲到岩浆海洋自己蒸馏出海洋的假说",
+    "source": "Quanta Magazine 2026-06-13",
+    "source_url": "https://www.quantamagazine.org/where-did-earth-get-its-oceans-maybe-it-made-them-itself-20260612/",
+    "evergreen": false,
+    "updated_at": "2026-06-13"
+  },
+  {
+    "title": "宇宙里最安静的一颗恒星，为什么长着一只黑眼睛？",
+    "category": "恒星",
+    "angle": "从 M64 的暗带讲起，原来那是上亿年前吞掉另一颗星系的疤痕",
+    "source": "NASA news 2026-06-13",
+    "source_url": "https://www.nasa.gov/image-article/black-eye-galaxy/",
+    "evergreen": false,
+    "updated_at": "2026-06-13"
+  },
+  {
+    "title": "时间到底有没有方向？为什么你只能记住过去？",
+    "category": "时间",
+    "angle": "从一杯会自己冷掉却不会自己热起来的咖啡，讲到宇宙的熵增箭头",
+    "source": "老波选题 2026-06-13",
+    "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-13"
+  },
+  {
+    "title": "银河系可能不是一次撞出来的，而是被反复“打”大的？",
+    "category": "宇宙",
+    "angle": "从 Gaia-Sausage 讲起，原来银河系小时候可能吞过不止一颗邻居",
+    "source": "Phys.org space 2026-06-13",
+    "source_url": "https://phys.org/news/2026-06-cornerstone-milky-history-rewriting-evidence.html",
+    "evergreen": false,
+    "updated_at": "2026-06-13"
+  },
+  {
     "title": "你以为暗物质看不见——其实它一直在弯光",
     "category": "暗物质",
     "angle": "从一张被拉长的星系照片，讲到看不见的海洋如何让整片星空变形",
     "source": "老波选题 2026-06-10",
     "source_url": "https://science.nasa.gov/",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "你以为暗能量只是把宇宙撑大，其实它在被一张新镜头悄悄数清",
+    "category": "暗物质",
+    "angle": "从 Vera Rubin 望远镜开始正式巡天讲起，把暗能量从玄学名词还原成 10 年里被数清楚的几亿个星系的微小形变",
+    "source": "arXiv astro-ph 2026-06-10",
+    "source_url": "https://arxiv.org/abs/2606.09938",
+    "evergreen": false,
+    "updated_at": "2026-06-10"
+  },
+  {
+    "title": "你在天上看 X 光，每 93 分钟就天黑一次",
+    "category": "观测",
+    "angle": "从国际空间站 NICER 在 93 分钟一圈里反复穿过白天和黑夜，讲到 X 射线望远镜怎么在地平线下继续看宇宙",
+    "source": "NASA APOD 2026-06-10",
+    "source_url": "https://apod.nasa.gov/apod/image/1906/NICERNightMovesnolabels1200.jpg",
     "evergreen": false,
     "updated_at": "2026-06-10"
   },
@@ -205,68 +268,5 @@
     "source_url": "https://arxiv.org/abs/2606.09914",
     "evergreen": false,
     "updated_at": "2026-06-10"
-  },
-  {
-    "title": "Webb 拍到的小红点，到底是黑洞还是恒星？",
-    "category": "黑洞",
-    "angle": "从 JWST 在宇宙黎明看到的神秘红斑，讲到一顿一顿吸气的黑洞",
-    "source": "Phys.org 2026-06-09",
-    "source_url": "https://phys.org/news/2026-06-black-hole-jwst-red-dots.html",
-    "evergreen": false,
-    "updated_at": "2026-06-09"
-  },
-  {
-    "title": "你以为 UAE 那片沙漠，地下曾经是海？",
-    "category": "地球",
-    "angle": "从 UAE 一处山丘的化石，讲到撒哈拉也曾是鱼群游过的海",
-    "source": "NASA Earth Observatory 2026-06-09",
-    "source_url": "https://science.nasa.gov/earth/earth-observatory/digging-back-in-time-in-the-uae/",
-    "evergreen": false,
-    "updated_at": "2026-06-09"
-  },
-  {
-    "title": "宇宙最古老的一次闪烁，被我们看见了",
-    "category": "观测",
-    "angle": "从远古类星体的忽明忽暗，讲到人类怎么用一台望远镜抓住 13 亿年前的眨眼",
-    "source": "Phys.org 2026-06-09",
-    "source_url": "https://phys.org/news/2026-06-astronomers-earliest-flickering-quasar.html",
-    "evergreen": false,
-    "updated_at": "2026-06-09"
-  },
-  {
-    "title": "记忆能不能像糖一样被吃掉？",
-    "category": "生命",
-    "angle": "从 60 年代把训练过的虫子磨成糊喂给别的虫子的疯狂实验，讲到记忆可不可以移植",
-    "source": "Quanta Magazine 2026-06-09",
-    "source_url": "https://www.quantamagazine.org/are-memories-transferable-or-edible-20260605/",
-    "evergreen": false,
-    "updated_at": "2026-06-09"
-  },
-  {
-    "title": "JWST 拍到的小红点，到底是黑洞还是恒星？",
-    "category": "宇宙",
-    "angle": "从早期宇宙里神秘的小红点，讲到一种怪物——一颗星星里藏着一颗黑洞",
-    "source": "arXiv astro-ph 2026-06-08",
-    "source_url": "https://arxiv.org/abs/2606.06575",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "Webb 在一颗“星际旅客”身上，闻到了不属于太阳系的味道",
-    "category": "观测",
-    "angle": "从 Webb 拍到 3I/ATLAS 喷出甲烷讲到它为什么可能是别的恒星孵出来的",
-    "source": "ESA Space Sci. 2026-06-08",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_sniffs_methane_from_interstellar_Comet_3I_ATLAS",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
-  },
-  {
-    "title": "一颗恒星被撕碎，却找不到它的“惨叫”？",
-    "category": "黑洞",
-    "angle": "从重复撕裂恒星事件的“消失耀斑”讲到潮汐力把星慢慢啃掉的安静恐怖",
-    "source": "arXiv astro-ph 2026-06-08",
-    "source_url": "https://arxiv.org/abs/2606.06578",
-    "evergreen": false,
-    "updated_at": "2026-06-08"
   }
 ]
