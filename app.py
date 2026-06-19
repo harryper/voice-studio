@@ -1405,9 +1405,9 @@ def list_jobs():
                 try:
                     with open(os.path.join(d, fname), encoding='utf-8') as f:
                         jobs.append(json.load(f))
-                except json.JSONDecodeError:
+                except (OSError, json.JSONDecodeError, ValueError):
                     continue
-    jobs.sort(key=lambda x: x['created_at'], reverse=True)
+    jobs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     return jsonify([job_response(job) for job in jobs])
 
 
@@ -1451,9 +1451,9 @@ def list_jobs_by_mode(mode, limit=None, offset=0):
             try:
                 with open(os.path.join(d, fname), encoding='utf-8') as f:
                     jobs.append(json.load(f))
-            except json.JSONDecodeError:
+            except (OSError, json.JSONDecodeError, ValueError):
                 continue
-    jobs.sort(key=lambda x: x['created_at'], reverse=True)
+    jobs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
 
     if limit is None:
         return jsonify([job_response(job) for job in jobs])

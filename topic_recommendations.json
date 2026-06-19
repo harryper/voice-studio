@@ -1,48 +1,21 @@
 [
   {
-    "title": "你以为黑洞像个洞，其实它更像一面镜子",
-    "category": "黑洞",
-    "angle": "从事件视界讲到黑洞会把你吐出去——霍金辐射和时间之外的那一点点光",
-    "source": "老波选题 2026-06-14",
-    "source_url": "https://science.nasa.gov/",
+    "title": "火星条纹沙丘的呼吸比地球沙丘慢了一整个冬天",
+    "category": "太阳系",
+    "angle": "从干冰升华讲到火星沙丘上的条纹可能是一个漫长冬天的痕迹",
+    "source": "NASA APOD 2026-06-20",
+    "source_url": "https://apod.nasa.gov/apod/image/2101/StripedDunes_HiRISE_1080.jpg",
     "evergreen": false,
-    "updated_at": "2026-06-14"
+    "updated_at": "2026-06-20"
   },
   {
-    "title": "你眼睛里的那颗细胞，是十亿年前一颗死星给的",
-    "category": "生命",
-    "angle": "从化石里的微量元素讲到，我们身体里几乎每一种重元素，都是恒星尸骨拼出来的",
-    "source": "Quanta Magazine 2026-06-14",
-    "source_url": "https://www.quantamagazine.org/where-did-earth-get-its-oceans-maybe-it-made-them-itself-20260612/",
+    "title": "猎户腰带外面那只隐形气泡可能吹了两百万年",
+    "category": "恒星",
+    "angle": "从巴纳德环讲到古人抬头看的猎户座其实正被一颗死去恒星的余波包裹",
+    "source": "NASA APOD 2026-06-20",
+    "source_url": "https://apod.nasa.gov/apod/image/0504/bigorion_wang.jpg",
     "evergreen": false,
-    "updated_at": "2026-06-14"
-  },
-  {
-    "title": "如果两颗粒子分开放在宇宙两端，剪一个，另一个会知道？",
-    "category": "量子",
-    "angle": "用第一人称讲量子纠缠——你不碰它，它也没动，可它们像共用一个影子",
-    "source": "老波选题 2026-06-14",
-    "source_url": "https://science.nasa.gov/",
-    "evergreen": false,
-    "updated_at": "2026-06-14"
-  },
-  {
-    "title": "为什么我们能看见一百亿光年外的灯，却看不见身边 95% 的世界？",
-    "category": "观测",
-    "angle": "从哈勃看星系团讲到——我们看到的宇宙，其实只是真实宇宙的零头",
-    "source": "NASA news 2026-06-14",
-    "source_url": "https://science.nasa.gov/missions/hubble/hubble-sees-swarm-of-galaxies/",
-    "evergreen": false,
-    "updated_at": "2026-06-14"
-  },
-  {
-    "title": "宇宙深处有一束激光，是两个星系打架打出来的",
-    "category": "宇宙",
-    "angle": "从巨脉泽讲到——宁静的夜空中，藏着比太阳还亮百万倍的微波",
-    "source": "Phys.org space 2026-06-14",
-    "source_url": "https://phys.org/news/2026-06-south-african-telescope-recordbreaking-early.html",
-    "evergreen": false,
-    "updated_at": "2026-06-14"
+    "updated_at": "2026-06-20"
   },
   {
     "title": "中子星有多重？",
@@ -51,7 +24,7 @@
     "source": "NASA Neutron Stars",
     "source_url": "https://science.nasa.gov/universe/",
     "evergreen": true,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-19"
   },
   {
     "title": "为什么火星是红色的？",
@@ -60,7 +33,7 @@
     "source": "NASA Mars",
     "source_url": "https://science.nasa.gov/mars/",
     "evergreen": true,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-19"
   },
   {
     "title": "外星人如果存在，为什么宇宙这么安静？",
@@ -68,7 +41,7 @@
     "angle": "从费米悖论讲到沉默宇宙、距离、时间差和文明窗口。",
     "source": "经典问题：Fermi paradox",
     "source_url": "https://science.nasa.gov/exoplanets/",
-    "updated_at": "2026-06-08",
+    "updated_at": "2026-06-19",
     "evergreen": true
   },
   {
@@ -78,7 +51,7 @@
     "source": "NASA Solar System",
     "source_url": "https://science.nasa.gov/solar-system/",
     "evergreen": true,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-19"
   },
   {
     "title": "如果时间倒流，宇宙会发生什么？",
@@ -87,7 +60,7 @@
     "source": "Thermodynamics",
     "source_url": "https://science.nasa.gov/",
     "evergreen": true,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-19"
   },
   {
     "title": "宇宙一直在膨胀，那它到底在往哪里撑？",
@@ -95,7 +68,7 @@
     "angle": "把宇宙膨胀从气球误解，讲成空间本身变大的安静恐怖。",
     "source": "NASA / ESA cosmology explainers",
     "source_url": "https://science.nasa.gov/universe/overview/",
-    "updated_at": "2026-06-08",
+    "updated_at": "2026-06-19",
     "evergreen": true
   },
   {
@@ -104,7 +77,7 @@
     "angle": "从暗物质和暗能量讲到我们只看见宇宙极小的一层皮。",
     "source": "NASA dark matter and dark energy",
     "source_url": "https://science.nasa.gov/universe/dark-matter-dark-energy/",
-    "updated_at": "2026-06-08",
+    "updated_at": "2026-06-19",
     "evergreen": true
   },
   {
@@ -114,7 +87,7 @@
     "source": "NASA Extreme Universe",
     "source_url": "https://science.nasa.gov/universe/",
     "evergreen": true,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-19"
   },
   {
     "title": "宇宙最终会怎么死？",
@@ -122,7 +95,7 @@
     "angle": "从热寂、大撕裂和真空衰变讲到几种安静但彻底的结局。",
     "source": "经典问题：fate of the universe",
     "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-06-08",
+    "updated_at": "2026-06-19",
     "evergreen": true
   },
   {
@@ -132,7 +105,7 @@
     "source": "NASA Universe",
     "source_url": "https://science.nasa.gov/universe/",
     "evergreen": true,
-    "updated_at": "2026-06-08"
+    "updated_at": "2026-06-19"
   },
   {
     "title": "时间为什么只能往前走？",
@@ -140,7 +113,7 @@
     "angle": "从熵增和时间箭头讲到一杯水为什么不会自己回到杯子里。",
     "source": "经典问题：arrow of time",
     "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-06-08",
+    "updated_at": "2026-06-19",
     "evergreen": true
   },
   {
@@ -149,7 +122,7 @@
     "angle": "从量子涨落讲到看似空无的地方其实一直在轻微沸腾。",
     "source": "经典问题：quantum vacuum",
     "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-06-08",
+    "updated_at": "2026-06-19",
     "evergreen": true
   },
   {
@@ -158,115 +131,106 @@
     "angle": "从事件视界、吸积盘和霍金辐射讲到最亮的黑暗。",
     "source": "NASA black hole basics",
     "source_url": "https://science.nasa.gov/universe/black-holes/",
-    "updated_at": "2026-06-08",
+    "updated_at": "2026-06-19",
     "evergreen": true
   },
   {
-    "title": "一颗粒子，怎么会同时穿过两条缝？",
-    "category": "量子",
-    "angle": "从双缝干涉的诡异画面讲到观测本身会改变结果",
-    "source": "老波选题 2026-06-13",
-    "source_url": "https://science.nasa.gov/",
-    "evergreen": false,
-    "updated_at": "2026-06-13"
-  },
-  {
-    "title": "如果地球的水，是地球自己“煮”出来的呢？",
+    "title": "你以为地球磁场挡得住一切——其实太阳风在偷偷撬门",
     "category": "地球",
-    "angle": "从彗星和小行星的旧故事讲到岩浆海洋自己蒸馏出海洋的假说",
-    "source": "Quanta Magazine 2026-06-13",
-    "source_url": "https://www.quantamagazine.org/where-did-earth-get-its-oceans-maybe-it-made-them-itself-20260612/",
+    "angle": "从 NASA 新选的大气空间天气任务，讲到 GPS 失灵前的安静征兆",
+    "source": "NASA news 2026-06-20",
+    "source_url": "https://www.nasa.gov/news-release/nasa-mission-to-study-space-weather-impacts-of-earths-atmosphere/",
     "evergreen": false,
-    "updated_at": "2026-06-13"
+    "updated_at": "2026-06-20"
   },
   {
-    "title": "宇宙里最安静的一颗恒星，为什么长着一只黑眼睛？",
+    "title": "你以为火星很安静？那里一天能刮出几十个尘魔",
+    "category": "太阳系",
+    "angle": "从火星快车拍下的尘暴群，讲到红色平原上同时旋转的迷你龙卷风，一秒把红色火星变成喧闹的厨房",
+    "source": "ESA Space Sci. 2026-06-20",
+    "source_url": "https://www.esa.int/Science_Exploration/Space_Science/Mars_Express/Dozens_of_dust_devils_hidden_in_plain_sight",
+    "evergreen": false,
+    "updated_at": "2026-06-20"
+  },
+  {
+    "title": "你以为脉冲星周围是真空——其实它有行星",
     "category": "恒星",
-    "angle": "从 M64 的暗带讲起，原来那是上亿年前吞掉另一颗星系的疤痕",
-    "source": "NASA news 2026-06-13",
-    "source_url": "https://www.nasa.gov/image-article/black-eye-galaxy/",
+    "angle": "从 FAST 望远镜看到的闪烁，讲到一颗死星旁边的三颗幽灵行星",
+    "source": "arXiv 2026-06-20",
+    "source_url": "https://arxiv.org/abs/2606.19406",
     "evergreen": false,
-    "updated_at": "2026-06-13"
+    "updated_at": "2026-06-20"
   },
   {
-    "title": "时间到底有没有方向？为什么你只能记住过去？",
-    "category": "时间",
-    "angle": "从一杯会自己冷掉却不会自己热起来的咖啡，讲到宇宙的熵增箭头",
-    "source": "老波选题 2026-06-13",
-    "source_url": "https://science.nasa.gov/",
-    "evergreen": false,
-    "updated_at": "2026-06-13"
-  },
-  {
-    "title": "银河系可能不是一次撞出来的，而是被反复“打”大的？",
-    "category": "宇宙",
-    "angle": "从 Gaia-Sausage 讲起，原来银河系小时候可能吞过不止一颗邻居",
-    "source": "Phys.org space 2026-06-13",
-    "source_url": "https://phys.org/news/2026-06-cornerstone-milky-history-rewriting-evidence.html",
-    "evergreen": false,
-    "updated_at": "2026-06-13"
-  },
-  {
-    "title": "你以为暗物质看不见——其实它一直在弯光",
-    "category": "暗物质",
-    "angle": "从一张被拉长的星系照片，讲到看不见的海洋如何让整片星空变形",
-    "source": "老波选题 2026-06-10",
-    "source_url": "https://science.nasa.gov/",
-    "evergreen": false,
-    "updated_at": "2026-06-10"
-  },
-  {
-    "title": "你以为暗能量只是把宇宙撑大，其实它在被一张新镜头悄悄数清",
-    "category": "暗物质",
-    "angle": "从 Vera Rubin 望远镜开始正式巡天讲起，把暗能量从玄学名词还原成 10 年里被数清楚的几亿个星系的微小形变",
-    "source": "arXiv astro-ph 2026-06-10",
-    "source_url": "https://arxiv.org/abs/2606.09938",
-    "evergreen": false,
-    "updated_at": "2026-06-10"
-  },
-  {
-    "title": "你在天上看 X 光，每 93 分钟就天黑一次",
+    "title": "你以为银河是一条带子——其实你每天要穿过它两次",
     "category": "观测",
-    "angle": "从国际空间站 NICER 在 93 分钟一圈里反复穿过白天和黑夜，讲到 X 射线望远镜怎么在地平线下继续看宇宙",
-    "source": "NASA APOD 2026-06-10",
-    "source_url": "https://apod.nasa.gov/apod/image/1906/NICERNightMovesnolabels1200.jpg",
+    "angle": "从头顶那条淡淡的光带，讲到地球自转让所有人每晚都穿一次银河的星际门",
+    "source": "NASA APOD 2026-06-20",
+    "source_url": "https://apod.nasa.gov/apod/image/2208/StargateMilkyWay_Oudoux_960.jpg",
     "evergreen": false,
-    "updated_at": "2026-06-10"
+    "updated_at": "2026-06-20"
   },
   {
-    "title": "冰川碎成一座湖，地球的伤口在慢慢变蓝",
-    "category": "地球",
-    "angle": "从巴塔哥尼亚冰川崩塌的航拍画面，讲到冰川湖如何记录地球变暖的呼吸",
-    "source": "NASA Earth Observatory 2026-06-10",
-    "source_url": "https://science.nasa.gov/earth/earth-observatory/tyndalls-trail-of-bergs/",
+    "title": "你以为风只刮地球——其实恒星的“呼吸”更安静",
+    "category": "恒星",
+    "angle": "从氢氦复合能驱动恒星风，讲到一颗死掉的恒星是怎么把外衣慢慢吹掉",
+    "source": "arXiv 2026-06-20",
+    "source_url": "https://arxiv.org/abs/2606.19422",
     "evergreen": false,
-    "updated_at": "2026-06-10"
+    "updated_at": "2026-06-20"
   },
   {
-    "title": "外星来的彗星，闻起来像一颗流浪的地球",
+    "title": "你看到的星空，可能是几亿年前的遗物",
+    "category": "观测",
+    "angle": "从韦伯和哈勃在银河系中心挖出的“化石星团”讲起，把观测时间差变成一场你和宇宙之间的错位见面",
+    "source": "ESA Space Sci. 2026-06-20",
+    "source_url": "https://www.esa.int/Science_Exploration/Space_Science/Webb/Webb_Hubble_reveal_relic_of_our_galaxy_s_formation",
+    "evergreen": false,
+    "updated_at": "2026-06-20"
+  },
+  {
+    "title": "子弹星系团撞出来的暗物质，可能根本不存在？",
+    "category": "暗物质",
+    "angle": "用一次古老的星系团撞击现场，讲清楚为什么这张照片曾经是暗物质最硬的证据，又为什么新观测让天平在摇",
+    "source": "Phys.org space 2026-06-20",
+    "source_url": "https://phys.org/news/2026-06-bullet-cluster-reopen-dark-debate.html",
+    "evergreen": false,
+    "updated_at": "2026-06-20"
+  },
+  {
+    "title": "我们想用一片“望远镜蜂群”去找外星生命",
     "category": "生命",
-    "angle": "从 Webb 拍到的 3I/ATLAS 甲烷光谱，讲到星际访客身上为什么带着熟悉的味道",
-    "source": "ESA Space Sci. 2026-06-10",
-    "source_url": "https://www.esa.int/ESA_Multimedia/Images/2026/06/Webb_sniffs_methane_from_interstellar_Comet_3I_ATLAS",
+    "angle": "从 JWST 拍到的几缕气息，讲到 2040 年代一群小镜子在太空编队扫描系外行星",
+    "source": "Universe Today 2026-06-20",
+    "source_url": "https://www.universetoday.com/articles/astronomers-want-to-build-a-swarm-of-telescopes-to-find-life",
     "evergreen": false,
-    "updated_at": "2026-06-10"
+    "updated_at": "2026-06-20"
   },
   {
-    "title": "如果把整座天文台对准宇宙最深处的皱纹",
-    "category": "观测",
-    "angle": "从 Vera C. Rubin 望远镜的调试画面，讲到弱引力透镜如何拍下暗能量的影子",
-    "source": "arXiv astro-ph 2026-06-10",
-    "source_url": "https://arxiv.org/abs/2606.09938",
+    "title": "月球可能需要一间隔离病房",
+    "category": "地球",
+    "angle": "从生物安全讲到为什么 NASA 应该在月球基地建一个密封实验室，月尘里的东西可能比我们想象得更危险",
+    "source": "Phys.org 2026-06-20",
+    "source_url": "https://phys.org/news/2026-06-nasa-biocontainment-facility-moon-earth.html",
     "evergreen": false,
-    "updated_at": "2026-06-10"
+    "updated_at": "2026-06-20"
   },
   {
-    "title": "宇宙里最长寿的灯，正在中年发福",
-    "category": "恒星",
-    "angle": "从脉冲星风云的回声阶段，讲到一颗中子星如何把高能宇宙照亮几万年再慢慢熄灭",
-    "source": "arXiv astro-ph 2026-06-10",
-    "source_url": "https://arxiv.org/abs/2606.09914",
+    "title": "洗七次牌够乱了吗？——其实洗得再马虎也够",
+    "category": "量子",
+    "angle": "从一副 52 张牌的随机性，讲到概率如何在几次乱洗后悄悄到位",
+    "source": "Quanta Magazine 2026-06-20",
+    "source_url": "https://www.quantamagazine.org/seven-perfect-shuffles-randomize-a-deck-of-cards-but-how-many-sloppy-ones-20260617/",
     "evergreen": false,
-    "updated_at": "2026-06-10"
+    "updated_at": "2026-06-20"
+  },
+  {
+    "title": "黑洞吃星星的时候，到底在打什么嗝？",
+    "category": "黑洞",
+    "angle": "用 2014 年那次被全球望远镜盯上的“恒星被撕碎事件”，把黑洞吃星星讲成一场带喷流的暴食现场",
+    "source": "NASA APOD 2026-06-20",
+    "source_url": "https://apod.nasa.gov/apod/image/1703/BlackHole_Simonnet_960.jpg",
+    "evergreen": false,
+    "updated_at": "2026-06-20"
   }
 ]

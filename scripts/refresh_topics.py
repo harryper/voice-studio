@@ -54,6 +54,16 @@ SOURCES = [
      'url': 'https://www.quantamagazine.org/feed/'},
     {'name': 'Phys.org space',  'kind': 'rss', 'count': 2,
      'url': 'https://phys.org/rss-feed/space-news/'},
+    {'name': 'Universe Today',    'kind': 'rss', 'count': 2,
+     'url': 'https://www.universetoday.com/feed/'},
+    {'name': 'AAS Nova',          'kind': 'rss', 'count': 1,
+     'url': 'https://aasnova.org/feed/'},
+    {'name': 'Symmetry Magazine', 'kind': 'rss', 'count': 2,
+     'url': 'https://www.symmetrymagazine.org/feed'},
+    {'name': 'Physics World',     'kind': 'rss', 'count': 2,
+     'url': 'https://www.physicsworld.com/feed/'},
+    {'name': 'ESA Hubble',        'kind': 'rss', 'count': 2,
+     'url': 'https://esahubble.org/rss/news.rss'},
 ]
 
 # ── 抓取层 ────────────────────────────────────────────────────
@@ -146,20 +156,22 @@ def gather_raw_items():
 STYLE_GUIDE = '''你是"老波"——一个宇宙科普频道的助眠主播，每天晚上用第二人称"你"和听众聊天。
 我们要给听众一个反常识的、让人想继续听的睡前话题，作为 15-20 分钟的中文音频脚本选题。
 
-【标题要求】（15-30 字，**绝对不能直译英文新闻标题**）
+【标题要求】（15-30 字，**绝对不能直译英文新闻标题**；标题会作为博客标题直接发布，**严禁任何标点符号**）
 - 反常识判断：一句话打破听众的固有印象
 - 悬念标签：让人想点开听完
-- 常用句式：
-  · "如果 X，Y 会怎样？"
-  · "你以为 X——其实 Y"
-  · "为什么 X？"
-  · "X 这么 Y，但 Z"
-  · "X 离 Y 还差 Z"
+- 常用句式（全部不用标点）：
+  · 你以为 X 其实 Y
+  · X 到底 Y 了没有
+  · 为什么 X 总是 Y
+  · X 可能正在你的 Y 里悄悄发生
+  · X 比 Y 古老 Z 倍
+  · X 偷偷改变了你的 Y
+  · X 离我们到底有多远
 - 例（**风格参考，不是让你照抄**）：
-  · 如果太阳突然消失，地球会怎样？
-  · 黑洞会死亡吗？
-  · 时间为什么只能往前走？
-  · 宇宙一直在膨胀，那它到底在往哪里撑？
+  · 如果太阳突然消失地球会怎样
+  · 黑洞到底会不会死
+  · 时间为什么只能往前走
+  · 宇宙膨胀到底在往哪里撑
 
 【angle 要求】（20-40 字）
 - 讲明白"这个标题要从哪个画面 / 哪个反常识点切进去"
@@ -185,29 +197,34 @@ STYLE_GUIDE = '''你是"老波"——一个宇宙科普频道的助眠主播，�
 - **5 条必须分散到 5 条不同的原始线索**；不要 5 条都讲同一篇新闻的不同角度
   （提示：[[1]][[2]][[3]] 三个不同线索对应三个不同主题；不要为了看似"都在讲一个主题"而全部引用同一条）
 - 如果某条线索不够"反常识 / 不够听完"、适合静眠，可以跳过该线索，选别的
-- 中文标点用全角（，。？——）
+- angle / source 等正文用全角中文标点（，。？——）
+- **标题严禁任何标点符号**（包括中文全角、半角逗号/问号/引号、「，。？；：、！——……""''《》」等所有字符，以及 Markdown 符号 `* # _ `）
 - **不要任何开头/结尾寒暄、不要 markdown 围栏、不要代码块标记、不要 "以下是..." 引导句**
 - 不要复述英文原标题；中文标题要让人想点开听
 - 不要承诺疗效、不要医学建议、不要"治愈""根治"
 - `source_url` 选线索里给的 html 链接，不要 PDF；源不是网页的给主站 https://science.nasa.gov/
 - 字符串里要打引号的地方用全角 `“”`，**绝不能用转义 `\"`**
+- 如果 user 消息末尾有【已覆盖链接】块，**禁止**基于这些 URL 的报道改写新题（换个标题重写同一篇报道也是重复）；改用其他未覆盖的线索，或用科学知识库造一条老波选题
 
 【平衡要求】（关键）
-- 如果 user 消息末尾有【当前分类分布】块：5 条里**至少 3 条要覆盖【低于 3 条的分类】中列出的低分类**
+- 如果 user 消息末尾有【当前分类分布】块：5 条里**至少 2 条要覆盖【低于 3 条的分类】中列出的低分类**
 - 优先级：低分类 > 现有足够分类
 - 如果外部线索里某条不够反常识 / 不适合你需要的低分类，**你有权完全不用外部线索，调用你的科学知识库**造一条符合老波风格的题目：仅需满足"标题反常识、angle 有画面感、面向睡前听众"、以一个**真实科学概念**为基础（不编造不存在的物理/天文现象）
 - 造题时：`source` 写 "老波选题 2026-06-08"，`source_url` 写 "https://science.nasa.gov/"（避免编造看起来很权威的外部链接）
-- 5 条里**最多 2 条可以用老波选题**，至少 3 条**必须**覆盖低分类（要么外部线索支持、要么你造）
+- 5 条里**最多 3 条可以用老波选题**，至少 2 条**必须**覆盖低分类（要么外部线索支持、要么你造）
 '''
 
-def build_prompt(raw_items, category_status=''):
+def build_prompt(raw_items, category_status='', covered_urls=()):
     """raw_items 缩成 prompt 输入。
 
     category_status: 形如：
         【当前分类分布】
         恒星=6  太阳系=5  宇宙=5  黑洞=4  时间=3
         ⚠️ 低于 3 条的分类（需优先补足）: 暗物质, 生命, 观测, 量子, 地球
-    空字符串则不发该块。"""
+    空字符串则不发该块。
+
+    covered_urls: 已在 topic_recommendations.json 里的 source_url 集合。
+    M3 看到【已覆盖链接】块后禁止基于这些 URL 改写新题，避免换标题重写同一报道。"""
     lines = [f'【{TODAY} 抓到的科学线索】共 {len(raw_items)} 条：']
     for i, it in enumerate(raw_items, 1):
         lines.append(f'\n[{i}] 来源: {it["source"]}')
@@ -216,6 +233,14 @@ def build_prompt(raw_items, category_status=''):
             lines.append(f'    摘要: {it["desc"]}')
         if it.get('link'):
             lines.append(f'    链接: {it["link"]}')
+    if covered_urls:
+        # 截断到 50 条避免 prompt 膨胀
+        shown = list(covered_urls)[:50]
+        lines.append(f'\n【已覆盖链接】（库内已有，禁止基于它们改写新题）共 {len(shown)} 条：')
+        for u in shown:
+            lines.append(f'  - {u}')
+        if len(covered_urls) > 50:
+            lines.append(f'  ...还有 {len(covered_urls) - 50} 条省略')
     if category_status:
         lines.append('\n' + category_status)
     lines.append('\n请严格按 schema 输出 5 条 JSON 对象，JSON 数组前后用 []，每条 7 个字段：'
@@ -256,12 +281,13 @@ def _extract_text(resp):
             parts.append(b.get('text', ''))
     return ''.join(parts).strip()
 
-def call_minimax(raw_items, category_status=''):
+def call_minimax(raw_items, category_status='', covered_urls=()):
     """调 OpenClaw 默认模型 MiniMax-M3（Anthropic Messages 协议）。
     带 warm-up ping + 1-2 次 retry。
     M3 会在前面产生一个 type=thinking 的块（包含思考过程），取文本时跳过。
 
     category_status: 分类平衡提示文本（由 main() 算好后传入）。
+    covered_urls: 已在库里的 source_url 集合，会拼进 user prompt。
     """
     api_key = _load_api_key()
 
@@ -302,7 +328,7 @@ def call_minimax(raw_items, category_status=''):
         'model': MINIMAX_MODEL,
         'max_tokens': 2400,
         'system': STYLE_GUIDE,
-        'messages': [{'role': 'user', 'content': build_prompt(raw_items, category_status)}],
+        'messages': [{'role': 'user', 'content': build_prompt(raw_items, category_status, covered_urls=covered_urls)}],
         'temperature': 0.85,
         'thinking': {'type': 'disabled'},
     }
@@ -354,6 +380,20 @@ def call_minimax(raw_items, category_status=''):
 
 _JSON_FENCE = re.compile(r'```(?:json)?\s*(\[[\s\S]*?\])\s*```', re.IGNORECASE)
 
+# 标题 strip：删掉所有中文标点，让标题可作为博客标题直接复制。
+# 英文/ASCII 标点保留（本场景下不会出现）。
+_TITLE_PUNCT_RE = re.compile(r'[，。；：！？、——……“”‘’`《》、·]')
+# Markdown 符号也禁
+_TITLE_MD_RE = re.compile(r'[*#_`]')
+
+def _clean_title(t):
+    if not t:
+        return ''
+    s = _TITLE_PUNCT_RE.sub('', t)
+    s = _TITLE_MD_RE.sub('', s)
+    s = re.sub(r'\s+', ' ', s).strip()
+    return s
+
 def parse_topics_json(content):
     """从 M3 回复里抽 JSON 数组；容错处理 markdown 围栏和前后杂质。"""
     s = content.strip()
@@ -378,7 +418,7 @@ def parse_topics_json(content):
     for raw in arr[:NEW_TOPICS_PER_RUN]:
         if not isinstance(raw, dict):
             continue
-        title = (raw.get('title') or '').strip()
+        title = _clean_title(raw.get('title'))
         angle = (raw.get('angle') or '').strip()
         if not title or not angle:
             continue
@@ -408,22 +448,51 @@ def load_existing():
         return []
 
 def merge_and_write(new_topics, existing):
-    """按 title 去重，新条目 prepend并保持稳定在最前，cap 在 MAX_TOPICS。
+    """按 title + source_url 双键去重，新条目 prepend并保持稳定在最前，cap 在 MAX_TOPICS。
 
     排序语义：
     1) 本次刷新的全新条目（永远在最前，用户一点就能看到）
     2) 原有的常青条目（evergreen=True 优先）
     3) 原有的非常青条目（按 updated_at 倒序，最近用的靠前）
+
+    尾部老化下沉：每次 refresh 丢掉 rest 里 2 条最老的非 evergreen，
+    让 list 看起来在动，即使本次 added=0（dedup 全命中）也有可见变化。
     """
-    seen = {t.get('title', '').strip() for t in existing}
+    seen_titles = set()
+    seen_urls = set()
+    for t in existing:
+        seen_titles.add(t.get('title', '').strip())
+        url = (t.get('source_url') or '').split('?')[0].rstrip('/')
+        if url:
+            seen_urls.add(url)
+
     fresh = []
     for t in new_topics:
         title = t['title'].strip()
-        if title and title not in seen:
-            seen.add(title)
-            fresh.append(t)
+        url = (t.get('source_url') or '').split('?')[0].rstrip('/')
+        if not title:
+            continue
+        # 双键去重：title 命中 或 url 命中都跳过
+        if title in seen_titles:
+            continue
+        if url and url in seen_urls:
+            continue
+        seen_titles.add(title)
+        if url:
+            seen_urls.add(url)
+        fresh.append(t)
 
     rest = list(existing)  # 不包括新条目
+
+    # 尾部老化下沉：丢 2 条最老的非 evergreen。evergreen 一律保留。
+    non_ev = [t for t in rest if not t.get('evergreen')]
+    non_ev.sort(key=lambda x: x.get('updated_at', ''))
+    dropped = non_ev[:2]
+    drop_ids = {id(t) for t in dropped}
+    rest = [t for t in rest if id(t) not in drop_ids]
+    if dropped:
+        oldest = dropped[-1].get('updated_at', '?')
+        print(f'[refresh_topics] 尾部老化下沉 {len(dropped)} 条（最老 {oldest}）', file=sys.stderr)
 
     # rest 内部：evergreen 优先，updated_at 倒序
     rest.sort(key=lambda x: (
@@ -472,9 +541,17 @@ def main():
     if low_cats:
         print(f'[refresh_topics] 低于3条的分类: {low_cats}', file=sys.stderr)
 
+    # 收集已在库里的 source_url（去掉 query string 和尾 slash）传给 LLM，
+    # 让它知道哪些报道已经覆盖，避免换个标题重写同一篇
+    covered_urls = sorted({
+        (t.get('source_url') or '').split('?')[0].rstrip('/')
+        for t in existing
+        if t.get('source_url')
+    })
+
     try:
-        new_topics = call_minimax(raw, category_status=cat_status)
-        print(f'[refresh_topics] M3 返回 {len(new_topics)} 条候选', file=sys.stderr)
+        new_topics = call_minimax(raw, category_status=cat_status, covered_urls=covered_urls)
+        print(f'[refresh_topics] M3 返回 {len(new_topics)} 条候选 (covered_urls={len(covered_urls)})', file=sys.stderr)
     except Exception as e:
         print(f'  [warn] M3 调用失败: {type(e).__name__}: {e}', file=sys.stderr)
         result = fallback_shuffle()
