@@ -235,6 +235,24 @@ def job_response(job):
         data['music_runs'] = runs
     return data
 
+# Fields kept in list responses. Heavy fields (script, voice_runs, music_runs,
+# lyrics, audio URLs, BGM settings) are dropped — the sidebar only renders
+# title/status/badges, and the editor fetches the full record via /api/jobs/<id>.
+JOB_SUMMARY_FIELDS = frozenset({
+    'id', 'mode', 'status',
+    'theme', 'title', 'reference_audio_name',
+    'is_starred', 'is_instrumental', 'audio_duration_ms',
+    'created_at', 'updated_at',
+    'error', 'writer_attempt',
+})
+
+
+def job_summary(job):
+    """Return a slim copy of `job` for list endpoints."""
+    if not job:
+        return job
+    return {k: v for k, v in job.items() if k in JOB_SUMMARY_FIELDS}
+
 def archive_job(job):
     """完成后归档，保留记录"""
     mode = job.get('mode', 'voice')
@@ -1408,7 +1426,7 @@ def list_jobs():
                 except (OSError, json.JSONDecodeError, ValueError):
                     continue
     jobs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-    return jsonify([job_response(job) for job in jobs])
+    return jsonify([job_summary(job) for job in jobs])
 
 
 @app.route('/api/jobs/voice', methods=['GET'])
@@ -1456,12 +1474,12 @@ def list_jobs_by_mode(mode, limit=None, offset=0):
     jobs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
 
     if limit is None:
-        return jsonify([job_response(job) for job in jobs])
+        return jsonify([job_summary(job) for job in jobs])
 
     total = len(jobs)
     page = jobs[offset:offset + limit]
     return jsonify({
-        'jobs': [job_response(job) for job in page],
+        'jobs': [job_summary(job) for job in page],
         'total': total,
         'limit': limit,
         'offset': offset,

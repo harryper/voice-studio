@@ -1197,8 +1197,11 @@
     /* ─── Topic Recommendations Enhanced ─── */
     .topic-recs {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       margin-top: 8px;
+      max-height: 360px;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     .topic-recs::-webkit-scrollbar {
@@ -2569,7 +2572,7 @@
     let voiceJobTotal = 0;
     const VOICE_JOBS_PAGE_SIZE = 10;
     let topicCategory = localStorage.getItem('voiceStudio.topicCategory') || '全部';
-    let topicOffset = Number(localStorage.getItem('voiceStudio.topicOffset') || 0);
+    let topicOffset = 0;
 
     async function api(url, options = {}) {
       let res;
@@ -3559,6 +3562,15 @@
       lastJobs = jobs;
       const activeExists = jobs.some(job => job.id === activeJobId);
       if (activeJobId && !activeExists && !editorDirty) activeJobId = null;
+      // list entries are slim summaries; re-hydrate the active job so the
+      // editor still has script/voice_runs/audio_url etc. after a refresh
+      if (activeJobId && activeExists) {
+        try {
+          const full = await api('/api/jobs/' + activeJobId);
+          const idx = lastJobs.findIndex(j => j.id === activeJobId);
+          if (idx >= 0) lastJobs[idx] = { ...lastJobs[idx], ...full };
+        } catch (e) { /* keep slim entry; editor will fall back to loadJob */ }
+      }
 
       // Voice jobs (theme + script)
       renderVoiceJobList();
@@ -3597,9 +3609,7 @@
       const categories = ['全部', ...new Set(topicRecommendations.map(item => item.category || '其他'))];
       if (!categories.includes(topicCategory)) {
         topicCategory = '全部';
-        topicOffset = 0;
         localStorage.setItem('voiceStudio.topicCategory', topicCategory);
-        localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
       }
       wrap.innerHTML = '';
       categories.forEach(category => {
@@ -3609,9 +3619,7 @@
         btn.textContent = category;
         btn.onclick = () => {
           topicCategory = category;
-          topicOffset = 0;
           localStorage.setItem('voiceStudio.topicCategory', topicCategory);
-          localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
           renderTopicRecommendations();
         };
         wrap.appendChild(btn);
@@ -3627,17 +3635,8 @@
         wrap.innerHTML = '<div class="topic-empty">暂无可用推荐主题。</div>';
         return;
       }
-      const pageSize = 3;
-      if (topicOffset >= list.length) {
-        topicOffset = 0;
-        localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
-      }
-      const visible = [];
-      for (let i = 0; i < Math.min(pageSize, list.length); i += 1) {
-        visible.push(list[(topicOffset + i) % list.length]);
-      }
       wrap.innerHTML = '';
-      visible.forEach(item => {
+      list.forEach(item => {
         const card = document.createElement('div');
         card.className = 'topic-rec-card';
         card.innerHTML = `
@@ -3688,9 +3687,6 @@
         if (Array.isArray(topics) && topics.length) {
           topicRecommendations = topics;
           topicRecommendations.sort((a, b) => Number(a.evergreen === true) - Number(b.evergreen === true));
-          topicOffset = 0;
-          localStorage.setItem('voiceStudio.topicCategory', topicCategory);
-          localStorage.setItem('voiceStudio.topicOffset', String(topicOffset));
           renderTopicRecommendations();
           showActionFeedback('题库已更新', 'ok');
         }
@@ -3730,7 +3726,8 @@
         }
       }
       if (visibleJobs[0]) {
-        renderJob(visibleJobs[0]);
+        // list entries are slim summaries; fetch the full record before rendering
+        await loadJob(visibleJobs[0].id);
       } else {
         clearActiveJob();
       }
