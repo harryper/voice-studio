@@ -1,236 +1,272 @@
 [
   {
-    "title": "火星条纹沙丘的呼吸比地球沙丘慢了一整个冬天",
-    "category": "太阳系",
-    "angle": "从干冰升华讲到火星沙丘上的条纹可能是一个漫长冬天的痕迹",
-    "source": "NASA APOD 2026-06-20",
-    "source_url": "https://apod.nasa.gov/apod/image/2101/StripedDunes_HiRISE_1080.jpg",
+    "title": "中年海马体里的免疫细胞开始重新排班",
+    "category": "神经",
+    "angle": "从四十份人类海马组织讲到小胶质细胞在中年后减少并被带有炎症特征的细胞群逐步替代",
+    "source": "NIH 2026-07-23",
+    "source_url": "https://www.nih.gov/news-events/news-releases/brain-immunity-may-undergo-major-midlife-overhaul",
     "evergreen": false,
-    "updated_at": "2026-06-20"
+    "updated_at": "2026-07-23"
   },
   {
-    "title": "猎户腰带外面那只隐形气泡可能吹了两百万年",
-    "category": "恒星",
-    "angle": "从巴纳德环讲到古人抬头看的猎户座其实正被一颗死去恒星的余波包裹",
-    "source": "NASA APOD 2026-06-20",
-    "source_url": "https://apod.nasa.gov/apod/image/0504/bigorion_wang.jpg",
+    "title": "生活方式对不同突变引发的炎症影响并不相同",
+    "category": "免疫",
+    "angle": "从人群数据和小鼠实验讲到睡眠与运动对克隆性造血的影响取决于具体驱动突变",
+    "source": "NIH 2026-07-14",
+    "source_url": "https://www.nih.gov/news-events/nih-research-matters/sleep-exercise-may-reduce-mutation-driven-inflammation",
     "evergreen": false,
-    "updated_at": "2026-06-20"
+    "updated_at": "2026-07-14"
   },
   {
-    "title": "中子星有多重？",
-    "category": "恒星",
-    "angle": "从一勺中子星物质重达10亿吨讲到极端密度的世界。",
-    "source": "NASA Neutron Stars",
-    "source_url": "https://science.nasa.gov/universe/",
+    "title": "一个转录因子改动让老年小鼠肝脏显出年轻特征",
+    "category": "衰老",
+    "angle": "从人类成纤维细胞筛选讲到提高EZH2表达在老年小鼠肝脏中逆转部分衰老相关特征",
+    "source": "NIH 2026-02-24",
+    "source_url": "https://www.nih.gov/news-events/nih-research-matters/manipulating-gene-activity-reverse-aging",
+    "evergreen": false,
+    "updated_at": "2026-02-24"
+  },
+  {
+    "title": "超级老人海马体里的新生神经元留下独特签名",
+    "category": "神经",
+    "angle": "从三十五万多个捐献脑细胞讲到记忆出众的高龄者拥有不同的神经发生分子特征",
+    "source": "NIH 2026-03-31",
+    "source_url": "https://www.nih.gov/news-events/nih-research-matters/superagers-show-unique-cell-signatures-brain",
+    "evergreen": false,
+    "updated_at": "2026-03-31"
+  },
+  {
+    "title": "同一组织里的细胞也可能按不同速度变老",
+    "category": "细胞",
+    "angle": "从单细胞全基因组甲基化数据讲到少数细胞会更快获得多梳蛋白相关CpG岛甲基化",
+    "source": "Nature 2026-06-09",
+    "source_url": "https://www.nature.com/articles/s41467-026-74118-5",
+    "evergreen": false,
+    "updated_at": "2026-06-09"
+  },
+  {
+    "title": "寿命相关位点的作用会随年龄和性别改变",
+    "category": "遗传",
+    "angle": "从六千多只遗传多样小鼠讲到一些寿命位点只在特定年龄起效并呈现明显的雌雄差异",
+    "source": "Nature 2026-04-22",
+    "source_url": "https://www.nature.com/articles/s41586-026-10407-9",
+    "evergreen": false,
+    "updated_at": "2026-04-22"
+  },
+  {
+    "title": "衰老细胞终于有了跨组织识别地图",
+    "category": "衰老",
+    "angle": "从SenNet联盟的多组织数据讲到研究者如何建立识别和编目的统一框架而不是只靠单一标志物",
+    "source": "NIH 2026-06-11",
+    "source_url": "https://www.nih.gov/news-events/news-releases/nih-research-establishes-new-framework-role-senescence-aging",
+    "evergreen": false,
+    "updated_at": "2026-06-11"
+  },
+  {
+    "title": "微型捕食者会在不同尺度重排细菌群落",
+    "category": "微生物",
+    "angle": "从六大洲土壤和受控实验讲到食菌原生生物为何能推动局部趋同却造成全球差异",
+    "source": "Nature 2026-03-18",
+    "source_url": "https://www.nature.com/articles/s41467-026-70605-x",
+    "evergreen": false,
+    "updated_at": "2026-03-18"
+  },
+  {
+    "title": "植物能把根部收到的细菌信号变成全身免疫预备",
+    "category": "植物",
+    "angle": "从拟南芥根部感知表面活性素讲到膜重塑和机械敏感通道如何引出系统性抗性预激",
+    "source": "Nature 2026-04-20",
+    "source_url": "https://www.nature.com/articles/s41477-026-02270-3",
+    "evergreen": false,
+    "updated_at": "2026-04-20"
+  },
+  {
+    "title": "果蝇沿气味边缘前进时会不断改写方向记忆",
+    "category": "动物行为",
+    "angle": "从虚拟气味走廊讲到果蝇如何把风向和刚刚进入气味带的角度合成动态导航目标",
+    "source": "Nature 2026-07-22",
+    "source_url": "https://www.nature.com/articles/s41586-026-10827-7",
+    "evergreen": false,
+    "updated_at": "2026-07-22"
+  },
+  {
+    "title": "两米长的DNA怎样塞进微小细胞核",
+    "category": "遗传",
+    "angle": "从DNA绕组蛋白形成核小体讲到染色质压缩和基因读取之间的平衡",
+    "source": "NCBI Bookshelf DNA Packaging",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK534207/",
     "evergreen": true,
-    "updated_at": "2026-06-19"
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "为什么火星是红色的？",
-    "category": "太阳系",
-    "angle": "从氧化铁讲到火星表面的铁锈和古老的水痕迹。",
-    "source": "NASA Mars",
-    "source_url": "https://science.nasa.gov/mars/",
+    "title": "线粒体DNA为什么主要沿母系传递",
+    "category": "遗传",
+    "angle": "从卵细胞贡献细胞器讲到异质性和随机分配为何让线粒体遗传不同于孟德尔规律",
+    "source": "NCBI Bookshelf Mitochondrial Inheritance",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK6292/",
     "evergreen": true,
-    "updated_at": "2026-06-19"
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "外星人如果存在，为什么宇宙这么安静？",
-    "category": "生命",
-    "angle": "从费米悖论讲到沉默宇宙、距离、时间差和文明窗口。",
-    "source": "经典问题：Fermi paradox",
-    "source_url": "https://science.nasa.gov/exoplanets/",
-    "updated_at": "2026-06-19",
-    "evergreen": true
-  },
-  {
-    "title": "如果太阳突然消失，地球会怎样？",
-    "category": "太阳系",
-    "angle": "从引力波速度讲到8分钟后的黑暗和轨道混乱。",
-    "source": "NASA Solar System",
-    "source_url": "https://science.nasa.gov/solar-system/",
+    "title": "同一套DNA怎样打开不同的基因开关",
+    "category": "细胞",
+    "angle": "从DNA甲基化和组蛋白修饰讲到表观遗传信息如何在不改序列时调节基因活动",
+    "source": "NCBI Bookshelf Introduction to Epigenetics",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK585710/",
     "evergreen": true,
-    "updated_at": "2026-06-19"
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "如果时间倒流，宇宙会发生什么？",
-    "category": "时间",
-    "angle": "从热力学第二定律讲到熵增和时间箭头的不可逆。",
-    "source": "Thermodynamics",
-    "source_url": "https://science.nasa.gov/",
+    "title": "基因多出一份副本为何可能带来新功能",
+    "category": "演化",
+    "angle": "从剂量效应和功能分工讲到重复基因如何保留旧任务或走向新的演化用途",
+    "source": "Nature Reviews Genetics Gene Duplication",
+    "source_url": "https://www.nature.com/articles/s41576-026-00935-5",
     "evergreen": true,
-    "updated_at": "2026-06-19"
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "宇宙一直在膨胀，那它到底在往哪里撑？",
-    "category": "宇宙",
-    "angle": "把宇宙膨胀从气球误解，讲成空间本身变大的安静恐怖。",
-    "source": "NASA / ESA cosmology explainers",
-    "source_url": "https://science.nasa.gov/universe/overview/",
-    "updated_at": "2026-06-19",
-    "evergreen": true
-  },
-  {
-    "title": "宇宙中 95% 的东西都看不见，它们真的存在吗？",
-    "category": "暗物质",
-    "angle": "从暗物质和暗能量讲到我们只看见宇宙极小的一层皮。",
-    "source": "NASA dark matter and dark energy",
-    "source_url": "https://science.nasa.gov/universe/dark-matter-dark-energy/",
-    "updated_at": "2026-06-19",
-    "evergreen": true
-  },
-  {
-    "title": "宇宙中最冷的地方在哪里？",
-    "category": "宇宙",
-    "angle": "从回旋镖星云讲到比宇宙背景辐射还冷的地方。",
-    "source": "NASA Extreme Universe",
-    "source_url": "https://science.nasa.gov/universe/",
+    "title": "端粒是染色体护帽却不是简单的寿命倒计时",
+    "category": "衰老",
+    "angle": "从染色体末端保护讲到端粒缩短引发的损伤信号以及它与细胞衰老的复杂关系",
+    "source": "NIA Telomere Maintenance",
+    "source_url": "https://www.nia.nih.gov/research/labs/lmg/section-telomere-maintenance",
     "evergreen": true,
-    "updated_at": "2026-06-19"
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "宇宙最终会怎么死？",
-    "category": "宇宙",
-    "angle": "从热寂、大撕裂和真空衰变讲到几种安静但彻底的结局。",
-    "source": "经典问题：fate of the universe",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-06-19",
-    "evergreen": true
-  },
-  {
-    "title": "宇宙有边界吗？",
-    "category": "宇宙",
-    "angle": "从可观测宇宙讲到视界之外的未知领域。",
-    "source": "NASA Universe",
-    "source_url": "https://science.nasa.gov/universe/",
+    "title": "成年大脑仍能重新安排连接",
+    "category": "神经",
+    "angle": "从突触变化和功能重组讲到经验与损伤如何持续塑造成年神经系统",
+    "source": "NCBI Bookshelf Neuroplasticity",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK557811/",
     "evergreen": true,
-    "updated_at": "2026-06-19"
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "时间为什么只能往前走？",
-    "category": "时间",
-    "angle": "从熵增和时间箭头讲到一杯水为什么不会自己回到杯子里。",
-    "source": "经典问题：arrow of time",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-06-19",
-    "evergreen": true
+    "title": "睡眠会参与记忆的整理与巩固",
+    "category": "神经",
+    "angle": "从睡眠中的神经活动重放讲到新记忆如何被保存并与旧知识整合",
+    "source": "NCBI Bookshelf Sleep and Memory",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK435759/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "真空真的是什么都没有吗？",
-    "category": "量子",
-    "angle": "从量子涨落讲到看似空无的地方其实一直在轻微沸腾。",
-    "source": "经典问题：quantum vacuum",
-    "source_url": "https://science.nasa.gov/universe/",
-    "updated_at": "2026-06-19",
-    "evergreen": true
+    "title": "噬菌体和细菌一直在升级攻防武器",
+    "category": "微生物",
+    "angle": "从细菌限制修饰和CRISPR防线讲到噬菌体的反制如何推动双方共同演化",
+    "source": "NCBI PMC Phage Arms Race",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4987407/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "黑洞真的是黑的吗？",
-    "category": "黑洞",
-    "angle": "从事件视界、吸积盘和霍金辐射讲到最亮的黑暗。",
-    "source": "NASA black hole basics",
-    "source_url": "https://science.nasa.gov/universe/black-holes/",
-    "updated_at": "2026-06-19",
-    "evergreen": true
+    "title": "生物膜是微生物自己搭出的立体社区",
+    "category": "微生物",
+    "angle": "从胞外聚合物基质讲到贴附生活为何能产生单个游离细胞没有的群体性质",
+    "source": "NCBI PMC Biofilm Primer",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7615007/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "你以为地球磁场挡得住一切——其实太阳风在偷偷撬门",
-    "category": "地球",
-    "angle": "从 NASA 新选的大气空间天气任务，讲到 GPS 失灵前的安静征兆",
-    "source": "NASA news 2026-06-20",
-    "source_url": "https://www.nasa.gov/news-release/nasa-mission-to-study-space-weather-impacts-of-earths-atmosphere/",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "免疫系统为什么第二次反应更快",
+    "category": "免疫",
+    "angle": "从克隆扩增和记忆淋巴细胞讲到再次遇见同一抗原时更迅速的应答",
+    "source": "NCBI Bookshelf Immunological Memory",
+    "source_url": "https://www.ncbi.nlm.nih.gov/sites/books/NBK27158/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "你以为火星很安静？那里一天能刮出几十个尘魔",
-    "category": "太阳系",
-    "angle": "从火星快车拍下的尘暴群，讲到红色平原上同时旋转的迷你龙卷风，一秒把红色火星变成喧闹的厨房",
-    "source": "ESA Space Sci. 2026-06-20",
-    "source_url": "https://www.esa.int/Science_Exploration/Space_Science/Mars_Express/Dozens_of_dust_devils_hidden_in_plain_sight",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "免疫系统怎样把自己误认成敌人",
+    "category": "免疫",
+    "angle": "从自我耐受讲到自身抗体和自身反应性T细胞为何可能持续攻击健康组织",
+    "source": "NIAMS Autoimmune Diseases",
+    "source_url": "https://www.niams.nih.gov/health-topics/autoimmune-diseases",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "你以为脉冲星周围是真空——其实它有行星",
-    "category": "恒星",
-    "angle": "从 FAST 望远镜看到的闪烁，讲到一颗死星旁边的三颗幽灵行星",
-    "source": "arXiv 2026-06-20",
-    "source_url": "https://arxiv.org/abs/2606.19406",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "亲缘很远的物种为何会演化出相似答案",
+    "category": "演化",
+    "angle": "从相似环境压力讲到趋同表型有时也会借用相同或相近的遗传路径",
+    "source": "Nature Reviews Genetics Convergent Evolution",
+    "source_url": "https://www.nature.com/articles/nrg3483",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "你以为银河是一条带子——其实你每天要穿过它两次",
-    "category": "观测",
-    "angle": "从头顶那条淡淡的光带，讲到地球自转让所有人每晚都穿一次银河的星际门",
-    "source": "NASA APOD 2026-06-20",
-    "source_url": "https://apod.nasa.gov/apod/image/2208/StargateMilkyWay_Oudoux_960.jpg",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "线粒体和叶绿体保留着细菌祖先的痕迹",
+    "category": "细胞",
+    "angle": "从双层膜和独立基因组讲到古老内共生如何把自由生活细菌变成细胞器",
+    "source": "NCBI PMC Endosymbiosis",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2817223/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "你以为风只刮地球——其实恒星的“呼吸”更安静",
-    "category": "恒星",
-    "angle": "从氢氦复合能驱动恒星风，讲到一颗死掉的恒星是怎么把外衣慢慢吹掉",
-    "source": "arXiv 2026-06-20",
-    "source_url": "https://arxiv.org/abs/2606.19422",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "一个关键物种为何能牵动整座生态系统",
+    "category": "生态",
+    "angle": "从海獭和海胆的关系讲到数量不一定占优的物种如何维持群落结构",
+    "source": "Nature Scitable Keystone Species",
+    "source_url": "https://www.nature.com/scitable/knowledge/library/keystone-species-15786127/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "你看到的星空，可能是几亿年前的遗物",
-    "category": "观测",
-    "angle": "从韦伯和哈勃在银河系中心挖出的“化石星团”讲起，把观测时间差变成一场你和宇宙之间的错位见面",
-    "source": "ESA Space Sci. 2026-06-20",
-    "source_url": "https://www.esa.int/Science_Exploration/Space_Science/Webb/Webb_Hubble_reveal_relic_of_our_galaxy_s_formation",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "真菌菌丝如何长成会调配资源的网络",
+    "category": "生态",
+    "angle": "从分枝和融合讲到菌丝网络如何在斑块环境中运输资源并应对损伤与竞争",
+    "source": "NCBI PMC Mycelial Networks",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11687498/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "子弹星系团撞出来的暗物质，可能根本不存在？",
-    "category": "暗物质",
-    "angle": "用一次古老的星系团撞击现场，讲清楚为什么这张照片曾经是暗物质最硬的证据，又为什么新观测让天平在摇",
-    "source": "Phys.org space 2026-06-20",
-    "source_url": "https://phys.org/news/2026-06-bullet-cluster-reopen-dark-debate.html",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "植物没有大脑也能传递和整合信号",
+    "category": "植物",
+    "angle": "从生长素和乙烯等小分子讲到受体与信号通路如何协调生长和环境响应",
+    "source": "Nature Plant Hormone Signalling",
+    "source_url": "https://www.nature.com/articles/nature08122",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "我们想用一片“望远镜蜂群”去找外星生命",
-    "category": "生命",
-    "angle": "从 JWST 拍到的几缕气息，讲到 2040 年代一群小镜子在太空编队扫描系外行星",
-    "source": "Universe Today 2026-06-20",
-    "source_url": "https://www.universetoday.com/articles/astronomers-want-to-build-a-swarm-of-telescopes-to-find-life",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "食虫植物为什么要花力气捕捉动物",
+    "category": "植物",
+    "angle": "从贫瘠环境里的氮和磷限制讲到不同陷阱怎样把动物猎物转成生长资源",
+    "source": "NCBI PMC Plant Carnivory",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8389183/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "月球可能需要一间隔离病房",
-    "category": "地球",
-    "angle": "从生物安全讲到为什么 NASA 应该在月球基地建一个密封实验室，月尘里的东西可能比我们想象得更危险",
-    "source": "Phys.org 2026-06-20",
-    "source_url": "https://phys.org/news/2026-06-nasa-biocontainment-facility-moon-earth.html",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "简单的邻居互动怎样涌现出整齐群体",
+    "category": "动物行为",
+    "angle": "从鱼群的局部反应讲到信息传递如何让动物群体在无序和高度一致之间切换",
+    "source": "Nature Communications Collective Behaviour",
+    "source_url": "https://www.nature.com/articles/s41467-020-16578-x",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "洗七次牌够乱了吗？——其实洗得再马虎也够",
-    "category": "量子",
-    "angle": "从一副 52 张牌的随机性，讲到概率如何在几次乱洗后悄悄到位",
-    "source": "Quanta Magazine 2026-06-20",
-    "source_url": "https://www.quantamagazine.org/seven-perfect-shuffles-randomize-a-deck-of-cards-but-how-many-sloppy-ones-20260617/",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "候鸟第一次远行靠什么找到方向",
+    "category": "动物行为",
+    "angle": "从时钟加罗盘的先天程序讲到太阳星光地磁和经验如何共同支撑长途迁徙",
+    "source": "NCBI PMC Avian Navigation",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11900352/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   },
   {
-    "title": "黑洞吃星星的时候，到底在打什么嗝？",
-    "category": "黑洞",
-    "angle": "用 2014 年那次被全球望远镜盯上的“恒星被撕碎事件”，把黑洞吃星星讲成一场带喷流的暴食现场",
-    "source": "NASA APOD 2026-06-20",
-    "source_url": "https://apod.nasa.gov/apod/image/1703/BlackHole_Simonnet_960.jpg",
-    "evergreen": false,
-    "updated_at": "2026-06-20"
+    "title": "章鱼的手臂为什么像带着自己的局部控制器",
+    "category": "动物行为",
+    "angle": "从大量神经元分布在八条腕足讲到中央脑和局部神经回路如何分层协作控制柔软肢体",
+    "source": "NCBI PMC Octopus Motor Control",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10755184/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
   }
 ]
