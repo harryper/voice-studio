@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-刷新"热门主题推荐"：从 NASA、arXiv、ESA 等科学媒体真采原始线索，
+刷新"热门主题推荐"：从 NIH、Nature、Science 等生命科学媒体真采原始线索，
 调用 OpenClaw 默认模型 MiniMax-M3（走 Anthropic Messages 协议）改写为
 "老波"风格的助眠科普中文选题，落到本地 topic_recommendations.json。
 
 行为：
-- 拉取 NASA APOD + NASA 新闻 RSS + arXiv astro-ph + ESA Space Science + Quanta + Phys.org 等源
+- 拉取 NIH Research Matters、Nature Biology、Science、PLOS Biology、bioRxiv、eLife 等 RSS/Atom 源
 - 把这些原始英文/科学新闻塞进 prompt，让 M3 按老波风格改写为 5 条
 - 按 title 去重，prepend 进现有 30 条，cap 在 30
 - 任何一步失败（外网抖 / M3 限流 / JSON 解析不出来）都降级到洗牌，绝不静默失败
@@ -40,30 +40,26 @@ NEW_TOPICS_PER_RUN = 5
 TODAY = datetime.now().strftime('%Y-%m-%d')
 
 # ── 数据源 ────────────────────────────────────────────────────
-# 每条 (name, url, kind, count)
-# kind: 'apod' 走 NASA APOD JSON；其它统一按 RSS/Atom 解析
+# 每条 (name, url, kind, count)；统一按 RSS/Atom 解析。
+BIOLOGY_CATEGORIES = ('细胞', '遗传', '衰老', '神经', '微生物', '免疫', '演化', '生态', '植物', '动物行为')
+
 SOURCES = [
-    {'name': 'NASA APOD',       'kind': 'apod', 'count': 3},
-    {'name': 'NASA news',       'kind': 'rss', 'count': 3,
-     'url': 'https://www.nasa.gov/news-release/feed/'},
-    {'name': 'arXiv astro-ph',  'kind': 'rss', 'count': 3,
-     'url': 'https://export.arxiv.org/rss/astro-ph'},
-    {'name': 'ESA Space Sci.',  'kind': 'rss', 'count': 2,
-     'url': 'https://www.esa.int/rssfeed/Our_Activities/Space_Science'},
-    {'name': 'Quanta Magazine', 'kind': 'rss', 'count': 2,
-     'url': 'https://www.quantamagazine.org/feed/'},
-    {'name': 'Phys.org space',  'kind': 'rss', 'count': 2,
-     'url': 'https://phys.org/rss-feed/space-news/'},
-    {'name': 'Universe Today',    'kind': 'rss', 'count': 2,
-     'url': 'https://www.universetoday.com/feed/'},
-    {'name': 'AAS Nova',          'kind': 'rss', 'count': 1,
-     'url': 'https://aasnova.org/feed/'},
-    {'name': 'Symmetry Magazine', 'kind': 'rss', 'count': 2,
-     'url': 'https://www.symmetrymagazine.org/feed'},
-    {'name': 'Physics World',     'kind': 'rss', 'count': 2,
-     'url': 'https://www.physicsworld.com/feed/'},
-    {'name': 'ESA Hubble',        'kind': 'rss', 'count': 2,
-     'url': 'https://esahubble.org/rss/news.rss'},
+    # NIH currently publishes this URL from the Research Matters page; it replaces
+    # the former /news-events/nih-research-matters/rss.xml endpoint.
+    {'name': 'NIH Research Matters', 'kind': 'rss', 'count': 4,
+     'url': 'https://www.nih.gov/nih-research-matters/feed.xml'},
+    {'name': 'Nature Biology', 'kind': 'rss', 'count': 4,
+     'url': 'https://www.nature.com/subjects/biological-sciences.rss'},
+    {'name': 'Science', 'kind': 'rss', 'count': 3,
+     'url': 'https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science'},
+    # Cell's planned current.rss endpoint rejected the refresh client with 403;
+    # PLOS Biology is an official, currently fetchable biology-only Atom feed.
+    {'name': 'PLOS Biology', 'kind': 'rss', 'count': 3,
+     'url': 'https://journals.plos.org/plosbiology/feed/atom'},
+    {'name': 'bioRxiv', 'kind': 'rss', 'count': 3,
+     'url': 'https://connect.biorxiv.org/biorxiv_xml.php?subject=all'},
+    {'name': 'eLife', 'kind': 'rss', 'count': 3,
+     'url': 'https://elifesciences.org/rss/recent.xml'},
 ]
 
 # ── 抓取层 ────────────────────────────────────────────────────
@@ -116,20 +112,6 @@ def _parse_rss(xml_bytes, source_name, count):
 
 def fetch_source(spec):
     """拉一个源；失败返回空列表，错误信息打到 stderr。"""
-    if spec['kind'] == 'apod':
-        try:
-            body, _ = _http_get('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&count='
-                                + str(spec['count']))
-            arr = json.loads(body)
-            return [{
-                'title': (it.get('title') or '').strip()[:200],
-                'link': (it.get('url') or it.get('hdurl') or '').strip()[:300],
-                'desc': (it.get('explanation') or '').strip()[:280],
-                'source': 'NASA APOD ' + TODAY,
-            } for it in arr if it.get('title')]
-        except Exception as e:
-            print(f'  [warn] NASA APOD 抓取失败: {type(e).__name__}: {e}', file=sys.stderr)
-            return []
     if spec['kind'] == 'rss':
         try:
             body, _ = _http_get(spec['url'])
@@ -153,7 +135,7 @@ def gather_raw_items():
     return pool
 
 # ── 老波风格 prompt ───────────────────────────────────────────
-STYLE_GUIDE = '''你是"老波"——一个宇宙科普频道的助眠主播，每天晚上用第二人称"你"和听众聊天。
+STYLE_GUIDE = f'''你是"老波"——一个生命科学科普频道的助眠主播，每天晚上用第二人称"你"和听众聊天。
 我们要给听众一个反常识的、让人想继续听的睡前话题，作为 15-20 分钟的中文音频脚本选题。
 
 【标题要求】（15-30 字，**绝对不能直译英文新闻标题**；标题会作为博客标题直接发布，**严禁任何标点符号**）
@@ -168,25 +150,25 @@ STYLE_GUIDE = '''你是"老波"——一个宇宙科普频道的助眠主播，�
   · X 偷偷改变了你的 Y
   · X 离我们到底有多远
 - 例（**风格参考，不是让你照抄**）：
-  · 如果太阳突然消失地球会怎样
-  · 黑洞到底会不会死
-  · 时间为什么只能往前走
-  · 宇宙膨胀到底在往哪里撑
+  · 你以为细胞只会变老其实它也会拆旧零件
+  · 肠道里的微生物为什么会彼此传递消息
+  · 植物不移动为什么也能记住季节
+  · 动物的睡眠到底在整理什么
 
 【angle 要求】（20-40 字）
 - 讲明白"这个标题要从哪个画面 / 哪个反常识点切进去"
 - 格式参考："从 X 讲到 Y"、"用第一视角讲 X"、"把 X 误解拆掉，讲成 Y"
 - 要具体到画面感，不要抽象定义
 - 例（**风格参考**）：
-  · 从引力波速度讲到 8 分钟后的黑暗和轨道混乱
-  · 从熵增和时间箭头讲到一杯水为什么不会自己回到杯子里
-  · 把宇宙膨胀从气球误解，讲成空间本身变大的安静恐怖
+  · 从溶酶体讲到细胞如何拆解并循环利用旧零件
+  · 从果蝇的神经回路讲到记忆如何在突触间留下痕迹
+  · 把基因和命运的误解拆掉，讲成环境如何参与调节表达
 
 【category 限定】（从下面选一个最贴的）
-太阳系 / 宇宙 / 恒星 / 黑洞 / 时间 / 量子 / 暗物质 / 生命 / 地球 / 观测
+{' / '.join(BIOLOGY_CATEGORIES)}
 
 【source 字段】
-写源名 + 今天的日期，例如 "NASA APOD 2026-06-08" / "arXiv 2026-06-08"
+写源名 + 今天的日期，例如 "NIH Research Matters {TODAY}" / "Nature Biology {TODAY}"
 
 【source_url 字段】
 从原报道里选**最像科普大众报道的那一条**链接（不要 PDF 论文原始链接，要 RSS 里给的 html landing）
@@ -201,16 +183,18 @@ STYLE_GUIDE = '''你是"老波"——一个宇宙科普频道的助眠主播，�
 - **标题严禁任何标点符号**（包括中文全角、半角逗号/问号/引号、「，。？；：、！——……""''《》」等所有字符，以及 Markdown 符号 `* # _ `）
 - **不要任何开头/结尾寒暄、不要 markdown 围栏、不要代码块标记、不要 "以下是..." 引导句**
 - 不要复述英文原标题；中文标题要让人想点开听
-- 不要承诺疗效、不要医学建议、不要"治愈""根治"
-- `source_url` 选线索里给的 html 链接，不要 PDF；源不是网页的给主站 https://science.nasa.gov/
+- 细胞、动物或体外研究必须明确其证据层级，不能写成已经在人类身上证实；人类研究也要说明它是观察、关联还是干预证据
+- 绝不把相关性写成因果关系；没有直接实验或干预证据时，要使用“相关”“可能”“提示”等谨慎表述
+- 不要承诺疗效、不要医学建议、不要诊断或治疗建议，也不要"治愈""根治"
+- `source_url` 选线索里给的 html 链接，不要 PDF；源不是网页的给 NIH Research Matters 主站 https://www.nih.gov/news-events/nih-research-matters
 - 字符串里要打引号的地方用全角 `“”`，**绝不能用转义 `\"`**
-- 如果 user 消息末尾有【已覆盖链接】块，**禁止**基于这些 URL 的报道改写新题（换个标题重写同一篇报道也是重复）；改用其他未覆盖的线索，或用科学知识库造一条老波选题
+- 如果 user 消息末尾有【已覆盖链接】块，**禁止**基于这些 URL 的报道改写新题（换个标题重写同一篇报道也是重复）；改用其他未覆盖的线索，或用生命科学知识库造一条老波选题
 
 【平衡要求】（关键）
 - 如果 user 消息末尾有【当前分类分布】块：5 条里**至少 2 条要覆盖【低于 3 条的分类】中列出的低分类**
 - 优先级：低分类 > 现有足够分类
-- 如果外部线索里某条不够反常识 / 不适合你需要的低分类，**你有权完全不用外部线索，调用你的科学知识库**造一条符合老波风格的题目：仅需满足"标题反常识、angle 有画面感、面向睡前听众"、以一个**真实科学概念**为基础（不编造不存在的物理/天文现象）
-- 造题时：`source` 写 "老波选题 2026-06-08"，`source_url` 写 "https://science.nasa.gov/"（避免编造看起来很权威的外部链接）
+- 如果外部线索里某条不够反常识 / 不适合你需要的低分类，**你有权完全不用外部线索，调用你的生命科学知识库**造一条符合老波风格的题目：仅需满足"标题反常识、angle 有画面感、面向睡前听众"、以一个**真实生命科学概念**为基础（不编造不存在的生命现象）
+- 造题时：`source` 写 "生命科学选题 {TODAY}"，`source_url` 写 "https://www.nih.gov/news-events/nih-research-matters"（避免编造看起来很权威的外部链接）
 - 5 条里**最多 3 条可以用老波选题**，至少 2 条**必须**覆盖低分类（要么外部线索支持、要么你造）
 '''
 
@@ -219,8 +203,8 @@ def build_prompt(raw_items, category_status='', covered_urls=()):
 
     category_status: 形如：
         【当前分类分布】
-        恒星=6  太阳系=5  宇宙=5  黑洞=4  时间=3
-        ⚠️ 低于 3 条的分类（需优先补足）: 暗物质, 生命, 观测, 量子, 地球
+        细胞=6  遗传=5  神经=5  免疫=4  植物=3
+        ⚠️ 低于 3 条的分类（需优先补足）: 衰老, 微生物, 演化, 生态, 动物行为
     空字符串则不发该块。
 
     covered_urls: 已在 topic_recommendations.json 里的 source_url 集合。
@@ -253,15 +237,19 @@ def count_categories(existing, target=3):
 
     Returns: (status_block, low_categories)
         status_block: 可拼到 prompt 末尾的多行文本
-        low_categories: ['暗物质', '生命', ...]  低于 target 条的分类
+        low_categories: ['细胞', '遗传', ...]  低于 target 条的分类
     """
     from collections import Counter
-    c = Counter(t.get('category', '?') for t in existing)
+    c = Counter({category: 0 for category in BIOLOGY_CATEGORIES})
+    c.update(
+        t.get('category')
+        for t in existing
+        if t.get('category') in BIOLOGY_CATEGORIES
+    )
     lines = ['【当前分类分布】']
     for cat, n in sorted(c.items(), key=lambda x: (-x[1], x[0])):
         lines.append(f'  {cat} = {n}')
-    low = [cat for cat, n in c.items() if n < target]
-    # 按 c.items() 的原顺序，低分类在[] 里也保持现存顺序
+    low = [cat for cat in BIOLOGY_CATEGORIES if c[cat] < target]
     if low:
         lines.append(f'  ⚠️ 低于 {target} 条的分类（需优先补足）: {", ".join(low)}')
     return '\n'.join(lines), low
@@ -422,12 +410,16 @@ def parse_topics_json(content):
         angle = (raw.get('angle') or '').strip()
         if not title or not angle:
             continue
+        category = (raw.get('category') or '细胞').strip()[:20]
+        if category not in BIOLOGY_CATEGORIES:
+            category = '细胞'
         cleaned.append({
             'title': title[:60],
-            'category': (raw.get('category') or '宇宙').strip()[:20],
+            'category': category,
             'angle': angle[:120],
-            'source': (raw.get('source') or 'NASA').strip()[:80],
-            'source_url': (raw.get('source_url') or 'https://science.nasa.gov/').strip()[:300],
+            'source': (raw.get('source') or '生命科学选题').strip()[:80],
+            'source_url': (raw.get('source_url') or
+                           'https://www.nih.gov/news-events/nih-research-matters').strip()[:300],
             'evergreen': False,
             'updated_at': TODAY,
         })
