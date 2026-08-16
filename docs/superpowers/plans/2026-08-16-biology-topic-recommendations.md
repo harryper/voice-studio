@@ -149,20 +149,12 @@ from scripts import refresh_topics
 EXPECTED = ('细胞', '遗传', '衰老', '神经', '微生物', '免疫', '演化', '生态', '植物', '动物行为')
 
 class BiologyRefreshTests(unittest.TestCase):
-    def test_sources_and_taxonomy_are_biology_specific(self):
+    def test_source_catalog_routes_only_to_biology_feeds(self):
+        urls = [source['url'] for source in refresh_topics.SOURCES]
         self.assertEqual(refresh_topics.BIOLOGY_CATEGORIES, EXPECTED)
-        names = ' '.join(source['name'] for source in refresh_topics.SOURCES)
-        self.assertIn('NIH', names)
-        self.assertIn('Nature Biology', names)
-        self.assertNotIn('NASA', names)
-        self.assertNotIn('astro-ph', names)
-
-    def test_prompt_contains_scientific_safety_rules(self):
-        guide = refresh_topics.STYLE_GUIDE
-        self.assertIn('动物实验', guide)
-        self.assertIn('相关性', guide)
-        self.assertIn('诊疗建议', guide)
-        self.assertNotIn('太阳系 / 宇宙', guide)
+        self.assertTrue(any('nih.gov' in url for url in urls))
+        self.assertTrue(any('nature.com' in url for url in urls))
+        self.assertTrue(all('nasa.gov' not in url and 'astro-ph' not in url for url in urls))
 
     def test_category_balance_includes_categories_absent_from_pool(self):
         status, low = refresh_topics.count_categories([{'category': '细胞'}], target=3)
@@ -177,13 +169,21 @@ class BiologyRefreshTests(unittest.TestCase):
         }], ensure_ascii=False))
         self.assertEqual(parsed[0]['category'], '细胞')
         self.assertIn('nih.gov', parsed[0]['source_url'])
+
+    def test_parser_rejects_non_biology_category(self):
+        parsed = refresh_topics.parse_topics_json(json.dumps([{
+            'title': '细胞里面也有一套垃圾分类系统',
+            'category': '黑洞',
+            'angle': '从溶酶体讲到细胞如何拆解并循环利用旧零件'
+        }], ensure_ascii=False))
+        self.assertEqual(parsed[0]['category'], '细胞')
 ```
 
 - [ ] **Step 2: Run the policy tests and confirm failure**
 
 Run: `python -m unittest tests.test_refresh_topics_biology -v`
 
-Expected: FAIL because `BIOLOGY_CATEGORIES` is absent and the current script is astronomy-specific.
+Expected: FAIL because `BIOLOGY_CATEGORIES` is absent, astronomy feeds are configured, absent categories are not balanced, and parser defaults are astronomy-specific.
 
 - [ ] **Step 3: Replace the source catalog and taxonomy**
 
@@ -221,6 +221,8 @@ In `parse_topics_json()`, use these defaults:
 'source': (raw.get('source') or '生命科学选题').strip()[:80],
 'source_url': (raw.get('source_url') or 'https://www.nih.gov/news-events/nih-research-matters').strip()[:300],
 ```
+
+Normalize any model-supplied category outside `BIOLOGY_CATEGORIES` to `细胞`, so astronomy or invented categories cannot enter the saved pool.
 
 Update `count_categories()` to initialize counts from every value in `BIOLOGY_CATEGORIES`, so missing categories appear with zero and are treated as low coverage.
 
