@@ -16,12 +16,16 @@ import os
 import random
 import re
 import socket
+import string
 import sys
+import tempfile
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from urllib.parse import urlsplit, urlunsplit
 
 # ── 路径 / 配置 ───────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -43,11 +47,32 @@ TODAY = datetime.now().strftime('%Y-%m-%d')
 # 每条 (name, url, kind, count)；统一按 RSS/Atom 解析。
 BIOLOGY_CATEGORIES = ('细胞', '遗传', '衰老', '神经', '微生物', '免疫', '演化', '生态', '植物', '动物行为')
 
+# 知识库补位必须使用与分类匹配的稳定权威解说页。每类一个 URL，既防止模型
+# 编造来源，也避免所有补位主题撞在同一个通用主页上。
+CURATED_FALLBACK_URLS = {
+    '细胞': 'https://www.genome.gov/genetics-glossary/Cell',
+    '遗传': 'https://www.genome.gov/genetics-glossary/Gene',
+    '衰老': 'https://www.ncbi.nlm.nih.gov/books/NBK10041/',
+    '神经': 'https://www.ncbi.nlm.nih.gov/books/NBK10799/',
+    '微生物': 'https://www.ncbi.nlm.nih.gov/books/NBK560448/',
+    '免疫': 'https://www.ncbi.nlm.nih.gov/books/NBK279364/',
+    '演化': 'https://www.ncbi.nlm.nih.gov/books/NBK230201/',
+    '生态': 'https://www.ncbi.nlm.nih.gov/books/NBK217802/',
+    '植物': 'https://www.ncbi.nlm.nih.gov/books/NBK217808/',
+    '动物行为': 'https://www.ncbi.nlm.nih.gov/books/NBK224378/',
+}
+CURATED_FALLBACK_GUIDE = '\n'.join(
+    f'  {category} => {url}'
+    for category, url in CURATED_FALLBACK_URLS.items()
+)
+
 SOURCES = [
-    # NIH currently publishes this URL from the Research Matters page; it replaces
-    # the former /news-events/nih-research-matters/rss.xml endpoint.
-    {'name': 'NIH Research Matters', 'kind': 'rss', 'count': 4,
-     'url': 'https://www.nih.gov/nih-research-matters/feed.xml'},
+    # NIH's main Research Matters feed returns 403 to this runtime. NIEHS is an
+    # official NIH institute; this biology/environmental-health research feed is
+    # current and reachable from the refresh client.
+    {'name': 'NIEHS Published Research', 'kind': 'rss', 'count': 4,
+     'url': ('https://www.niehs.nih.gov/news/newsroom/rssfeed/'
+             'rss_recently_published_research.xml')},
     {'name': 'Nature Biology', 'kind': 'rss', 'count': 4,
      'url': 'https://www.nature.com/subjects/biological-sciences.rss'},
     # Cell's planned current.rss endpoint rejected the refresh client with 403;
@@ -59,6 +84,9 @@ SOURCES = [
     {'name': 'eLife', 'kind': 'rss', 'count': 3,
      'url': 'https://elifesciences.org/rss/recent.xml'},
 ]
+
+RSS1_NAMESPACE = 'http://purl.org/rss/1.0/'
+ATOM_NAMESPACE = 'http://www.w3.org/2005/Atom'
 
 # ── 抓取层 ────────────────────────────────────────────────────
 def _http_get(url, timeout=HTTP_TIMEOUT):
@@ -80,19 +108,27 @@ def _parse_rss(xml_bytes, source_name, count):
         return items
 
     # RSS 2.0: <rss><channel><item>
-    # Atom:   <feed><entry>
-    candidates = root.findall('.//item') or root.findall('.//{http://www.w3.org/2005/Atom}entry')
+    # RSS 1.0: <rdf:RDF><item>（item 和字段都在默认 RSS 1.0 namespace）
+    # Atom:    <feed><entry>
+    candidates = (
+        root.findall('.//item')
+        or root.findall(f'.//{{{RSS1_NAMESPACE}}}item')
+        or root.findall(f'.//{{{ATOM_NAMESPACE}}}entry')
+    )
     for it in candidates:
         title = (it.findtext('title') or
-                 it.findtext('{http://www.w3.org/2005/Atom}title') or '').strip()
+                 it.findtext(f'{{{RSS1_NAMESPACE}}}title') or
+                 it.findtext(f'{{{ATOM_NAMESPACE}}}title') or '').strip()
         link = (it.findtext('link') or
-                it.findtext('{http://www.w3.org/2005/Atom}link') or '').strip()
+                it.findtext(f'{{{RSS1_NAMESPACE}}}link') or
+                it.findtext(f'{{{ATOM_NAMESPACE}}}link') or '').strip()
         if not link:
-            atom_link = it.find('{http://www.w3.org/2005/Atom}link')
+            atom_link = it.find(f'{{{ATOM_NAMESPACE}}}link')
             if atom_link is not None:
                 link = atom_link.attrib.get('href', '').strip()
         desc = (it.findtext('description') or
-                it.findtext('{http://www.w3.org/2005/Atom}summary') or '').strip()
+                it.findtext(f'{{{RSS1_NAMESPACE}}}description') or
+                it.findtext(f'{{{ATOM_NAMESPACE}}}summary') or '').strip()
         if not title:
             continue
         # 简单清理 HTML 标签和多余空白
@@ -184,7 +220,7 @@ STYLE_GUIDE = f'''你是"老波"——一个生命科学科普频道的助眠主
 - 细胞、动物或体外研究必须明确其证据层级，不能写成已经在人类身上证实；人类研究也要说明它是观察、关联还是干预证据
 - 绝不把相关性写成因果关系；没有直接实验或干预证据时，要使用“相关”“可能”“提示”等谨慎表述
 - 不要承诺疗效、不要医学建议、不要诊断或治疗建议，也不要"治愈""根治"
-- `source_url` 选线索里给的 html 链接，不要 PDF；源不是网页的给 NIH Research Matters 主站 https://www.nih.gov/news-events/nih-research-matters
+- `source_url` 只能逐字使用 user 消息中某条线索的 html 链接，或使用下方与 category 对应的知识库补位链接；严禁编造或改写 URL
 - 字符串里要打引号的地方用全角 `“”`，**绝不能用转义 `\"`**
 - 如果 user 消息末尾有【已覆盖链接】块，**禁止**基于这些 URL 的报道改写新题（换个标题重写同一篇报道也是重复）；改用其他未覆盖的线索，或用生命科学知识库造一条老波选题
 
@@ -192,7 +228,8 @@ STYLE_GUIDE = f'''你是"老波"——一个生命科学科普频道的助眠主
 - 如果 user 消息末尾有【当前分类分布】块：5 条里**至少 2 条要覆盖【低于 3 条的分类】中列出的低分类**
 - 优先级：低分类 > 现有足够分类
 - 如果外部线索里某条不够反常识 / 不适合你需要的低分类，**你有权完全不用外部线索，调用你的生命科学知识库**造一条符合老波风格的题目：仅需满足"标题反常识、angle 有画面感、面向睡前听众"、以一个**真实生命科学概念**为基础（不编造不存在的生命现象）
-- 造题时：`source` 写 "生命科学选题 {TODAY}"，`source_url` 写 "https://www.nih.gov/news-events/nih-research-matters"（避免编造看起来很权威的外部链接）
+- 造题时：`source` 写 "生命科学选题 {TODAY}"，`source_url` 必须从下面选与 `category` 同一行的 URL：
+{CURATED_FALLBACK_GUIDE}
 - 5 条里**最多 3 条可以用老波选题**，至少 2 条**必须**覆盖低分类（要么外部线索支持、要么你造）
 '''
 
@@ -340,7 +377,7 @@ def call_minimax(raw_items, category_status='', covered_urls=()):
             content = ''.join(b.get('text', '') for b in text_blocks).strip()
             if not content and not text_blocks:
                 raise RuntimeError(f'真请求响应体里没有 type=text 块: {str(resp)[:200]}')
-            return parse_topics_json(content)
+            return parse_topics_json(content, raw_items=raw_items)
         except urllib.error.HTTPError as e:
             last_err = e
             # 4xx 客户端错不重试；5xx / 529（Anthropic 限流） 重试
@@ -366,22 +403,67 @@ def call_minimax(raw_items, category_status='', covered_urls=()):
 
 _JSON_FENCE = re.compile(r'```(?:json)?\s*(\[[\s\S]*?\])\s*```', re.IGNORECASE)
 
-# 标题 strip：删掉所有中文标点，让标题可作为博客标题直接复制。
-# 英文/ASCII 标点保留（本场景下不会出现）。
-_TITLE_PUNCT_RE = re.compile(r'[，。；：！？、——……“”‘’`《》、·]')
-# Markdown 符号也禁
-_TITLE_MD_RE = re.compile(r'[*#_`]')
+_PROMISE_WORDING_RE = re.compile(
+    r'治愈|根治|包治|治好|疗效显著|药到病除|永不复发|百分之百有效|百分百有效|'
+    r'彻底康复|彻底逆转|保证(?:疗效|有效|治愈|康复)|一定能|肯定能'
+)
 
 def _clean_title(t):
-    if not t:
+    """移除 Unicode 与 ASCII 标点，供严格校验和最终标准化复用。"""
+    if not isinstance(t, str) or not t:
         return ''
-    s = _TITLE_PUNCT_RE.sub('', t)
-    s = _TITLE_MD_RE.sub('', s)
+    s = ''.join(
+        '' if ch in string.punctuation or unicodedata.category(ch).startswith('P') else ch
+        for ch in t
+    )
     s = re.sub(r'\s+', ' ', s).strip()
     return s
 
-def parse_topics_json(content):
-    """从 M3 回复里抽 JSON 数组；容错处理 markdown 围栏和前后杂质。"""
+def _normalize_url(url):
+    """返回用于来源校验/去重的 HTTPS URL；非法 URL 返回空字符串。"""
+    if not isinstance(url, str):
+        return ''
+    try:
+        parsed = urlsplit(url.strip())
+    except ValueError:
+        return ''
+    if parsed.scheme.lower() != 'https' or not parsed.hostname:
+        return ''
+    if parsed.username or parsed.password:
+        return ''
+    path = parsed.path.rstrip('/') or '/'
+    netloc = parsed.netloc.lower()
+    return urlunsplit(('https', netloc, path, parsed.query, ''))
+
+
+def _dedupe_url(url):
+    """沿用推荐池的文章去重语义：忽略 query string 与尾部斜杠。"""
+    normalized = _normalize_url(url)
+    return normalized.split('?', 1)[0] if normalized else ''
+
+
+def _allowed_source_provenance(raw_items):
+    """生成 URL -> 合法 source 集合，并加入显式策展的分类补位来源。"""
+    allowed = {}
+    for item in raw_items or ():
+        if not isinstance(item, dict):
+            continue
+        url = _normalize_url(item.get('link'))
+        source = item.get('source')
+        if not url or not isinstance(source, str) or not source.strip():
+            continue
+        source = source.strip()
+        allowed.setdefault(url, set()).update((source, f'{source} {TODAY}'))
+    for url in CURATED_FALLBACK_URLS.values():
+        allowed[_normalize_url(url)] = {
+            '生命科学选题',
+            f'生命科学选题 {TODAY}',
+        }
+    return allowed
+
+
+def parse_topics_json(content, raw_items=()):
+    """从 M3 回复抽取并严格验证完整的五条 topic 批次。"""
     s = content.strip()
     # 1) 先抓 ```json [...] ``` 围栏
     m = _JSON_FENCE.search(s)
@@ -399,30 +481,69 @@ def parse_topics_json(content):
         raise RuntimeError(f'M3 返回不是合法 JSON: {e}; head={content[:200]!r}') from e
     if not isinstance(arr, list):
         raise RuntimeError(f'M3 返回根不是数组: {type(arr).__name__}')
+    if len(arr) != NEW_TOPICS_PER_RUN:
+        raise RuntimeError(
+            f'M3 必须返回 {NEW_TOPICS_PER_RUN} 条 topic，实际 {len(arr)} 条')
 
+    allowed_sources = _allowed_source_provenance(raw_items)
+    fallback_categories = {
+        _normalize_url(url): category
+        for category, url in CURATED_FALLBACK_URLS.items()
+    }
     cleaned = []
-    for raw in arr[:NEW_TOPICS_PER_RUN]:
+    seen_titles = set()
+    seen_urls = set()
+    for index, raw in enumerate(arr, 1):
         if not isinstance(raw, dict):
-            continue
-        title = _clean_title(raw.get('title'))
-        angle = (raw.get('angle') or '').strip()
-        if not title or not angle:
-            continue
-        category = (raw.get('category') or '细胞').strip()[:20]
+            raise RuntimeError(f'M3 第 {index} 条 topic 不是对象')
+        raw_title = raw.get('title')
+        title = _clean_title(raw_title)
+        if not title or title != raw_title.strip():
+            raise RuntimeError(f'M3 第 {index} 条标题为空或含标点')
+        if _PROMISE_WORDING_RE.search(title):
+            raise RuntimeError(f'M3 第 {index} 条标题含疗效承诺或夸大表述')
+        angle = raw.get('angle')
+        if not isinstance(angle, str) or not angle.strip():
+            raise RuntimeError(f'M3 第 {index} 条 angle 为空或不是字符串')
+        angle = angle.strip()
+        category = raw.get('category') or '细胞'
+        if not isinstance(category, str):
+            raise RuntimeError(f'M3 第 {index} 条 category 不是字符串')
+        category = category.strip()[:20]
         if category not in BIOLOGY_CATEGORIES:
-            category = '细胞'
+            raise RuntimeError(f'M3 第 {index} 条 category 不在允许范围: {category!r}')
+        source = raw.get('source') or '生命科学选题'
+        if not isinstance(source, str) or not source.strip():
+            raise RuntimeError(f'M3 第 {index} 条 source 为空或不是字符串')
+        source = source.strip()[:80]
+        source_url = raw.get('source_url') or CURATED_FALLBACK_URLS[category]
+        normalized_url = _normalize_url(source_url)
+        if not normalized_url:
+            raise RuntimeError(f'M3 第 {index} 条 source_url 不是合法 HTTPS URL')
+        if normalized_url not in allowed_sources:
+            raise RuntimeError(f'M3 第 {index} 条 source_url 不来自抓取线索或策展列表')
+        fallback_category = fallback_categories.get(normalized_url)
+        if fallback_category and fallback_category != category:
+            raise RuntimeError(
+                f'M3 第 {index} 条知识库 URL 与 category 不匹配')
+        if source not in allowed_sources[normalized_url]:
+            raise RuntimeError(f'M3 第 {index} 条 source 与来源 URL 不匹配')
+        if title in seen_titles:
+            raise RuntimeError(f'M3 第 {index} 条标题与批次内其他 topic 重复')
+        dedupe_url = _dedupe_url(source_url)
+        if dedupe_url in seen_urls:
+            raise RuntimeError(f'M3 第 {index} 条 URL 与批次内其他 topic 重复')
+        seen_titles.add(title)
+        seen_urls.add(dedupe_url)
         cleaned.append({
             'title': title[:60],
             'category': category,
             'angle': angle[:120],
-            'source': (raw.get('source') or '生命科学选题').strip()[:80],
-            'source_url': (raw.get('source_url') or
-                           'https://www.nih.gov/news-events/nih-research-matters').strip()[:300],
+            'source': source,
+            'source_url': source_url.strip()[:300],
             'evergreen': False,
             'updated_at': TODAY,
         })
-    if len(cleaned) < 1:
-        raise RuntimeError('M3 返回 0 条有效 topic')
     return cleaned
 
 # ── 落盘 / 降级 ──────────────────────────────────────────────
@@ -437,6 +558,27 @@ def load_existing():
         print(f'  [warn] 现有 topic_recommendations.json 读不出来: {e}', file=sys.stderr)
         return []
 
+
+def _atomic_write_topics(topics):
+    """在目标同目录完成 fsync 后原子替换，失败时保留原文件。"""
+    target_path = os.path.abspath(TOPICS_PATH)
+    target_dir = os.path.dirname(target_path)
+    prefix = f'.{os.path.basename(target_path)}.'
+    fd, temp_path = tempfile.mkstemp(
+        dir=target_dir, prefix=prefix, suffix='.tmp')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as topic_file:
+            json.dump(topics, topic_file, ensure_ascii=False, indent=2)
+            topic_file.flush()
+            os.fsync(topic_file.fileno())
+        os.replace(temp_path, target_path)
+    except Exception:
+        try:
+            os.unlink(temp_path)
+        except FileNotFoundError:
+            pass
+        raise
+
 def merge_and_write(new_topics, existing):
     """按 title + source_url 双键去重，新条目 prepend并保持稳定在最前，cap 在 MAX_TOPICS。
 
@@ -445,8 +587,8 @@ def merge_and_write(new_topics, existing):
     2) 原有的常青条目（evergreen=True 优先）
     3) 原有的非常青条目（按 updated_at 倒序，最近用的靠前）
 
-    尾部老化下沉：每次 refresh 丢掉 rest 里 2 条最老的非 evergreen，
-    让 list 看起来在动，即使本次 added=0（dedup 全命中）也有可见变化。
+    只由 MAX_TOPICS 截断淘汰旧热点；30 条满池里每接受一条新题才淘汰一条，
+    去重全命中时不缩池。
     """
     seen_titles = set()
     seen_urls = set()
@@ -474,16 +616,6 @@ def merge_and_write(new_topics, existing):
 
     rest = list(existing)  # 不包括新条目
 
-    # 尾部老化下沉：丢 2 条最老的非 evergreen。evergreen 一律保留。
-    non_ev = [t for t in rest if not t.get('evergreen')]
-    non_ev.sort(key=lambda x: x.get('updated_at', ''))
-    dropped = non_ev[:2]
-    drop_ids = {id(t) for t in dropped}
-    rest = [t for t in rest if id(t) not in drop_ids]
-    if dropped:
-        oldest = dropped[-1].get('updated_at', '?')
-        print(f'[refresh_topics] 尾部老化下沉 {len(dropped)} 条（最老 {oldest}）', file=sys.stderr)
-
     # rest 内部：evergreen 优先，updated_at 倒序
     rest.sort(key=lambda x: (
         not bool(x.get('evergreen')),                    # False(0)=evergreen 排前
@@ -493,25 +625,24 @@ def merge_and_write(new_topics, existing):
 
     combined = fresh + rest
     trimmed = combined[:MAX_TOPICS]
-    with open(TOPICS_PATH, 'w', encoding='utf-8') as f:
-        json.dump(trimmed, f, ensure_ascii=False, indent=2)
+    _atomic_write_topics(trimmed)
     return len(fresh), len(trimmed)
 
 def fallback_shuffle():
-    """外网或 LLM 失败时降级：洗牌 + 刷 updated_at。"""
+    """外网或 LLM 失败时降级：组内洗牌 + 刷 updated_at。"""
     existing = load_existing()
     if not existing:
-        with open(TOPICS_PATH, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
+        _atomic_write_topics([])
         return {'mode': 'shuffle', 'added': 0, 'total': 0, 'note': 'no existing'}
-    pool = [dict(t) for t in existing]
-    random.shuffle(pool)
+    evergreen = [dict(t) for t in existing if t.get('evergreen')]
+    hot = [dict(t) for t in existing if not t.get('evergreen')]
+    random.shuffle(evergreen)
+    random.shuffle(hot)
+    pool = evergreen + hot
     for t in pool:
         t['updated_at'] = TODAY
-    pool.sort(key=lambda x: (not bool(x.get('evergreen')), x.get('title', '')))
     pool = pool[:MAX_TOPICS]
-    with open(TOPICS_PATH, 'w', encoding='utf-8') as f:
-        json.dump(pool, f, ensure_ascii=False, indent=2)
+    _atomic_write_topics(pool)
     return {'mode': 'shuffle', 'added': 0, 'total': len(pool), 'note': 'fallback'}
 
 # ── 主流程 ────────────────────────────────────────────────────
