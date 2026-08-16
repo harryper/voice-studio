@@ -9,7 +9,10 @@ TOPICS = json.loads((ROOT / 'topic_recommendations.json').read_text(encoding='ut
 REQUIRED = {'title', 'category', 'angle', 'source', 'source_url', 'evergreen', 'updated_at'}
 CATEGORIES = {'细胞', '遗传', '衰老', '神经', '微生物', '免疫', '演化', '生态', '植物', '动物行为'}
 TITLE_PUNCT = re.compile(r'[，。；：！？、—…“”‘’`《》·,.?!:\-*#_]')
-PROMISE_WORDING = re.compile(r'治愈|根治|包治|保证疗效')
+PROMISE_WORDING = re.compile(
+    r'治愈|根治|包治|治好|疗效显著|药到病除|永不复发|百分之百有效|百分百有效|'
+    r'彻底康复|保证(?:疗效|有效|治愈|康复)'
+)
 AUTHORITATIVE_DOMAINS = {
     'cdc.gov',
     'cell.com',
@@ -21,12 +24,32 @@ AUTHORITATIVE_DOMAINS = {
     'sciencedirect.com',
     'who.int',
 }
+SOURCE_DOMAINS = {
+    'NIH': 'nih.gov',
+    'Nature': 'nature.com',
+    'Science': 'science.org',
+    'Cell': 'cell.com',
+    'eLife': 'elifesciences.org',
+    'bioRxiv': 'biorxiv.org',
+    'PNAS': 'pnas.org',
+}
 
 
 def is_authoritative(hostname):
     hostname = (hostname or '').lower().rstrip('.')
     return any(hostname == domain or hostname.endswith('.' + domain)
                for domain in AUTHORITATIVE_DOMAINS)
+
+
+def source_domain(source):
+    source_lower = source.lower()
+    return next((domain for label, domain in SOURCE_DOMAINS.items()
+                 if label.lower() in source_lower), None)
+
+
+def host_matches_domain(hostname, domain):
+    hostname = (hostname or '').lower().rstrip('.')
+    return hostname == domain or hostname.endswith('.' + domain)
 
 
 class TopicRecommendationTests(unittest.TestCase):
@@ -47,8 +70,10 @@ class TopicRecommendationTests(unittest.TestCase):
         urls = [item['source_url'] for item in hot]
         parsed = [urlparse(url) for url in urls]
         self.assertTrue(all(url.scheme == 'https' for url in parsed))
-        self.assertTrue(all(is_authoritative(url.hostname) for url in parsed))
         self.assertTrue(all(url.path and url.path != '/' for url in parsed))
+        self.assertTrue(all(source_domain(item['source']) for item in hot))
+        self.assertTrue(all(host_matches_domain(url.hostname, source_domain(item['source']))
+                            for item, url in zip(hot, parsed)))
         self.assertEqual(len(urls), len(set(urls)))
 
     def test_evergreen_sources_are_stable_authoritative_explainers(self):
