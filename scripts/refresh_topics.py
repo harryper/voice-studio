@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-刷新"热门主题推荐"：从 NIH、Nature、Science 等生命科学媒体真采原始线索，
+刷新"热门主题推荐"：从 NIH、Nature 等生命科学媒体真采原始线索，
 调用 OpenClaw 默认模型 MiniMax-M3（走 Anthropic Messages 协议）改写为
 "老波"风格的助眠科普中文选题，落到本地 topic_recommendations.json。
 
 行为：
-- 拉取 NIH Research Matters、Nature Biology、Science、PLOS Biology、bioRxiv、eLife 等 RSS/Atom 源
+- 拉取 NIH Research Matters、Nature Biology、PLOS Biology、bioRxiv、eLife 等 RSS/Atom 源
 - 把这些原始英文/科学新闻塞进 prompt，让 M3 按老波风格改写为 5 条
 - 按 title 去重，prepend 进现有 30 条，cap 在 30
 - 任何一步失败（外网抖 / M3 限流 / JSON 解析不出来）都降级到洗牌，绝不静默失败
@@ -50,8 +50,6 @@ SOURCES = [
      'url': 'https://www.nih.gov/nih-research-matters/feed.xml'},
     {'name': 'Nature Biology', 'kind': 'rss', 'count': 4,
      'url': 'https://www.nature.com/subjects/biological-sciences.rss'},
-    {'name': 'Science', 'kind': 'rss', 'count': 3,
-     'url': 'https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science'},
     # Cell's planned current.rss endpoint rejected the refresh client with 403;
     # PLOS Biology is an official, currently fetchable biology-only Atom feed.
     {'name': 'PLOS Biology', 'kind': 'rss', 'count': 3,

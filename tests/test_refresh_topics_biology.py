@@ -5,15 +5,20 @@ from scripts import refresh_topics
 
 
 EXPECTED = ('细胞', '遗传', '衰老', '神经', '微生物', '免疫', '演化', '生态', '植物', '动物行为')
+APPROVED_BIOLOGY_FEEDS = {
+    'https://www.nih.gov/nih-research-matters/feed.xml',
+    'https://www.nature.com/subjects/biological-sciences.rss',
+    'https://journals.plos.org/plosbiology/feed/atom',
+    'https://connect.biorxiv.org/biorxiv_xml.php?subject=all',
+    'https://elifesciences.org/rss/recent.xml',
+}
 
 
 class BiologyRefreshTests(unittest.TestCase):
     def test_source_catalog_routes_only_to_biology_feeds(self):
         urls = [source['url'] for source in refresh_topics.SOURCES]
         self.assertEqual(refresh_topics.BIOLOGY_CATEGORIES, EXPECTED)
-        self.assertTrue(any('nih.gov' in url for url in urls))
-        self.assertTrue(any('nature.com' in url for url in urls))
-        self.assertTrue(all('nasa.gov' not in url and 'astro-ph' not in url for url in urls))
+        self.assertSetEqual(set(urls), APPROVED_BIOLOGY_FEEDS)
 
     def test_category_balance_includes_categories_absent_from_pool(self):
         status, low = refresh_topics.count_categories([{'category': '细胞'}], target=3)
