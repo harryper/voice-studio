@@ -32,6 +32,7 @@ SOURCE_DOMAINS = {
     'eLife': 'elifesciences.org',
     'bioRxiv': 'biorxiv.org',
     'PNAS': 'pnas.org',
+    'PLOS': 'journals.plos.org',
 }
 
 

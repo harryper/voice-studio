@@ -173,6 +173,11 @@ voice-studio/
 
 ## 常见问题
 
+**运行测试**
+```bash
+python3 -m pytest -q
+```
+
 **Q: 页面打不开**
 ```bash
 # Docker 链路

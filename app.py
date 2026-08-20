@@ -4,11 +4,18 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # Windows dev server: one process, guarded by thread locks below.
+    fcntl = None
 
 # Force Asia/Shanghai so datetime.now() / isoformat() write local wall-clock
 # time into job.json `updated_at` (and any other persisted timestamps).
@@ -74,6 +81,8 @@ LOCAL_ARTIFACT_RETENTION_SECONDS = CONF['local_artifact_retention_hours'] * 3600
 LOCAL_ARTIFACT_CLEANUP_INTERVAL_SECONDS = 6 * 3600
 _local_artifact_cleanup_lock = threading.Lock()
 _last_local_artifact_cleanup = 0.0
+_job_thread_locks = {}
+_job_thread_locks_guard = threading.Lock()
 BGM_DIR = SKILL_DIR / 'bgm'
 BGM_DIR.mkdir(exist_ok=True)
 
@@ -150,11 +159,40 @@ def job_path(job_id, mode=None):
         mode = 'cover'
     return os.path.join(job_dir(mode), f'{job_id}.json')
 
+def _atomic_write_json(target, data):
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_name = tempfile.mkstemp(
+        prefix=f'.{target.name}.', suffix='.tmp', dir=str(target.parent)
+    )
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temp_name, target)
+        try:
+            flags = os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0)
+            directory_fd = os.open(str(target.parent), flags)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError:
+            # Some platforms do not allow opening/fsyncing directories.
+            pass
+    except Exception:
+        try:
+            os.unlink(temp_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def save_job(job):
     job['updated_at'] = datetime.now().isoformat()
     mode = job.get('mode', 'voice')
-    with open(job_path(job['id'], mode), 'w', encoding='utf-8') as f:
-        json.dump(job, f, ensure_ascii=False, indent=2)
+    _atomic_write_json(job_path(job['id'], mode), job)
 
 def load_job(job_id, mode=None):
     p = job_path(job_id, mode)
@@ -162,6 +200,39 @@ def load_job(job_id, mode=None):
         return None
     with open(p, encoding='utf-8') as f:
         return json.load(f)
+
+
+@contextmanager
+def job_lock(job_id, mode=None):
+    """Serialize read-modify-write operations for one job across workers."""
+    target = Path(job_path(job_id, mode))
+    lock_dir = target.parent / '.locks'
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = lock_dir / f'{target.name}.lock'
+    lock_key = str(lock_path.resolve())
+    with _job_thread_locks_guard:
+        thread_lock = _job_thread_locks.setdefault(lock_key, threading.Lock())
+    with thread_lock, lock_path.open('a+') as lock:
+        if fcntl is not None:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if fcntl is not None:
+                fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def mutate_job(job_id, mutator, mode=None):
+    """Load, mutate, and atomically save a job under its process lock."""
+    with job_lock(job_id, mode):
+        job = load_job(job_id, mode)
+        if job is None:
+            return None
+        replacement = mutator(job)
+        if replacement is not None:
+            job = replacement
+        save_job(job)
+        return job
 
 def load_topic_recommendations():
     if not os.path.exists(TOPIC_RECOMMENDATIONS_PATH):
@@ -260,8 +331,7 @@ def archive_job(job):
         mode = 'cover'
     dest_dir = job_archive_dir(mode)
     dest = os.path.join(dest_dir, f'{job["id"]}.json')
-    with open(dest, 'w', encoding='utf-8') as f:
-        json.dump(job, f, ensure_ascii=False, indent=2)
+    _atomic_write_json(dest, job)
     os.remove(job_path(job['id'], mode))
 
 def is_relative_to(path, parent):
@@ -616,18 +686,8 @@ def get_job(job_id):
 @app.route('/api/jobs/<job_id>', methods=['PATCH'])
 def update_job(job_id):
     """主 session 更新任务状态，或用户编辑文稿"""
-    job = load_job(job_id)
-    if not job:
-        return jsonify({'error': '任务不存在'}), 404
-
     data = request.get_json() or {}
-
-    # 用户可能直接编辑文稿
-    if 'edited_script' in data:
-        job['edited_script'] = data['edited_script']
-
-    # 主 session 更新状态
-    for key in (
+    allowed_keys = (
         'status', 'script', 'edited_script', 'edited_lyrics',
         'style_description', 'style_tags', 'title',
         'reference_audio_url', 'reference_audio_name',
@@ -636,63 +696,69 @@ def update_job(job_id):
         'voice', 'bgm', 'bgm_asset',
         'audio_url', 'final_url', 'audio_path', 'audio_duration_ms',
         'error',
-    ):
-        if key in data:
-            job[key] = data[key]
+    )
 
-    save_job(job)
+    def apply_update(job):
+        for key in allowed_keys:
+            if key in data:
+                job[key] = data[key]
+
+    job = mutate_job(job_id, apply_update)
+    if not job:
+        return jsonify({'error': '任务不存在'}), 404
     return jsonify(job_response(job))
 
 @app.route('/api/jobs/<job_id>', methods=['DELETE'])
 def delete_job_api(job_id):
     """删除任务：从当前列表移除，并清理该任务生成的本地音频。"""
-    job = load_job(job_id)
-    if not job:
-        return jsonify({'error': '任务不存在'}), 404
-    delete_job(job)
+    with job_lock(job_id):
+        job = load_job(job_id)
+        if not job:
+            return jsonify({'error': '任务不存在'}), 404
+        delete_job(job)
     return jsonify({'ok': True})
 
 @app.route('/api/jobs/<job_id>/approve', methods=['POST'])
 def approve_job(job_id):
     """用户审批通过文稿；不自动进入 TTS。"""
-    job = load_job(job_id)
-    if not job:
-        return jsonify({'error': '任务不存在'}), 404
-
-    # 使用编辑后的文稿（如果有）
-    script = job.get('edited_script') or job.get('script')
-    if not script:
-        return jsonify({'error': '文稿为空，无法生成'}), 400
-
-    job['status'] = 'ready'
-    job['approved_at'] = datetime.now().isoformat()
-    save_job(job)
+    with job_lock(job_id):
+        job = load_job(job_id)
+        if not job:
+            return jsonify({'error': '任务不存在'}), 404
+        script = job.get('edited_script') or job.get('script')
+        if not script:
+            return jsonify({'error': '文稿为空，无法生成'}), 400
+        job['status'] = 'ready'
+        job['approved_at'] = datetime.now().isoformat()
+        save_job(job)
     return jsonify(job_response(job))
 
 @app.route('/api/jobs/<job_id>/retry', methods=['POST'])
 def retry_job(job_id):
     """重新创作（仅 theme 模式）"""
-    job = load_job(job_id)
-    if not job:
-        return jsonify({'error': '任务不存在'}), 404
-    cleanup_job_outputs(job)
-    job['status'] = 'pending'
-    for key in (
-        'script', 'edited_script', 'audio_url', 'final_url', 'audio_path',
-        'final_path', 'approved_at', 'error'
-    ):
-        job[key] = None
-    save_job(job)
+    with job_lock(job_id):
+        job = load_job(job_id)
+        if not job:
+            return jsonify({'error': '任务不存在'}), 404
+        cleanup_job_outputs(job)
+        job['status'] = 'pending'
+        for key in (
+            'script', 'edited_script', 'audio_url', 'final_url', 'audio_path',
+            'final_path', 'approved_at', 'error'
+        ):
+            job[key] = None
+        save_job(job)
     _trigger_writer()
     return jsonify(job_response(job))
 
 @app.route('/api/jobs/<job_id>/archive', methods=['POST'])
 def archive_job_api(job_id):
     """归档任务（主 session 在完成后调用）"""
-    job = load_job(job_id)
-    if not job:
-        return jsonify({'error': '任务不存在'}), 404
-    archive_job(job)
+    with job_lock(job_id):
+        job = load_job(job_id)
+        if not job:
+            return jsonify({'error': '任务不存在'}), 404
+        archive_job(job)
     return jsonify({'ok': True})
 
 # ── Music Endpoints ───────────────────────────────────────
@@ -709,19 +775,17 @@ def _run_lyrics_generation(job_id, full_prompt):
             raise RuntimeError(result.stderr or result.stdout or '歌词生成失败')
 
         lyrics_data = json.loads(result.stdout)
-        job = load_job(job_id)
-        job['lyrics'] = lyrics_data.get('lyrics', '')
-        job['edited_lyrics'] = None
-        job['title'] = lyrics_data.get('song_title', '') or job.get('title', '')
-        job['style_tags'] = lyrics_data.get('style_tags', '')
-        job['status'] = 'lyrics_ready'
-        job['error'] = None
-        save_job(job)
+        def apply_result(job):
+            job['lyrics'] = lyrics_data.get('lyrics', '')
+            job['edited_lyrics'] = None
+            job['title'] = lyrics_data.get('song_title', '') or job.get('title', '')
+            job['style_tags'] = lyrics_data.get('style_tags', '')
+            job['status'] = 'lyrics_ready'
+            job['error'] = None
+
+        mutate_job(job_id, apply_result)
     except Exception as exc:
-        job = load_job(job_id)
-        job['status'] = 'error'
-        job['error'] = str(exc)
-        save_job(job)
+        mutate_job(job_id, lambda job: job.update(status='error', error=str(exc)))
 
 
 @app.route('/api/jobs/<job_id>/generate-lyrics', methods=['POST'])
@@ -732,24 +796,25 @@ def generate_lyrics_api(job_id):
     in a background thread. The frontend should poll /api/jobs/<id> to follow
     progress and pick up the final status.
     """
-    job = load_job(job_id)
-    if not job:
-        return jsonify({'error': '任务不存在'}), 404
-    if job.get('mode') != 'music':
-        return jsonify({'error': '非音乐任务'}), 400
+    with job_lock(job_id):
+        job = load_job(job_id)
+        if not job:
+            return jsonify({'error': '任务不存在'}), 404
+        if job.get('mode') != 'music':
+            return jsonify({'error': '非音乐任务'}), 400
 
-    theme = job.get('theme', '')
-    if not theme:
-        return jsonify({'error': '主题为空'}), 400
+        theme = job.get('theme', '')
+        if not theme:
+            return jsonify({'error': '主题为空'}), 400
 
-    style_desc = (job.get('style_description') or '').strip()
-    full_prompt = theme
-    if style_desc:
-        full_prompt = f"{theme}\n\n风格描述：{style_desc}"
+        style_desc = (job.get('style_description') or '').strip()
+        full_prompt = theme
+        if style_desc:
+            full_prompt = f"{theme}\n\n风格描述：{style_desc}"
 
-    job['status'] = 'generating_lyrics'
-    job['error'] = None
-    save_job(job)
+        job['status'] = 'generating_lyrics'
+        job['error'] = None
+        save_job(job)
 
     threading.Thread(
         target=_run_lyrics_generation,
@@ -801,9 +866,10 @@ def generate_music_api(job_id):
         lyrics_path.write_text(lyrics_text, encoding='utf-8')
         cmd.extend(['--lyrics-file', str(lyrics_path)])
 
-    job['status'] = 'generating'
-    job['error'] = None
-    save_job(job)
+    job = mutate_job(
+        job_id,
+        lambda current: current.update(status='generating', error=None),
+    )
 
     def _run_music_generation():
         try:
@@ -896,33 +962,37 @@ def generate_music_api(job_id):
                 if lyrics_upload.returncode == 0:
                     lyrics_url = lyrics_upload.stdout.strip().splitlines()[-1].strip()
 
-            job['audio_path'] = str(output_path)
-            job['audio_url'] = audio_url
-            if lyrics_url:
-                job['lyrics_url'] = lyrics_url
-            job['status'] = 'done'
-            job['error'] = None
-            # Append this new generation to music_runs history
-            runs = list(job.get('music_runs') or [])
-            for r in runs:
-                r['is_current'] = False
-            runs.append({
-                'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-                'audio_url': audio_url,
-                'lyrics_url': lyrics_url,
-                'lyrics': lyrics_text,
-                'audio_duration_ms': job.get('audio_duration_ms'),
-                'audio_quality': job.get('audio_quality'),
-                'created_at': datetime.now().isoformat(),
-                'is_current': True,
-                'label': '当前版本',
-            })
-            job['music_runs'] = runs
-            save_job(job)
+            generated_duration = job.get('audio_duration_ms')
+            generated_quality = job.get('audio_quality')
+
+            def apply_generation(current):
+                current['audio_path'] = str(output_path)
+                current['audio_url'] = audio_url
+                current['audio_duration_ms'] = generated_duration
+                current['audio_quality'] = generated_quality
+                if lyrics_url:
+                    current['lyrics_url'] = lyrics_url
+                current['status'] = 'done'
+                current['error'] = None
+                runs = list(current.get('music_runs') or [])
+                for run in runs:
+                    run['is_current'] = False
+                runs.append({
+                    'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+                    'audio_url': audio_url,
+                    'lyrics_url': lyrics_url,
+                    'lyrics': lyrics_text,
+                    'audio_duration_ms': generated_duration,
+                    'audio_quality': generated_quality,
+                    'created_at': datetime.now().isoformat(),
+                    'is_current': True,
+                    'label': '当前版本',
+                })
+                current['music_runs'] = runs
+
+            mutate_job(job_id, apply_generation)
         except Exception as exc:
-            job['status'] = 'error'
-            job['error'] = str(exc)
-            save_job(job)
+            mutate_job(job_id, lambda current: current.update(status='error', error=str(exc)))
 
     threading.Thread(target=_run_music_generation, daemon=True).start()
 
@@ -942,14 +1012,16 @@ def retry_lyrics_api(job_id):
     if not theme:
         return jsonify({'error': '主题为空'}), 400
 
-    job['lyrics'] = None
-    job['edited_lyrics'] = None
-    job['style_tags'] = ''
-    job['audio_url'] = None
-    job['audio_path'] = None
-    job['status'] = 'generating_lyrics'
-    job['error'] = None
-    save_job(job)
+    def reset_lyrics(current):
+        current['lyrics'] = None
+        current['edited_lyrics'] = None
+        current['style_tags'] = ''
+        current['audio_url'] = None
+        current['audio_path'] = None
+        current['status'] = 'generating_lyrics'
+        current['error'] = None
+
+    job = mutate_job(job_id, reset_lyrics)
 
     style_desc = (job.get('style_description') or '').strip()
     full_prompt = theme
@@ -971,43 +1043,41 @@ def retry_music_api(job_id):
     Preserves the previous version into job['music_runs'] history
     and replaces job['audio_url']/['lyrics_url'] with the new result.
     """
-    original = load_job(job_id)
-    if not original:
-        return jsonify({'error': '任务不存在'}), 404
-    if original.get('mode') != 'music':
-        return jsonify({'error': '非音乐任务'}), 400
+    with job_lock(job_id):
+        original = load_job(job_id)
+        if not original:
+            return jsonify({'error': '任务不存在'}), 404
+        if original.get('mode') != 'music':
+            return jsonify({'error': '非音乐任务'}), 400
 
-    lyrics_text = (original.get('edited_lyrics') or original.get('lyrics') or '').strip()
-    is_instrumental = original.get('is_instrumental', False)
-    if not lyrics_text and not is_instrumental:
-        return jsonify({'error': '歌词为空，请先生成或编辑歌词'}), 400
+        lyrics_text = (original.get('edited_lyrics') or original.get('lyrics') or '').strip()
+        is_instrumental = original.get('is_instrumental', False)
+        if not lyrics_text and not is_instrumental:
+            return jsonify({'error': '歌词为空，请先生成或编辑歌词'}), 400
 
-    # Snapshot the CURRENT run into music_runs history (only if it has audio)
-    runs = list(original.get('music_runs') or [])
-    if original.get('audio_url') or original.get('audio_path'):
-        # Mark the previous current as not-current and snapshot it
-        for r in runs:
-            r['is_current'] = False
-        runs.append({
-            'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-            'audio_url': original.get('audio_url'),
-            'lyrics_url': original.get('lyrics_url'),
-            'lyrics': original.get('lyrics') or original.get('edited_lyrics'),
-            'audio_duration_ms': original.get('audio_duration_ms'),
-            'audio_quality': original.get('audio_quality'),
-            'created_at': original.get('updated_at') or original.get('created_at'),
-            'is_current': False,
-            'label': f"第 {len(runs)+1} 版",
-        })
+        runs = list(original.get('music_runs') or [])
+        if original.get('audio_url') or original.get('audio_path'):
+            for run in runs:
+                run['is_current'] = False
+            runs.append({
+                'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+                'audio_url': original.get('audio_url'),
+                'lyrics_url': original.get('lyrics_url'),
+                'lyrics': original.get('lyrics') or original.get('edited_lyrics'),
+                'audio_duration_ms': original.get('audio_duration_ms'),
+                'audio_quality': original.get('audio_quality'),
+                'created_at': original.get('updated_at') or original.get('created_at'),
+                'is_current': False,
+                'label': f"第 {len(runs)+1} 版",
+            })
 
-    # Reset current run to empty (will be filled by generate_music_api)
-    original['audio_url'] = None
-    original['audio_path'] = None
-    original['lyrics_url'] = None
-    original['status'] = 'lyrics_ready'
-    original['error'] = None
-    original['music_runs'] = runs
-    save_job(original)
+        original['audio_url'] = None
+        original['audio_path'] = None
+        original['lyrics_url'] = None
+        original['status'] = 'lyrics_ready'
+        original['error'] = None
+        original['music_runs'] = runs
+        save_job(original)
 
     return generate_music_api(job_id)
 
@@ -1019,70 +1089,62 @@ def switch_music_run_api(job_id):
     Promotes the chosen historical run to the top-level audio_url/lyrics
     and marks the current one as history (does NOT delete anything).
     """
-    original = load_job(job_id)
-    if not original:
-        return jsonify({'error': '任务不存在'}), 404
-    if original.get('mode') != 'music':
-        return jsonify({'error': '非音乐任务'}), 400
-
     body = request.get_json(silent=True) or {}
     target_run_id = body.get('run_id')
     if not target_run_id:
         return jsonify({'error': '缺少 run_id'}), 400
+    with job_lock(job_id):
+        original = load_job(job_id)
+        if not original:
+            return jsonify({'error': '任务不存在'}), 404
+        if original.get('mode') != 'music':
+            return jsonify({'error': '非音乐任务'}), 400
 
-    runs = list(original.get('music_runs') or [])
-    if not runs:
-        return jsonify({'error': '没有可切换的历史版本'}), 400
+        runs = list(original.get('music_runs') or [])
+        if not runs:
+            return jsonify({'error': '没有可切换的历史版本'}), 400
 
-    target = None
-    for r in runs:
-        if r.get('run_id') == target_run_id:
-            target = r
-            break
-    if not target:
-        return jsonify({'error': '找不到指定版本'}), 404
+        target = next((run for run in runs if run.get('run_id') == target_run_id), None)
+        if not target:
+            return jsonify({'error': '找不到指定版本'}), 404
 
-    # Snapshot the current run (if it has audio) into history
-    if original.get('audio_url') or original.get('audio_path'):
-        for r in runs:
-            r['is_current'] = False
+        if original.get('audio_url') or original.get('audio_path'):
+            for run in runs:
+                run['is_current'] = False
+            runs.append({
+                'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-switch",
+                'audio_url': original.get('audio_url'),
+                'lyrics_url': original.get('lyrics_url'),
+                'lyrics': original.get('lyrics') or original.get('edited_lyrics'),
+                'audio_duration_ms': original.get('audio_duration_ms'),
+                'audio_quality': original.get('audio_quality'),
+                'created_at': original.get('updated_at') or original.get('created_at'),
+                'is_current': False,
+                'label': f"第 {len(runs)+1} 版",
+            })
+            runs = [run for run in runs if run.get('run_id') != target_run_id]
+
+        original['audio_url'] = target.get('audio_url')
+        original['lyrics_url'] = target.get('lyrics_url')
+        original['lyrics'] = target.get('lyrics')
+        original['edited_lyrics'] = None
+        original['audio_duration_ms'] = target.get('audio_duration_ms')
+        original['status'] = 'done'
+        original['error'] = None
+        for run in runs:
+            run['is_current'] = False
         runs.append({
-            'run_id': f"r{len(runs)+1}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-switch",
-            'audio_url': original.get('audio_url'),
-            'lyrics_url': original.get('lyrics_url'),
-            'lyrics': original.get('lyrics') or original.get('edited_lyrics'),
-            'audio_duration_ms': original.get('audio_duration_ms'),
-            'audio_quality': original.get('audio_quality'),
-            'created_at': original.get('updated_at') or original.get('created_at'),
-            'is_current': False,
-            'label': f"第 {len(runs)+1} 版",
+            'run_id': target.get('run_id') + '-current',
+            'audio_url': target.get('audio_url'),
+            'lyrics_url': target.get('lyrics_url'),
+            'lyrics': target.get('lyrics'),
+            'audio_duration_ms': target.get('audio_duration_ms'),
+            'created_at': target.get('created_at') or datetime.now().isoformat(),
+            'is_current': True,
+            'label': '当前版本',
         })
-        # Remove the original target from runs so we don't duplicate
-        runs = [r for r in runs if r.get('run_id') != target_run_id]
-
-    # Promote target to current
-    original['audio_url'] = target.get('audio_url')
-    original['lyrics_url'] = target.get('lyrics_url')
-    original['lyrics'] = target.get('lyrics')
-    original['edited_lyrics'] = None
-    original['audio_duration_ms'] = target.get('audio_duration_ms')
-    original['status'] = 'done'
-    original['error'] = None
-    # Mark the (now top-level) target as current in the list
-    for r in runs:
-        r['is_current'] = False
-    runs.append({
-        'run_id': target.get('run_id') + '-current',
-        'audio_url': target.get('audio_url'),
-        'lyrics_url': target.get('lyrics_url'),
-        'lyrics': target.get('lyrics'),
-        'audio_duration_ms': target.get('audio_duration_ms'),
-        'created_at': target.get('created_at') or datetime.now().isoformat(),
-        'is_current': True,
-        'label': '当前版本',
-    })
-    original['music_runs'] = runs
-    save_job(original)
+        original['music_runs'] = runs
+        save_job(original)
     return jsonify(job_response(original))
 
 
@@ -1102,11 +1164,10 @@ def cover_preprocess_api(job_id):
     if not job.get('reference_audio_url'):
         return jsonify({'error': '缺少参考音频'}), 400
 
-    if job.get('status') == 'awaiting_reference':
-        job['status'] = 'pending'
-    job['status'] = 'preprocessing'
-    job['error'] = None
-    save_job(job)
+    job = mutate_job(
+        job_id,
+        lambda current: current.update(status='preprocessing', error=None),
+    )
 
     def _run():
         try:
@@ -1118,19 +1179,17 @@ def cover_preprocess_api(job_id):
             if result.returncode != 0:
                 raise RuntimeError((result.stderr or result.stdout or '预处理失败').strip()[-1000:])
             data = json.loads(result.stdout)
-            j = load_job(job_id)
-            j['cover_feature_id'] = data.get('cover_feature_id')
-            j['formatted_lyrics'] = data.get('formatted_lyrics') or ''
-            j['lyrics'] = j['formatted_lyrics']
-            j['edited_lyrics'] = None
-            j['status'] = 'preprocess_ready'
-            j['error'] = None
-            save_job(j)
+            def apply_preprocess(current):
+                current['cover_feature_id'] = data.get('cover_feature_id')
+                current['formatted_lyrics'] = data.get('formatted_lyrics') or ''
+                current['lyrics'] = current['formatted_lyrics']
+                current['edited_lyrics'] = None
+                current['status'] = 'preprocess_ready'
+                current['error'] = None
+
+            mutate_job(job_id, apply_preprocess)
         except Exception as exc:
-            j = load_job(job_id)
-            j['status'] = 'error'
-            j['error'] = str(exc)
-            save_job(j)
+            mutate_job(job_id, lambda current: current.update(status='error', error=str(exc)))
 
     threading.Thread(target=_run, daemon=True).start()
     return jsonify(job_response(job))
@@ -1192,9 +1251,10 @@ def cover_generate_api(job_id):
     else:
         cmd.extend(['--cover-url', job['reference_audio_url']])
 
-    job['status'] = 'generating'
-    job['error'] = None
-    save_job(job)
+    job = mutate_job(
+        job_id,
+        lambda current: current.update(status='generating', error=None),
+    )
 
     def _run():
         try:
@@ -1220,11 +1280,13 @@ def cover_generate_api(job_id):
                     and 'invalid cover_feature_id' in err
                     and not nonlocal_feature_retry_used):
                 nonlocal_feature_retry_used = True
-                j = load_job(job_id)
-                # 状态切换到 preprocessing 并保存，给用户一个反馈
-                j['status'] = 'preprocessing'
-                j['error'] = 'cover_feature_id 已过期（>24h），正在自动重新提取…'
-                save_job(j)
+                j = mutate_job(
+                    job_id,
+                    lambda current: current.update(
+                        status='preprocessing',
+                        error='cover_feature_id 已过期（>24h），正在自动重新提取…',
+                    ),
+                )
                 try:
                     prep = subprocess.run(
                         ['python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
@@ -1238,14 +1300,14 @@ def cover_generate_api(job_id):
                     new_fid = prep_data.get('cover_feature_id')
                     if not new_fid:
                         raise RuntimeError('重新提取未返回 cover_feature_id')
-                    # 用新 ID 重置 job 字段；保留用户手动填的 edited_lyrics
-                    j['cover_feature_id'] = new_fid
-                    j['formatted_lyrics'] = prep_data.get('formatted_lyrics') or ''
-                    if not (j.get('edited_lyrics') or '').strip():
-                        # 用户没手动填过 → 同步用最新抽取的 lyrics
-                        j['lyrics'] = j['formatted_lyrics']
-                    j['error'] = None
-                    save_job(j)
+                    def apply_reprocess(current):
+                        current['cover_feature_id'] = new_fid
+                        current['formatted_lyrics'] = prep_data.get('formatted_lyrics') or ''
+                        if not (current.get('edited_lyrics') or '').strip():
+                            current['lyrics'] = current['formatted_lyrics']
+                        current['error'] = None
+
+                    j = mutate_job(job_id, apply_reprocess)
                     # 重置 feature_id 局部变量 + 重新拼装 cmd
                     new_cmd = [
                         'python3', str(SKILL_DIR / 'scripts' / 'minimax_music.py'),
@@ -1258,8 +1320,10 @@ def cover_generate_api(job_id):
                     if lyrics_text:
                         lyrics_path.write_text(lyrics_text, encoding='utf-8')
                         new_cmd.extend(['--lyrics-file', str(lyrics_path)])
-                    j['status'] = 'generating'
-                    save_job(j)
+                    j = mutate_job(
+                        job_id,
+                        lambda current: current.update(status='generating'),
+                    )
                     result, err = _try_cover_generate(new_cmd)
                 except Exception as recover_exc:
                     raise RuntimeError(f'cover_feature_id 过期且自动重提取失败：{recover_exc}')
@@ -1299,19 +1363,20 @@ def cover_generate_api(job_id):
                 if lyric_up.returncode == 0:
                     lyrics_url = lyric_up.stdout.strip().splitlines()[-1].strip()
 
-            j = load_job(job_id)
-            j['audio_path'] = str(output_path)
-            j['audio_url'] = audio_url
-            if lyrics_url:
-                j['lyrics_url'] = lyrics_url
-            j['status'] = 'done'
-            j['error'] = None
-            save_job(j)
+            generated_duration = job.get('audio_duration_ms')
+
+            def apply_cover_result(current):
+                current['audio_path'] = str(output_path)
+                current['audio_url'] = audio_url
+                current['audio_duration_ms'] = generated_duration
+                if lyrics_url:
+                    current['lyrics_url'] = lyrics_url
+                current['status'] = 'done'
+                current['error'] = None
+
+            mutate_job(job_id, apply_cover_result)
         except Exception as exc:
-            j = load_job(job_id)
-            j['status'] = 'error'
-            j['error'] = str(exc)
-            save_job(j)
+            mutate_job(job_id, lambda current: current.update(status='error', error=str(exc)))
 
     threading.Thread(target=_run, daemon=True).start()
     return jsonify(job_response(job))
@@ -1371,12 +1436,13 @@ def upload_reference_audio_api(job_id):
         return jsonify({'error': (result.stderr or result.stdout or '上传失败').strip()}), 500
 
     audio_url = result.stdout.strip().splitlines()[-1].strip()
-    job['reference_audio_url'] = audio_url
-    job['reference_audio_name'] = f.filename
-    # cover 任务：上传参考音频后从 awaiting_reference 回到 pending
-    if job.get('mode') == 'music_cover' and job.get('status') == 'awaiting_reference':
-        job['status'] = 'pending'
-    save_job(job)
+    def attach_reference(current):
+        current['reference_audio_url'] = audio_url
+        current['reference_audio_name'] = f.filename
+        if current.get('mode') == 'music_cover' and current.get('status') == 'awaiting_reference':
+            current['status'] = 'pending'
+
+    job = mutate_job(job_id, attach_reference)
     return jsonify(job_response(job))
 
 
@@ -1388,9 +1454,10 @@ def delete_reference_audio_api(job_id):
         return jsonify({'error': '任务不存在'}), 404
     if job.get('mode') not in ('music', 'music_cover'):
         return jsonify({'error': '非音乐/翻唱任务'}), 400
-    job['reference_audio_url'] = None
-    job['reference_audio_name'] = None
-    save_job(job)
+    job = mutate_job(
+        job_id,
+        lambda current: current.update(reference_audio_url=None, reference_audio_name=None),
+    )
     return jsonify(job_response(job))
 
 
@@ -1402,11 +1469,15 @@ def star_job_api(job_id):
     if not job:
         return jsonify({'error': '任务不存在'}), 404
     data = request.get_json(silent=True) or {}
-    new_value = data.get('is_starred')
-    if new_value is None:
-        new_value = not job.get('is_starred', False)
-    job['is_starred'] = bool(new_value)
-    save_job(job)
+    requested_value = data.get('is_starred')
+
+    def apply_star(current):
+        new_value = requested_value
+        if new_value is None:
+            new_value = not current.get('is_starred', False)
+        current['is_starred'] = bool(new_value)
+
+    job = mutate_job(job_id, apply_star)
     return jsonify(job_response(job))
 
 
@@ -1756,39 +1827,43 @@ def process_tts(job_id):
     if not script:
         return jsonify({'error': '文稿为空，无法生成'}), 400
 
-    if job.get('voice_runs') is None:
-        job['voice_runs'] = []
-
-    run_id = f'run-{datetime.now().strftime("%Y%m%d-%H%M%S")}-{len(job["voice_runs"])+1}'
-    voice = job.get('voice', 'zh-CN-YunzeNeural')
-    do_mix = job.get('bgm', True)
-    bgm_asset = job.get('bgm_asset', 'bgm_default.mp3')
-
     try:
-        # Guard: if job already has final_url but status is stuck at tts/mixing,
-        # it means a prior run completed but didn't update status (e.g. crash/restart mid-save).
-        # Mark it done and skip re-synthesis.
-        if job.get('final_url') and job.get('status') in ('tts', 'mixing'):
-            job['status'] = 'done'
-            save_job(job)
+        skip_synthesis = [False]
+        run_id_holder = [None]
+
+        def start_run(current):
+            if current.get('final_url') and current.get('status') in ('tts', 'mixing'):
+                current['status'] = 'done'
+                skip_synthesis[0] = True
+                return
+            current['status'] = 'tts'
+            current['error'] = None
+            run_id_holder[0] = (
+                f'run-{datetime.now().strftime("%Y%m%d-%H%M%S")}-'
+                f'{uuid.uuid4().hex[:8]}'
+            )
+
+        job = mutate_job(job_id, start_run)
+        if skip_synthesis[0]:
             return jsonify(job_response(job))
 
-        job['status'] = 'tts'
-        job['error'] = None
-        save_job(job)
-
+        run_id = run_id_holder[0]
+        voice = job.get('voice', 'zh-CN-YunzeNeural')
+        do_mix = job.get('bgm', True)
+        bgm_asset = job.get('bgm_asset', 'bgm_default.mp3')
         run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider='azure')
-        job['voice_runs'].append(run_info)
-        # Mirror last run to top-level fields for backward compatibility
-        job['final_url'] = run_info['final_url']
-        job['voice_url'] = run_info['voice_url']
-        job['status'] = 'done'
-        save_job(job)
+
+        def finish_run(current):
+            current.setdefault('voice_runs', []).append(run_info)
+            current['final_url'] = run_info['final_url']
+            current['voice_url'] = run_info['voice_url']
+            current['status'] = 'done'
+            current['error'] = None
+
+        job = mutate_job(job_id, finish_run)
         return jsonify(job_response(job))
     except Exception as exc:
-        job['status'] = 'error'
-        job['error'] = str(exc)
-        save_job(job)
+        job = mutate_job(job_id, lambda current: current.update(status='error', error=str(exc))) or job
         return jsonify(job_response(job)), 500
 
 
@@ -1806,38 +1881,46 @@ def tts_voice_run(job_id):
     if not script:
         return jsonify({'error': '文稿为空，无法生成'}), 400
 
-    if job.get('voice_runs') is None:
-        job['voice_runs'] = []
-
     data = request.get_json() or {}
-    run_id = f'run-{datetime.now().strftime("%Y%m%d-%H%M%S")}-{len(job["voice_runs"])+1}'
-    voice = data.get('voice', job.get('voice', 'zh-CN-YunzeNeural'))
-    do_mix = data.get('bgm', job.get('bgm', True))
-    bgm_asset = data.get('bgm_asset', job.get('bgm_asset', 'bgm_default.mp3'))
-    bgm_volume = data.get('bgm_volume', 0.06)
 
     try:
-        # Guard: if job already has final_url but status is stuck, skip re-synthesis
-        if job.get('final_url') and job.get('status') in ('tts', 'mixing'):
-            job['status'] = 'done'
-            save_job(job)
+        skip_synthesis = [False]
+        run_id_holder = [None]
+
+        def start_run(current):
+            if current.get('final_url') and current.get('status') in ('tts', 'mixing'):
+                current['status'] = 'done'
+                skip_synthesis[0] = True
+                return
+            current['status'] = 'tts'
+            current['error'] = None
+            run_id_holder[0] = (
+                f'run-{datetime.now().strftime("%Y%m%d-%H%M%S")}-'
+                f'{uuid.uuid4().hex[:8]}'
+            )
+
+        job = mutate_job(job_id, start_run)
+        if skip_synthesis[0]:
             return jsonify(job_response(job))
 
-        job['status'] = 'tts'
-        job['error'] = None
-        save_job(job)
-
+        run_id = run_id_holder[0]
+        voice = data.get('voice', job.get('voice', 'zh-CN-YunzeNeural'))
+        do_mix = data.get('bgm', job.get('bgm', True))
+        bgm_asset = data.get('bgm_asset', job.get('bgm_asset', 'bgm_default.mp3'))
+        bgm_volume = data.get('bgm_volume', 0.06)
         run_info = _synthesize_run(job, run_id, voice, do_mix, bgm_asset, provider=data.get('provider', 'azure'), bgm_volume=bgm_volume, speed=data.get('speed', 0.9))
-        job['voice_runs'].append(run_info)
-        job['final_url'] = run_info['final_url']
-        job['voice_url'] = run_info['voice_url']
-        job['status'] = 'done'
-        save_job(job)
+
+        def finish_run(current):
+            current.setdefault('voice_runs', []).append(run_info)
+            current['final_url'] = run_info['final_url']
+            current['voice_url'] = run_info['voice_url']
+            current['status'] = 'done'
+            current['error'] = None
+
+        job = mutate_job(job_id, finish_run)
         return jsonify(job_response(job))
     except Exception as exc:
-        job['status'] = 'error'
-        job['error'] = str(exc)
-        save_job(job)
+        job = mutate_job(job_id, lambda current: current.update(status='error', error=str(exc))) or job
         return jsonify(job_response(job)), 500
 
 # ── BGM 文件服务 ────────────────────────────────────────

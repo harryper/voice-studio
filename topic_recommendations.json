@@ -1,194 +1,5 @@
 [
   {
-    "title": "中年海马体里的免疫细胞开始重新排班",
-    "category": "神经",
-    "angle": "从四十份人类海马组织讲到小胶质细胞在中年后减少并被带有炎症特征的细胞群逐步替代",
-    "source": "NIH 2026-07-23",
-    "source_url": "https://www.nih.gov/news-events/news-releases/brain-immunity-may-undergo-major-midlife-overhaul",
-    "evergreen": false,
-    "updated_at": "2026-07-23"
-  },
-  {
-    "title": "生活方式对不同突变引发的炎症影响并不相同",
-    "category": "免疫",
-    "angle": "从人群中的运动关联和小鼠睡眠运动实验讲到不同驱动突变对这些因素的响应并不相同",
-    "source": "NIH 2026-07-14",
-    "source_url": "https://www.nih.gov/news-events/nih-research-matters/sleep-exercise-may-reduce-mutation-driven-inflammation",
-    "evergreen": false,
-    "updated_at": "2026-07-14"
-  },
-  {
-    "title": "一个转录因子改动让老年小鼠肝脏显出年轻特征",
-    "category": "衰老",
-    "angle": "从人类成纤维细胞筛选讲到提高EZH2表达在老年小鼠肝脏中逆转部分衰老相关特征",
-    "source": "NIH 2026-02-24",
-    "source_url": "https://www.nih.gov/news-events/nih-research-matters/manipulating-gene-activity-reverse-aging",
-    "evergreen": false,
-    "updated_at": "2026-02-24"
-  },
-  {
-    "title": "超级老人海马体里的新生神经元留下独特签名",
-    "category": "神经",
-    "angle": "从三十五万多个捐献脑细胞讲到记忆出众的高龄者拥有不同的神经发生分子特征",
-    "source": "NIH 2026-03-31",
-    "source_url": "https://www.nih.gov/news-events/nih-research-matters/superagers-show-unique-cell-signatures-brain",
-    "evergreen": false,
-    "updated_at": "2026-03-31"
-  },
-  {
-    "title": "同一组织里的细胞也可能按不同速度变老",
-    "category": "细胞",
-    "angle": "从单细胞全基因组甲基化数据讲到少数细胞会更快获得多梳蛋白相关CpG岛甲基化",
-    "source": "Nature 2026-06-09",
-    "source_url": "https://www.nature.com/articles/s41467-026-74118-5",
-    "evergreen": false,
-    "updated_at": "2026-06-09"
-  },
-  {
-    "title": "寿命相关位点的作用会随年龄和性别改变",
-    "category": "遗传",
-    "angle": "从六千多只遗传多样小鼠讲到一些寿命位点只在特定年龄起效并呈现明显的雌雄差异",
-    "source": "Nature 2026-04-22",
-    "source_url": "https://www.nature.com/articles/s41586-026-10407-9",
-    "evergreen": false,
-    "updated_at": "2026-04-22"
-  },
-  {
-    "title": "衰老细胞终于有了跨组织识别地图",
-    "category": "衰老",
-    "angle": "从SenNet联盟的多组织数据讲到研究者如何建立识别和编目的统一框架而不是只靠单一标志物",
-    "source": "NIH 2026-06-11",
-    "source_url": "https://www.nih.gov/news-events/news-releases/nih-research-establishes-new-framework-role-senescence-aging",
-    "evergreen": false,
-    "updated_at": "2026-06-11"
-  },
-  {
-    "title": "微型捕食者会在不同尺度重排细菌群落",
-    "category": "微生物",
-    "angle": "从六大洲土壤和受控实验讲到食菌原生生物为何能推动局部趋同却造成全球差异",
-    "source": "Nature 2026-03-18",
-    "source_url": "https://www.nature.com/articles/s41467-026-70605-x",
-    "evergreen": false,
-    "updated_at": "2026-03-18"
-  },
-  {
-    "title": "植物能把根部收到的细菌信号变成全身免疫预备",
-    "category": "植物",
-    "angle": "从拟南芥根部感知表面活性素讲到膜重塑和机械敏感通道如何引出系统性抗性预激",
-    "source": "Nature 2026-04-20",
-    "source_url": "https://www.nature.com/articles/s41477-026-02270-3",
-    "evergreen": false,
-    "updated_at": "2026-04-20"
-  },
-  {
-    "title": "果蝇沿气味边缘前进时会不断改写方向记忆",
-    "category": "动物行为",
-    "angle": "从虚拟气味走廊讲到果蝇如何把风向和刚刚进入气味带的角度合成动态导航目标",
-    "source": "Nature 2026-07-22",
-    "source_url": "https://www.nature.com/articles/s41586-026-10827-7",
-    "evergreen": false,
-    "updated_at": "2026-07-22"
-  },
-  {
-    "title": "两米长的DNA怎样塞进微小细胞核",
-    "category": "遗传",
-    "angle": "从DNA绕组蛋白形成核小体讲到染色质压缩和基因读取之间的平衡",
-    "source": "NCBI Bookshelf DNA Packaging",
-    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK534207/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "线粒体DNA为什么主要沿母系传递",
-    "category": "遗传",
-    "angle": "从卵细胞贡献细胞器讲到异质性和随机分配为何让线粒体遗传不同于孟德尔规律",
-    "source": "NCBI Bookshelf Mitochondrial Inheritance",
-    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK6292/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "同一套DNA怎样打开不同的基因开关",
-    "category": "细胞",
-    "angle": "从DNA甲基化和组蛋白修饰讲到表观遗传信息如何在不改序列时调节基因活动",
-    "source": "NCBI Bookshelf Introduction to Epigenetics",
-    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK585710/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "基因多出一份副本为何可能带来新功能",
-    "category": "演化",
-    "angle": "从剂量效应和功能分工讲到重复基因如何保留旧任务或走向新的演化用途",
-    "source": "Nature Reviews Genetics Gene Duplication",
-    "source_url": "https://www.nature.com/articles/s41576-026-00935-5",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "端粒是染色体护帽却不是简单的寿命倒计时",
-    "category": "衰老",
-    "angle": "从染色体末端保护讲到端粒缩短引发的损伤信号以及它与细胞衰老的复杂关系",
-    "source": "NIA Telomere Maintenance",
-    "source_url": "https://www.nia.nih.gov/research/labs/lmg/section-telomere-maintenance",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "成年大脑仍能重新安排连接",
-    "category": "神经",
-    "angle": "从突触变化和功能重组讲到经验与损伤如何持续塑造成年神经系统",
-    "source": "NCBI Bookshelf Neuroplasticity",
-    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK557811/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "睡眠会参与记忆的整理与巩固",
-    "category": "神经",
-    "angle": "从睡眠中的神经活动重放讲到新记忆如何被保存并与旧知识整合",
-    "source": "NCBI Bookshelf Sleep and Memory",
-    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK435759/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "噬菌体和细菌一直在升级攻防武器",
-    "category": "微生物",
-    "angle": "从细菌限制修饰和CRISPR防线讲到噬菌体的反制如何推动双方共同演化",
-    "source": "NCBI PMC Phage Arms Race",
-    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4987407/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "生物膜是微生物自己搭出的立体社区",
-    "category": "微生物",
-    "angle": "从胞外聚合物基质讲到贴附生活为何能产生单个游离细胞没有的群体性质",
-    "source": "NCBI PMC Biofilm Primer",
-    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7615007/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "免疫系统为什么第二次反应更快",
-    "category": "免疫",
-    "angle": "从克隆扩增和记忆淋巴细胞讲到再次遇见同一抗原时更迅速的应答",
-    "source": "NCBI Bookshelf Immunological Memory",
-    "source_url": "https://www.ncbi.nlm.nih.gov/sites/books/NBK27158/",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
-    "title": "免疫系统怎样把自己误认成敌人",
-    "category": "免疫",
-    "angle": "从自我耐受讲到自身抗体和自身反应性T细胞为何可能持续攻击健康组织",
-    "source": "NIAMS Autoimmune Diseases",
-    "source_url": "https://www.niams.nih.gov/health-topics/autoimmune-diseases",
-    "evergreen": true,
-    "updated_at": "2026-08-16"
-  },
-  {
     "title": "亲缘很远的物种为何会演化出相似答案",
     "category": "演化",
     "angle": "从相似环境压力讲到趋同表型有时也会借用相同或相近的遗传路径",
@@ -198,11 +9,11 @@
     "updated_at": "2026-08-16"
   },
   {
-    "title": "线粒体和叶绿体保留着细菌祖先的痕迹",
-    "category": "细胞",
-    "angle": "从双层膜和独立基因组讲到古老内共生如何把自由生活细菌变成细胞器",
-    "source": "NCBI PMC Endosymbiosis",
-    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2817223/",
+    "title": "免疫系统为什么第二次反应更快",
+    "category": "免疫",
+    "angle": "从克隆扩增和记忆淋巴细胞讲到再次遇见同一抗原时更迅速的应答",
+    "source": "NCBI Bookshelf Immunological Memory",
+    "source_url": "https://www.ncbi.nlm.nih.gov/sites/books/NBK27158/",
     "evergreen": true,
     "updated_at": "2026-08-16"
   },
@@ -225,11 +36,11 @@
     "updated_at": "2026-08-16"
   },
   {
-    "title": "植物没有大脑也能传递和整合信号",
-    "category": "植物",
-    "angle": "从生长素和乙烯等小分子讲到受体与信号通路如何协调生长和环境响应",
-    "source": "Nature Plant Hormone Signalling",
-    "source_url": "https://www.nature.com/articles/nature08122",
+    "title": "端粒是染色体护帽却不是简单的寿命倒计时",
+    "category": "衰老",
+    "angle": "从染色体末端保护讲到端粒缩短引发的损伤信号以及它与细胞衰老的复杂关系",
+    "source": "NIA Telomere Maintenance",
+    "source_url": "https://www.nia.nih.gov/research/labs/lmg/section-telomere-maintenance",
     "evergreen": true,
     "updated_at": "2026-08-16"
   },
@@ -243,6 +54,69 @@
     "updated_at": "2026-08-16"
   },
   {
+    "title": "候鸟第一次远行靠什么找到方向",
+    "category": "动物行为",
+    "angle": "从时钟加罗盘的先天程序讲到太阳星光地磁和经验如何共同支撑长途迁徙",
+    "source": "NCBI PMC Avian Navigation",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11900352/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "睡眠会参与记忆的整理与巩固",
+    "category": "神经",
+    "angle": "从睡眠中的神经活动重放讲到新记忆如何被保存并与旧知识整合",
+    "source": "NCBI Bookshelf Sleep and Memory",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK435759/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "基因多出一份副本为何可能带来新功能",
+    "category": "演化",
+    "angle": "从剂量效应和功能分工讲到重复基因如何保留旧任务或走向新的演化用途",
+    "source": "Nature Reviews Genetics Gene Duplication",
+    "source_url": "https://www.nature.com/articles/s41576-026-00935-5",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "植物没有大脑也能传递和整合信号",
+    "category": "植物",
+    "angle": "从生长素和乙烯等小分子讲到受体与信号通路如何协调生长和环境响应",
+    "source": "Nature Plant Hormone Signalling",
+    "source_url": "https://www.nature.com/articles/nature08122",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "同一套DNA怎样打开不同的基因开关",
+    "category": "细胞",
+    "angle": "从DNA甲基化和组蛋白修饰讲到表观遗传信息如何在不改序列时调节基因活动",
+    "source": "NCBI Bookshelf Introduction to Epigenetics",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK585710/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "成年大脑仍能重新安排连接",
+    "category": "神经",
+    "angle": "从突触变化和功能重组讲到经验与损伤如何持续塑造成年神经系统",
+    "source": "NCBI Bookshelf Neuroplasticity",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK557811/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "生物膜是微生物自己搭出的立体社区",
+    "category": "微生物",
+    "angle": "从胞外聚合物基质讲到贴附生活为何能产生单个游离细胞没有的群体性质",
+    "source": "NCBI PMC Biofilm Primer",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7615007/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
     "title": "简单的邻居互动怎样涌现出整齐群体",
     "category": "动物行为",
     "angle": "从鱼群的局部反应讲到信息传递如何让动物群体在无序和高度一致之间切换",
@@ -252,11 +126,47 @@
     "updated_at": "2026-08-16"
   },
   {
-    "title": "候鸟第一次远行靠什么找到方向",
-    "category": "动物行为",
-    "angle": "从时钟加罗盘的先天程序讲到太阳星光地磁和经验如何共同支撑长途迁徙",
-    "source": "NCBI PMC Avian Navigation",
-    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11900352/",
+    "title": "两米长的DNA怎样塞进微小细胞核",
+    "category": "遗传",
+    "angle": "从DNA绕组蛋白形成核小体讲到染色质压缩和基因读取之间的平衡",
+    "source": "NCBI Bookshelf DNA Packaging",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK534207/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "线粒体和叶绿体保留着细菌祖先的痕迹",
+    "category": "细胞",
+    "angle": "从双层膜和独立基因组讲到古老内共生如何把自由生活细菌变成细胞器",
+    "source": "NCBI PMC Endosymbiosis",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2817223/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "免疫系统怎样把自己误认成敌人",
+    "category": "免疫",
+    "angle": "从自我耐受讲到自身抗体和自身反应性T细胞为何可能持续攻击健康组织",
+    "source": "NIAMS Autoimmune Diseases",
+    "source_url": "https://www.niams.nih.gov/health-topics/autoimmune-diseases",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "噬菌体和细菌一直在升级攻防武器",
+    "category": "微生物",
+    "angle": "从细菌限制修饰和CRISPR防线讲到噬菌体的反制如何推动双方共同演化",
+    "source": "NCBI PMC Phage Arms Race",
+    "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4987407/",
+    "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "线粒体DNA为什么主要沿母系传递",
+    "category": "遗传",
+    "angle": "从卵细胞贡献细胞器讲到异质性和随机分配为何让线粒体遗传不同于孟德尔规律",
+    "source": "NCBI Bookshelf Mitochondrial Inheritance",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK6292/",
     "evergreen": true,
     "updated_at": "2026-08-16"
   },
@@ -267,6 +177,96 @@
     "source": "NCBI PMC Octopus Motor Control",
     "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10755184/",
     "evergreen": true,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为水母一辈子只能飘着其实它体内藏着好几个自己",
+    "category": "演化",
+    "angle": "从水母幼体到成体的转变，讲细胞如何在演化中临时拼出一整套新身份",
+    "source": "PLOS Biology 2026-08-16",
+    "source_url": "https://journals.plos.org/plosbiology/article?id=10.1371/journal.pbio.3003931",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为帕金森只是多巴胺神经元的丢失其实它从包裹神经的另一种细胞先坏掉",
+    "category": "衰老",
+    "angle": "从果蝇的 ensheathing glia 损坏讲到少突胶质细胞在帕金森里被忽略的早期角色",
+    "source": "eLife 2026-08-16",
+    "source_url": "https://elifesciences.org/articles/105386",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "中年海马体里的免疫细胞开始重新排班",
+    "category": "神经",
+    "angle": "从四十份人类海马组织讲到小胶质细胞在中年后减少并被带有炎症特征的细胞群逐步替代",
+    "source": "NIH 2026-07-23",
+    "source_url": "https://www.nih.gov/news-events/news-releases/brain-immunity-may-undergo-major-midlife-overhaul",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "一个转录因子改动让老年小鼠肝脏显出年轻特征",
+    "category": "衰老",
+    "angle": "从人类成纤维细胞筛选讲到提高EZH2表达在老年小鼠肝脏中逆转部分衰老相关特征",
+    "source": "NIH 2026-02-24",
+    "source_url": "https://www.nih.gov/news-events/nih-research-matters/manipulating-gene-activity-reverse-aging",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为绒猴的大脑只属于自己其实里面住着兄弟姐妹的细胞",
+    "category": "动物行为",
+    "angle": "从绒猴血液里的混合讲到大脑里也藏着兄弟姊妹捐出来的免疫细胞",
+    "source": "eLife 2026-08-16",
+    "source_url": "https://elifesciences.org/articles/93640",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为安第斯高原人只是适应了缺氧其实他们血液里的氧气生意已经秘密改写了几千年",
+    "category": "演化",
+    "angle": "从高原人群血红蛋白浓度的差异讲到人类基因在极端环境里留下的演化痕迹",
+    "source": "NIH NCBI Bookshelf 2026-08-16",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK230201/",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为免疫细胞只会攻击敌人其实它正在你的肠道里偷偷学着别太凶",
+    "category": "免疫",
+    "angle": "从 CD28 这个分子开关讲到炎症性肠病里那群过度卖力的 T 细胞为何停不下来",
+    "source": "bioRxiv 2026-08-16",
+    "source_url": "https://www.biorxiv.org/content/10.64898/2026.08.10.744081v1?rss=1",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为神经只传电信号其实它还会记住一阵沉默",
+    "category": "神经",
+    "angle": "从癫痫脑里的突触变化讲到神经回路怎样用“减法”保留一段长期记忆",
+    "source": "bioRxiv 2026-08-16",
+    "source_url": "https://www.biorxiv.org/content/10.64898/2026.08.10.743452v1?rss=1",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为植物只会安静晒太阳其实它的根在黑暗里正在偷偷数邻居",
+    "category": "植物",
+    "angle": "从地下根系网络讲到植物如何通过化学信号识别谁是自家亲戚谁是陌生对手",
+    "source": "NIH NCBI Bookshelf 2026-08-16",
+    "source_url": "https://www.ncbi.nlm.nih.gov/books/NBK217808/",
+    "evergreen": false,
+    "updated_at": "2026-08-16"
+  },
+  {
+    "title": "你以为疟疾的药只针对疟原虫其实它可能顺手拆掉肿瘤的电池",
+    "category": "细胞",
+    "angle": "从疟疾老药重新被科学家盯上，讲它如何钻到肿瘤细胞线粒体里改变能量供应",
+    "source": "Nature Biology 2026-08-16",
+    "source_url": "https://www.nature.com/articles/s41598-026-66961-9",
+    "evergreen": false,
     "updated_at": "2026-08-16"
   }
 ]

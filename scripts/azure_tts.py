@@ -26,6 +26,7 @@ import argparse
 import sys
 import os
 import requests
+from xml.sax.saxutils import escape as xml_escape
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 KEY_FILE = os.path.join(SCRIPT_DIR, "azure_speech_key.txt")
@@ -53,8 +54,8 @@ def build_ssml(text, voice, lang, style=None, styledegree=None,
                rate=None, pitch=None, volume=None, pause_ms=None):
     """构建 SSML，按需注入 prosody / express-as / break 标签。"""
 
-    # 内层：文本内容
-    inner = text
+    # 内层：文本内容（XML 转义，避免文本里出现 & < > 触发 Azure SSML 解析失败）
+    inner = xml_escape(text)
 
     # 如果有停顿，按段落（双换行）拆开插入 break
     if pause_ms and pause_ms > 0:
